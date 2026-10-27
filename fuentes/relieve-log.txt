@@ -1,0 +1,95 @@
+ERROR 1: TIFFFetchDirectory:Sanity check on directory count failed, this is probably not a valid IFD offset
+ERROR 1: TIFFReadDirectory:Failed to read directory at offset 8
+Colecciones del servidor OGC API:
+   EL.ElevationGridCoverage_4326_1000
+   EL.ElevationGridCoverage_4326_500
+   EL.ElevationGridCoverage_4258_1000
+   EL.ElevationGridCoverage_4258_500
+   EL.ElevationGridCoverage_4258_200_PB
+   EL.ElevationGridCoverage_4258_200_C
+   EL.ElevationGridCoverage_4258_25_PB
+   EL.ElevationGridCoverage_4258_25_C
+   EL.ElevationGridCoverage_4258_5_PB
+   EL.ElevationGridCoverage_4258_5_C
+   EL.ElevationGridCoverage_25830_1000_PB
+   EL.ElevationGridCoverage_25830_500_PB
+   EL.ElevationGridCoverage_25830_200_PB
+   EL.ElevationGridCoverage_25830_25_PB
+   EL.ElevationGridCoverage_25830_5_PB
+   EL.ElevationGridCoverage_4083_1000_C
+   EL.ElevationGridCoverage_4083_500_C
+   EL.ElevationGridCoverage_4083_200_C
+   EL.ElevationGridCoverage_4083_25_C
+   EL.ElevationGridCoverage_4083_5_C
+   NZ.HazardAreaRiversFloodT500_25830
+   NZ.HazardAreaRiversFloodT100_25830
+   NZ.HazardAreaRiversFloodT10_25830
+   NZ.HazardAreaCoastalFloodT500_25830
+   NZ.HazardAreaCoastalFloodT100_25830
+   EL.GridCoverage.ARPSI_25830
+Capacidades WCS (ids):
+   [b'\r\n\t\t', b'Elevacion25830_1000', b'Elevacion25830_200', b'Elevacion25830_25', b'Elevacion25830_5', b'Elevacion25830_500', b'Elevacion4083_1000', b'Elevacion4083_200', b'Elevacion4083_25', b'Elevacion4083_5', b'Elevacion4083_500', b'Elevacion4258_1000', b'Elevacion4258_200', b'Elevacion4258_25', b'Elevacion4258_5', b'Elevacion4258_500', b'Elevacion4326_1000', b'Elevacion4326_500']
+Probando api EL.ElevationGridCoverage_25829_5 bbox
+  ERROR HTTP Error 404: NOT FOUND  https://api-coverages.idee.es/collections/EL.ElevationGridCoverage_25829_5/coverage?f=COG&bbox=-8.72,42.23,-8.71,42.24
+    b'{\n    "code":"InvalidParameterValue",\n    "type":"InvalidParameterValue",\n    "description":"collection does not exist"\n}'
+Probando api EL.ElevationGridCoverage_25829_5 subset utm
+  ERROR HTTP Error 404: NOT FOUND  https://api-coverages.idee.es/collections/EL.ElevationGridCoverage_25829_5/coverage?f=COG&subset=E(523102:523930)&subset=N(4675351:4676464)
+    b'{\n    "code":"InvalidParameterValue",\n    "type":"InvalidParameterValue",\n    "description":"collection does not exist"\n}'
+Probando api EL.ElevationGridCoverage_25829_5 bbox-crs
+  ERROR HTTP Error 404: NOT FOUND  https://api-coverages.idee.es/collections/EL.ElevationGridCoverage_25829_5/coverage?f=COG&bbox=523102,4675351,523930,4676464&bbox-crs=http%3A%2F%2Fwww.opengis.net%2Fdef%2Fcrs%2FEPSG%2F0%2F25829
+    b'{\n    "code":"InvalidParameterValue",\n    "type":"InvalidParameterValue",\n    "description":"collection does not exist"\n}'
+Probando api EL.ElevationGridCoverage_25830_5_PB bbox
+  ERROR HTTP Error 500: INTERNAL SERVER ERROR  https://api-coverages.idee.es/collections/EL.ElevationGridCoverage_25830_5_PB/coverage?f=COG&bbox=-8.72,42.23,-8.71,42.24
+    b'<!doctype html>\n<html lang=en>\n<title>500 Internal Server Error</title>\n<h1>Internal Server Error</h1>\n<p>The server encountered an internal error and was unable to complete your request. Either the server is overloaded or there is an error in the application.</p>\n'
+Probando api EL.ElevationGridCoverage_25830_5_PB subset utm
+  ERROR HTTP Error 400: BAD REQUEST  https://api-coverages.idee.es/collections/EL.ElevationGridCoverage_25830_5_PB/coverage?f=COG&subset=E(27917:28817)&subset=N(4691124:4692290)
+    b'{\n    "code":"InvalidParameterValue",\n    "type":"InvalidParameterValue",\n    "description":"Invalid axis name"\n}'
+Probando api EL.ElevationGridCoverage_25830_5_PB bbox-crs
+  ERROR HTTP Error 500: INTERNAL SERVER ERROR  https://api-coverages.idee.es/collections/EL.ElevationGridCoverage_25830_5_PB/coverage?f=COG&bbox=27917,4691124,28817,4692290&bbox-crs=http%3A%2F%2Fwww.opengis.net%2Fdef%2Fcrs%2FEPSG%2F0%2F25830
+    b'<!doctype html>\n<html lang=en>\n<title>500 Internal Server Error</title>\n<h1>Internal Server Error</h1>\n<p>The server encountered an internal error and was unable to complete your request. Either the server is overloaded or there is an error in the application.</p>\n'
+Probando api EL.ElevationGridCoverage_25830_5 bbox
+  ERROR HTTP Error 404: NOT FOUND  https://api-coverages.idee.es/collections/EL.ElevationGridCoverage_25830_5/coverage?f=COG&bbox=-8.72,42.23,-8.71,42.24
+    b'{\n    "code":"InvalidParameterValue",\n    "type":"InvalidParameterValue",\n    "description":"collection does not exist"\n}'
+Probando api EL.ElevationGridCoverage_25830_5 subset utm
+  ERROR HTTP Error 404: NOT FOUND  https://api-coverages.idee.es/collections/EL.ElevationGridCoverage_25830_5/coverage?f=COG&subset=E(27917:28817)&subset=N(4691124:4692290)
+    b'{\n    "code":"InvalidParameterValue",\n    "type":"InvalidParameterValue",\n    "description":"collection does not exist"\n}'
+Probando api EL.ElevationGridCoverage_25830_5 bbox-crs
+  ERROR HTTP Error 404: NOT FOUND  https://api-coverages.idee.es/collections/EL.ElevationGridCoverage_25830_5/coverage?f=COG&bbox=27917,4691124,28817,4692290&bbox-crs=http%3A%2F%2Fwww.opengis.net%2Fdef%2Fcrs%2FEPSG%2F0%2F25830
+    b'{\n    "code":"InvalidParameterValue",\n    "type":"InvalidParameterValue",\n    "description":"collection does not exist"\n}'
+Probando wcs Elevacion25829_5
+  ERROR HTTP Error 404: Not Found  https://servicios.idee.es/wcs-inspire/mdt?SERVICE=WCS&VERSION=2.0.1&REQUEST=GetCoverage&COVERAGEID=Elevacion25829_5&SUBSET=x(523102,523930)&SUBSET=y(4675351,4676464)&FORMAT=image/tiff
+    b'<?xml version="1.0" encoding="UTF-8"?>\n<ows:ExceptionReport xmlns:ows="http://www.opengis.net/ows/2.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="2.0.1" xml:lang="en-US" xsi:schemaLocation="http://www.opengis.net/ows/2.0 http://schemas.opengis.net/ows/2.0/owsExceptionReport.xsd">'
+Probando wcs Elevacion25830_5
+  200 image/tiff 84424 B  https://servicios.idee.es/wcs-inspire/mdt?SERVICE=WCS&VERSION=2.0.1&REQUEST=GetCoverage&COVERAGEID=Elevacion25830_5&SUBSET=x(27917,28817)&SUBSET=y(4691124,4692290)&FORMAT=image/tiff
+   OK EPSG:25830 (5.0, 5.004291845493596) (233, 180) 0.0 111.0
+Se usa: wcs Elevacion25830_5
+88 trozos de 88
+rasterio._err.CPLE_AppDefinedError: TIFFReadEncodedStrip:Read error at scanline 4294967295; got 0 bytes, expected 7808
+
+The above exception was the direct cause of the following exception:
+
+rasterio._err.CPLE_AppDefinedError: TIFFReadEncodedStrip() failed.
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "rasterio/_io.pyx", line 898, in rasterio._io.DatasetReaderBase._read
+  File "rasterio/_io.pyx", line 173, in rasterio._io.io_multi_band
+  File "rasterio/_io.pyx", line 179, in rasterio._io.io_multi_band
+  File "rasterio/_err.pyx", line 325, in rasterio._err.StackChecker.exc_wrap_int
+rasterio._err.CPLE_AppDefinedError: 42117fa6-9e10-420e-aac6-b3fcf4d4b01c.tif, band 1: IReadBlock failed at X offset 0, Y offset 0: TIFFReadEncodedStrip() failed.
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/runner/work/proximovitrasa.github.io/proximovitrasa.github.io/tools/descargar_relieve.py", line 159, in <module>
+    main()
+  File "/home/runner/work/proximovitrasa.github.io/proximovitrasa.github.io/tools/descargar_relieve.py", line 137, in main
+    mosaico, tr = merge(trozos, nodata=-9999)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/hostedtoolcache/Python/3.12.15/x64/lib/python3.12/site-packages/rasterio/merge.py", line 491, in merge
+    data = src.read(
+           ^^^^^^^^^
+  File "rasterio/_io.pyx", line 571, in rasterio._io.DatasetReaderBase.read
+  File "rasterio/_io.pyx", line 901, in rasterio._io.DatasetReaderBase._read
+rasterio.errors.RasterioIOError: Read failed. See previous exception for details.
