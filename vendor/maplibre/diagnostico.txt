@@ -1,0 +1,823 @@
+npm notice
+npm notice 📦  maplibre-gl@5.24.0
+npm notice Tarball Contents
+npm notice 6.0kB LICENSE.txt
+npm notice 13.2kB README.md
+npm notice 443B build/banner.ts
+npm notice 2.8kB build/check-bundle-size.js
+npm notice 1.4kB build/eslint-rules/prefer-type-for-data-shapes.js
+npm notice 675B build/generate-dist-package.js
+npm notice 3.1kB build/generate-doc-images.ts
+npm notice 9.2kB build/generate-docs.ts
+npm notice 1.6kB build/generate-shaders.ts
+npm notice 14.5kB build/generate-struct-arrays.ts
+npm notice 9.3kB build/generate-style-code.ts
+npm notice 14.1kB build/generate-unicode-data.ts
+npm notice 2.5kB build/readme.md
+npm notice 2.1kB build/rollup_plugins.ts
+npm notice 1.2kB build/rollup/bundle_prelude.js
+npm notice 890B build/rollup/maplibregl.js
+npm notice 6.0kB dist/LICENSE.txt
+npm notice 3.0MB dist/maplibre-gl-csp-dev.js
+npm notice 6.1MB dist/maplibre-gl-csp-dev.js.map
+npm notice 1.6MB dist/maplibre-gl-csp-worker-dev.js
+npm notice 3.3MB dist/maplibre-gl-csp-worker-dev.js.map
+npm notice 457.9kB dist/maplibre-gl-csp-worker.js
+npm notice 2.4MB dist/maplibre-gl-csp-worker.js.map
+npm notice 971.7kB dist/maplibre-gl-csp.js
+npm notice 4.9MB dist/maplibre-gl-csp.js.map
+npm notice 3.1MB dist/maplibre-gl-dev.js
+npm notice 6.3MB dist/maplibre-gl-dev.js.map
+npm notice 70.0kB dist/maplibre-gl.css
+npm notice 550.3kB dist/maplibre-gl.d.ts
+npm notice 1.1MB dist/maplibre-gl.js
+npm notice 5.9MB dist/maplibre-gl.js.map
+npm notice 112B dist/package.json
+npm notice 8.2kB package.json
+npm notice 23.2kB src/css/maplibre-gl.css
+npm notice 229B src/css/svg/maplibregl-ctrl-attrib.svg
+npm notice 171B src/css/svg/maplibregl-ctrl-compass.svg
+npm notice 370B src/css/svg/maplibregl-ctrl-fullscreen.svg
+npm notice 408B src/css/svg/maplibregl-ctrl-geolocate.svg
+npm notice 1.8kB src/css/svg/maplibregl-ctrl-globe.svg
+npm notice 12.8kB src/css/svg/maplibregl-ctrl-logo.svg
+npm notice 370B src/css/svg/maplibregl-ctrl-shrink.svg
+npm notice 299B src/css/svg/maplibregl-ctrl-terrain.svg
+npm notice 290B src/css/svg/maplibregl-ctrl-zoom-in.svg
+npm notice 190B src/css/svg/maplibregl-ctrl-zoom-out.svg
+npm notice 37.7kB src/data/array_types.g.ts
+npm notice 4.9kB src/data/bucket.ts
+npm notice 216B src/data/bucket/circle_attributes.ts
+npm notice 9.7kB src/data/bucket/circle_bucket.ts
+npm notice 257B src/data/bucket/dash_attributes.ts
+npm notice 216B src/data/bucket/fill_attributes.ts
+npm notice 5.1kB src/data/bucket/fill_bucket.test.ts
+npm notice 8.1kB src/data/bucket/fill_bucket.ts
+npm notice 398B src/data/bucket/fill_extrusion_attributes.ts
+npm notice 2.1kB src/data/bucket/fill_extrusion_bucket.test.ts
+npm notice 13.3kB src/data/bucket/fill_extrusion_bucket.ts
+npm notice 472B src/data/bucket/heatmap_bucket.ts
+npm notice 296B src/data/bucket/line_attributes_ext.ts
+npm notice 287B src/data/bucket/line_attributes.ts
+npm notice 7.4kB src/data/bucket/line_bucket.test.ts
+npm notice 29.2kB src/data/bucket/line_bucket.ts
+npm notice 387B src/data/bucket/pattern_attributes.ts
+npm notice 2.4kB src/data/bucket/pattern_bucket_features.ts
+npm notice 4.8kB src/data/bucket/symbol_attributes.ts
+npm notice 9.7kB src/data/bucket/symbol_bucket.test.ts
+npm notice 40.9kB src/data/bucket/symbol_bucket.ts
+npm notice 11.3kB src/data/dem_data.test.ts
+npm notice 7.9kB src/data/dem_data.ts
+npm notice 819B src/data/evaluation_feature.ts
+npm notice 314B src/data/extent_bounds.ts
+npm notice 598B src/data/extent.ts
+npm notice 4.5kB src/data/feature_index.test.ts
+npm notice 13.2kB src/data/feature_index.ts
+npm notice 1.2kB src/data/feature_position_map.test.ts
+npm notice 3.7kB src/data/feature_position_map.ts
+npm notice 466B src/data/index_array_type.ts
+npm notice 1.6kB src/data/load_geometry.test.ts
+npm notice 1.7kB src/data/load_geometry.ts
+npm notice 136B src/data/pos_attributes.ts
+npm notice 138B src/data/pos3d_attributes.ts
+npm notice 33.3kB src/data/program_configuration.ts
+npm notice 195B src/data/raster_bounds_attributes.ts
+npm notice 10.2kB src/data/segment.test.ts
+npm notice 4.2kB src/data/segment.ts
+npm notice 5.5kB src/geo/bounds.test.ts
+npm notice 4.9kB src/geo/bounds.ts
+npm notice 2.8kB src/geo/edge_insets.test.ts
+npm notice 4.8kB src/geo/edge_insets.ts
+npm notice 17.7kB src/geo/lng_lat_bounds.test.ts
+npm notice 14.2kB src/geo/lng_lat_bounds.ts
+npm notice 2.5kB src/geo/lng_lat.test.ts
+npm notice 6.1kB src/geo/lng_lat.ts
+npm notice 1.3kB src/geo/mercator_coordinate.test.ts
+npm notice 5.4kB src/geo/mercator_coordinate.ts
+npm notice 8.1kB src/geo/projection/camera_helper.ts
+npm notice 1.8kB src/geo/projection/covering_tiles_details_provider.ts
+npm notice 31.8kB src/geo/projection/covering_tiles.test.ts
+npm notice 13.2kB src/geo/projection/covering_tiles.ts
+npm notice 2.9kB src/geo/projection/globe_camera_helper.ts
+npm notice 15.5kB src/geo/projection/globe_covering_tiles_details_provider.ts
+npm notice 4.0kB src/geo/projection/globe_covering_tiles.test.ts
+npm notice 10.5kB src/geo/projection/globe_projection_error_measurement.ts
+npm notice 5.7kB src/geo/projection/globe_projection.ts
+npm notice 31.2kB src/geo/projection/globe_transform.test.ts
+npm notice 18.0kB src/geo/projection/globe_transform.ts
+npm notice 1.6kB src/geo/projection/globe_utils.test.ts
+npm notice 12.2kB src/geo/projection/globe_utils.ts
+npm notice 8.4kB src/geo/projection/mercator_camera_helper.ts
+npm notice 2.7kB src/geo/projection/mercator_covering_tiles_details_provider.ts
+npm notice 3.2kB src/geo/projection/mercator_projection.ts
+npm notice 31.0kB src/geo/projection/mercator_transform.test.ts
+npm notice 36.6kB src/geo/projection/mercator_transform.ts
+npm notice 5.4kB src/geo/projection/mercator_utils.test.ts
+npm notice 5.2kB src/geo/projection/mercator_utils.ts
+npm notice 2.7kB src/geo/projection/projection_data.ts
+npm notice 3.0kB src/geo/projection/projection_factory.ts
+npm notice 6.2kB src/geo/projection/projection.ts
+npm notice 25.9kB src/geo/projection/vertical_perspective_camera_helper.ts
+npm notice 6.8kB src/geo/projection/vertical_perspective_projection.ts
+npm notice 43.2kB src/geo/projection/vertical_perspective_transform.ts
+npm notice 3.9kB src/geo/transform_helper.test.ts
+npm notice 26.6kB src/geo/transform_helper.ts
+npm notice 19.8kB src/geo/transform_interface.ts
+npm notice 5.6kB src/index.test.ts
+npm notice 15.9kB src/index.ts
+npm notice 15.1kB src/render/fill_large_mesh_arrays.test.ts
+npm notice 12.3kB src/render/fill_large_mesh_arrays.ts
+npm notice 2.2kB src/render/glyph_atlas.ts
+npm notice 10.9kB src/render/glyph_manager.test.ts
+npm notice 10.6kB src/render/glyph_manager.ts
+npm notice 5.3kB src/render/image_atlas.ts
+npm notice 12.8kB src/render/image_manager.ts
+npm notice 1.3kB src/render/line_atlas.test.ts
+npm notice 6.8kB src/render/line_atlas.ts
+npm notice 733B src/render/mesh.ts
+npm notice 3.1kB src/render/painter.test.ts
+npm notice 37.4kB src/render/painter.ts
+npm notice 575B src/render/render_to_texture_interface.ts
+npm notice 4.0kB src/render/subdivision_granularity_settings.ts
+npm notice 35.5kB src/render/subdivision.test.ts
+npm notice 43.4kB src/render/subdivision.ts
+npm notice 17.3kB src/render/terrain.test.ts
+npm notice 25.3kB src/render/terrain.ts
+npm notice 3.0kB src/render/update_pattern_positions_in_program.test.ts
+npm notice 2.4kB src/render/update_pattern_positions_in_program.ts
+npm notice 375B src/shaders/encode_attribute.test.ts
+npm notice 425B src/shaders/encode_attribute.ts
+npm notice 207B src/shaders/glsl/_prelude.fragment.glsl
+npm notice 320B src/shaders/glsl/_prelude.fragment.glsl.g.ts
+npm notice 5.8kB src/shaders/glsl/_prelude.vertex.glsl
+npm notice 3.2kB src/shaders/glsl/_prelude.vertex.glsl.g.ts
+npm notice 6.4kB src/shaders/glsl/_projection_globe.vertex.glsl
+npm notice 3.8kB src/shaders/glsl/_projection_globe.vertex.glsl.g.ts
+npm notice 1.4kB src/shaders/glsl/_projection_mercator.vertex.glsl
+npm notice 700B src/shaders/glsl/_projection_mercator.vertex.glsl.g.ts
+npm notice 5.7kB src/shaders/glsl/atmosphere.fragment.glsl
+npm notice 2.6kB src/shaders/glsl/atmosphere.fragment.glsl.g.ts
+npm notice 233B src/shaders/glsl/atmosphere.vertex.glsl
+npm notice 280B src/shaders/glsl/atmosphere.vertex.glsl.g.ts
+npm notice 731B src/shaders/glsl/background_pattern.fragment.glsl
+npm notice 749B src/shaders/glsl/background_pattern.fragment.glsl.g.ts
+npm notice 594B src/shaders/glsl/background_pattern.vertex.glsl
+npm notice 652B src/shaders/glsl/background_pattern.vertex.glsl.g.ts
+npm notice 162B src/shaders/glsl/background.fragment.glsl
+npm notice 252B src/shaders/glsl/background.fragment.glsl.g.ts
+npm notice 70B src/shaders/glsl/background.vertex.glsl
+npm notice 165B src/shaders/glsl/background.vertex.glsl.g.ts
+npm notice 2.1kB src/shaders/glsl/circle.fragment.glsl
+npm notice 1.4kB src/shaders/glsl/circle.fragment.glsl.g.ts
+npm notice 4.4kB src/shaders/glsl/circle.vertex.glsl
+npm notice 2.7kB src/shaders/glsl/circle.vertex.glsl.g.ts
+npm notice 43B src/shaders/glsl/clipping_mask.fragment.glsl
+npm notice 140B src/shaders/glsl/clipping_mask.fragment.glsl.g.ts
+npm notice 70B src/shaders/glsl/clipping_mask.vertex.glsl
+npm notice 165B src/shaders/glsl/clipping_mask.vertex.glsl.g.ts
+npm notice 398B src/shaders/glsl/collision_box.fragment.glsl
+npm notice 308B src/shaders/glsl/collision_box.fragment.glsl.g.ts
+npm notice 786B src/shaders/glsl/collision_box.vertex.glsl
+npm notice 523B src/shaders/glsl/collision_box.vertex.glsl.g.ts
+npm notice 453B src/shaders/glsl/collision_circle.fragment.glsl
+npm notice 485B src/shaders/glsl/collision_circle.fragment.glsl.g.ts
+npm notice 918B src/shaders/glsl/collision_circle.vertex.glsl
+npm notice 742B src/shaders/glsl/collision_circle.vertex.glsl.g.ts
+npm notice 1.4kB src/shaders/glsl/color_relief.fragment.glsl
+npm notice 1.1kB src/shaders/glsl/color_relief.fragment.glsl.g.ts
+npm notice 423B src/shaders/glsl/color_relief.vertex.glsl
+npm notice 401B src/shaders/glsl/color_relief.vertex.glsl.g.ts
+npm notice 202B src/shaders/glsl/debug.fragment.glsl
+npm notice 284B src/shaders/glsl/debug.fragment.glsl.g.ts
+npm notice 344B src/shaders/glsl/debug.vertex.glsl
+npm notice 277B src/shaders/glsl/debug.vertex.glsl.g.ts
+npm notice 189B src/shaders/glsl/depth.vertex.glsl
+npm notice 261B src/shaders/glsl/depth.vertex.glsl.g.ts
+npm notice 1.4kB src/shaders/glsl/fill_extrusion_pattern.fragment.glsl
+npm notice 1.4kB src/shaders/glsl/fill_extrusion_pattern.fragment.glsl.g.ts
+npm notice 4.3kB src/shaders/glsl/fill_extrusion_pattern.vertex.glsl
+npm notice 3.1kB src/shaders/glsl/fill_extrusion_pattern.vertex.glsl.g.ts
+npm notice 132B src/shaders/glsl/fill_extrusion.fragment.glsl
+npm notice 213B src/shaders/glsl/fill_extrusion.fragment.glsl.g.ts
+npm notice 4.2kB src/shaders/glsl/fill_extrusion.vertex.glsl
+npm notice 2.4kB src/shaders/glsl/fill_extrusion.vertex.glsl.g.ts
+npm notice 1.4kB src/shaders/glsl/fill_outline_pattern.fragment.glsl
+npm notice 1.2kB src/shaders/glsl/fill_outline_pattern.fragment.glsl.g.ts
+npm notice 1.6kB src/shaders/glsl/fill_outline_pattern.vertex.glsl
+npm notice 1.6kB src/shaders/glsl/fill_outline_pattern.vertex.glsl.g.ts
+npm notice 925B src/shaders/glsl/fill_outline.fragment.glsl
+npm notice 605B src/shaders/glsl/fill_outline.fragment.glsl.g.ts
+npm notice 546B src/shaders/glsl/fill_outline.vertex.glsl
+npm notice 607B src/shaders/glsl/fill_outline.vertex.glsl.g.ts
+npm notice 1.1kB src/shaders/glsl/fill_pattern.fragment.glsl
+npm notice 1.1kB src/shaders/glsl/fill_pattern.fragment.glsl.g.ts
+npm notice 1.4kB src/shaders/glsl/fill_pattern.vertex.glsl
+npm notice 1.4kB src/shaders/glsl/fill_pattern.vertex.glsl.g.ts
+npm notice 292B src/shaders/glsl/fill.fragment.glsl
+npm notice 381B src/shaders/glsl/fill.fragment.glsl.g.ts
+npm notice 310B src/shaders/glsl/fill.vertex.glsl
+npm notice 398B src/shaders/glsl/fill.vertex.glsl.g.ts
+npm notice 308B src/shaders/glsl/heatmap_texture.fragment.glsl
+npm notice 378B src/shaders/glsl/heatmap_texture.fragment.glsl.g.ts
+npm notice 204B src/shaders/glsl/heatmap_texture.vertex.glsl
+npm notice 273B src/shaders/glsl/heatmap_texture.vertex.glsl.g.ts
+npm notice 544B src/shaders/glsl/heatmap.fragment.glsl
+npm notice 487B src/shaders/glsl/heatmap.fragment.glsl.g.ts
+npm notice 2.4kB src/shaders/glsl/heatmap.vertex.glsl
+npm notice 1.2kB src/shaders/glsl/heatmap.vertex.glsl.g.ts
+npm notice 2.6kB src/shaders/glsl/hillshade_prepare.fragment.glsl
+npm notice 1.3kB src/shaders/glsl/hillshade_prepare.fragment.glsl.g.ts
+npm notice 328B src/shaders/glsl/hillshade_prepare.vertex.glsl
+npm notice 379B src/shaders/glsl/hillshade_prepare.vertex.glsl.g.ts
+npm notice 7.2kB src/shaders/glsl/hillshade.fragment.glsl
+npm notice 3.9kB src/shaders/glsl/hillshade.fragment.glsl.g.ts
+npm notice 299B src/shaders/glsl/hillshade.vertex.glsl
+npm notice 301B src/shaders/glsl/hillshade.vertex.glsl.g.ts
+npm notice 2.1kB src/shaders/glsl/line_gradient_sdf.fragment.glsl
+npm notice 1.7kB src/shaders/glsl/line_gradient_sdf.fragment.glsl.g.ts
+npm notice 5.4kB src/shaders/glsl/line_gradient_sdf.vertex.glsl
+npm notice 3.6kB src/shaders/glsl/line_gradient_sdf.vertex.glsl.g.ts
+npm notice 1.2kB src/shaders/glsl/line_gradient.fragment.glsl
+npm notice 833B src/shaders/glsl/line_gradient.fragment.glsl.g.ts
+npm notice 4.0kB src/shaders/glsl/line_gradient.vertex.glsl
+npm notice 2.5kB src/shaders/glsl/line_gradient.vertex.glsl.g.ts
+npm notice 2.9kB src/shaders/glsl/line_pattern.fragment.glsl
+npm notice 2.4kB src/shaders/glsl/line_pattern.fragment.glsl.g.ts
+npm notice 4.7kB src/shaders/glsl/line_pattern.vertex.glsl
+npm notice 2.9kB src/shaders/glsl/line_pattern.vertex.glsl.g.ts
+npm notice 2.0kB src/shaders/glsl/line_sdf.fragment.glsl
+npm notice 1.7kB src/shaders/glsl/line_sdf.fragment.glsl.g.ts
+npm notice 5.2kB src/shaders/glsl/line_sdf.vertex.glsl
+npm notice 3.4kB src/shaders/glsl/line_sdf.vertex.glsl.g.ts
+npm notice 1.7kB src/shaders/glsl/line.fragment.glsl
+npm notice 841B src/shaders/glsl/line.fragment.glsl.g.ts
+npm notice 3.9kB src/shaders/glsl/line.vertex.glsl
+npm notice 2.4kB src/shaders/glsl/line.vertex.glsl.g.ts
+npm notice 89B src/shaders/glsl/projection_error_measurement.fragment.glsl
+npm notice 184B src/shaders/glsl/projection_error_measurement.fragment.glsl.g.ts
+npm notice 1.0kB src/shaders/glsl/projection_error_measurement.vertex.glsl
+npm notice 728B src/shaders/glsl/projection_error_measurement.vertex.glsl.g.ts
+npm notice 1.4kB src/shaders/glsl/raster.fragment.glsl
+npm notice 1.1kB src/shaders/glsl/raster.fragment.glsl.g.ts
+npm notice 1.5kB src/shaders/glsl/raster.vertex.glsl
+npm notice 719B src/shaders/glsl/raster.vertex.glsl.g.ts
+npm notice 657B src/shaders/glsl/sky.fragment.glsl
+npm notice 638B src/shaders/glsl/sky.fragment.glsl.g.ts
+npm notice 73B src/shaders/glsl/sky.vertex.glsl
+npm notice 166B src/shaders/glsl/sky.vertex.glsl.g.ts
+npm notice 210B src/shaders/glsl/symbol_icon.fragment.glsl
+npm notice 297B src/shaders/glsl/symbol_icon.fragment.glsl.g.ts
+npm notice 4.6kB src/shaders/glsl/symbol_icon.vertex.glsl
+npm notice 3.7kB src/shaders/glsl/symbol_icon.vertex.glsl.g.ts
+npm notice 2.5kB src/shaders/glsl/symbol_sdf.fragment.glsl
+npm notice 2.1kB src/shaders/glsl/symbol_sdf.fragment.glsl.g.ts
+npm notice 6.2kB src/shaders/glsl/symbol_sdf.vertex.glsl
+npm notice 4.2kB src/shaders/glsl/symbol_sdf.vertex.glsl.g.ts
+npm notice 2.3kB src/shaders/glsl/symbol_text_and_icon.fragment.glsl
+npm notice 2.1kB src/shaders/glsl/symbol_text_and_icon.fragment.glsl.g.ts
+npm notice 5.9kB src/shaders/glsl/symbol_text_and_icon.vertex.glsl
+npm notice 4.2kB src/shaders/glsl/symbol_text_and_icon.vertex.glsl.g.ts
+npm notice 247B src/shaders/glsl/terrain_coords.fragment.glsl
+npm notice 328B src/shaders/glsl/terrain_coords.fragment.glsl.g.ts
+npm notice 296B src/shaders/glsl/terrain_coords.vertex.glsl
+npm notice 359B src/shaders/glsl/terrain_coords.vertex.glsl.g.ts
+npm notice 472B src/shaders/glsl/terrain_depth.fragment.glsl
+npm notice 378B src/shaders/glsl/terrain_depth.fragment.glsl.g.ts
+npm notice 295B src/shaders/glsl/terrain_depth.vertex.glsl
+npm notice 358B src/shaders/glsl/terrain_depth.vertex.glsl.g.ts
+npm notice 1.3kB src/shaders/glsl/terrain.fragment.glsl
+npm notice 1.2kB src/shaders/glsl/terrain.fragment.glsl.g.ts
+npm notice 448B src/shaders/glsl/terrain.vertex.glsl
+npm notice 486B src/shaders/glsl/terrain.vertex.glsl.g.ts
+npm notice 1.6kB src/shaders/README.md
+npm notice 11.0kB src/shaders/shaders.ts
+npm notice 6.2kB src/source/canvas_source.test.ts
+npm notice 7.3kB src/source/canvas_source.ts
+npm notice 25.8kB src/source/geojson_source_diff.test.ts
+npm notice 13.1kB src/source/geojson_source_diff.ts
+npm notice 49.2kB src/source/geojson_source.test.ts
+npm notice 24.5kB src/source/geojson_source.ts
+npm notice 21.7kB src/source/geojson_worker_source.test.ts
+npm notice 15.0kB src/source/geojson_worker_source.ts
+npm notice 13.3kB src/source/image_source.test.ts
+npm notice 12.3kB src/source/image_source.ts
+npm notice 7.4kB src/source/load_tilejson.test.ts
+npm notice 1.8kB src/source/load_tilejson.ts
+npm notice 734B src/source/pixels_to_tile_units.ts
+npm notice 2.5kB src/source/protocol_crud.ts
+npm notice 1.1kB src/source/query_features.test.ts
+npm notice 12.0kB src/source/query_features.ts
+npm notice 13.9kB src/source/raster_dem_tile_source.test.ts
+npm notice 7.5kB src/source/raster_dem_tile_source.ts
+npm notice 1.1kB src/source/raster_dem_tile_worker_source.test.ts
+npm notice 1.3kB src/source/raster_dem_tile_worker_source.ts
+npm notice 15.6kB src/source/raster_tile_source.test.ts
+npm notice 8.4kB src/source/raster_tile_source.ts
+npm notice 7.8kB src/source/rtl_text_plugin_main_thread.test.ts
+npm notice 2.9kB src/source/rtl_text_plugin_main_thread.ts
+npm notice 794B src/source/rtl_text_plugin_status.ts
+npm notice 4.7kB src/source/rtl_text_plugin_worker.test.ts
+npm notice 3.2kB src/source/rtl_text_plugin_worker.ts
+npm notice 834B src/source/source_state.test.ts
+npm notice 6.5kB src/source/source_state.ts
+npm notice 1.9kB src/source/source.test.ts
+npm notice 7.3kB src/source/source.ts
+npm notice 2.6kB src/source/vector_tile_mlt.ts
+npm notice 4.8kB src/source/vector_tile_overzoomed.ts
+npm notice 19.4kB src/source/vector_tile_source.test.ts
+npm notice 11.0kB src/source/vector_tile_source.ts
+npm notice 18.3kB src/source/vector_tile_worker_source.test.ts
+npm notice 10.0kB src/source/vector_tile_worker_source.ts
+npm notice 4.6kB src/source/video_source.test.ts
+npm notice 6.2kB src/source/video_source.ts
+npm notice 5.0kB src/source/worker_source.ts
+npm notice 1.6kB src/source/worker_tile_state.ts
+npm notice 14.9kB src/source/worker_tile.test.ts
+npm notice 9.9kB src/source/worker_tile.ts
+npm notice 6.0kB src/source/worker.test.ts
+npm notice 11.8kB src/source/worker.ts
+npm notice 2.0kB src/style/create_style_layer.ts
+npm notice 2.4kB src/style/evaluation_parameters.ts
+npm notice 2.6kB src/style/format_section_override.test.ts
+npm notice 2.0kB src/style/format_section_override.ts
+npm notice 3.6kB src/style/light.test.ts
+npm notice 4.4kB src/style/light.ts
+npm notice 2.8kB src/style/load_glyph_range.test.ts
+npm notice 1.0kB src/style/load_glyph_range.ts
+npm notice 14.5kB src/style/load_sprite.test.ts
+npm notice 3.1kB src/style/load_sprite.ts
+npm notice 1.6kB src/style/parse_glyph_pbf.ts
+npm notice 1.1kB src/style/pauseable_placement.test.ts
+npm notice 4.6kB src/style/pauseable_placement.ts
+npm notice 2.2kB src/style/properties.test.ts
+npm notice 31.8kB src/style/properties.ts
+npm notice 3.6kB src/style/query_utils.test.ts
+npm notice 7.1kB src/style/query_utils.ts
+npm notice 3.0kB src/style/sky.test.ts
+npm notice 5.1kB src/style/sky.ts
+npm notice 447B src/style/style_glyph.ts
+npm notice 6.3kB src/style/style_image.ts
+npm notice 4.3kB src/style/style_layer_index.test.ts
+npm notice 2.6kB src/style/style_layer_index.ts
+npm notice 21.3kB src/style/style_layer.test.ts
+npm notice 15.7kB src/style/style_layer.ts
+npm notice 1.6kB src/style/style_layer/background_style_layer_properties.g.ts
+npm notice 935B src/style/style_layer/background_style_layer.ts
+npm notice 4.1kB src/style/style_layer/circle_style_layer_properties.g.ts
+npm notice 9.0kB src/style/style_layer/circle_style_layer.test.ts
+npm notice 3.9kB src/style/style_layer/circle_style_layer.ts
+npm notice 1.6kB src/style/style_layer/color_relief_style_layer_properties.g.ts
+npm notice 5.0kB src/style/style_layer/color_relief_style_layer.test.ts
+npm notice 5.2kB src/style/style_layer/color_relief_style_layer.ts
+npm notice 658B src/style/style_layer/custom_style_layer.test.ts
+npm notice 11.8kB src/style/style_layer/custom_style_layer.ts
+npm notice 3.2kB src/style/style_layer/fill_extrusion_style_layer_properties.g.ts
+npm notice 8.6kB src/style/style_layer/fill_extrusion_style_layer.ts
+npm notice 3.0kB src/style/style_layer/fill_style_layer_properties.g.ts
+npm notice 1.3kB src/style/style_layer/fill_style_layer.test.ts
+npm notice 2.5kB src/style/style_layer/fill_style_layer.ts
+npm notice 2.0kB src/style/style_layer/heatmap_style_layer_properties.g.ts
+npm notice 3.1kB src/style/style_layer/heatmap_style_layer.test.ts
+npm notice 3.2kB src/style/style_layer/heatmap_style_layer.ts
+npm notice 3.4kB src/style/style_layer/hillshade_style_layer_properties.g.ts
+npm notice 4.8kB src/style/style_layer/hillshade_style_layer.test.ts
+npm notice 2.6kB src/style/style_layer/hillshade_style_layer.ts
+npm notice 5.0kB src/style/style_layer/line_style_layer_properties.g.ts
+npm notice 1.7kB src/style/style_layer/line_style_layer.test.ts
+npm notice 5.3kB src/style/style_layer/line_style_layer.ts
+npm notice 2.5kB src/style/style_layer/overlap_mode.test.ts
+npm notice 1.3kB src/style/style_layer/overlap_mode.ts
+npm notice 3.0kB src/style/style_layer/raster_style_layer_properties.g.ts
+npm notice 1.2kB src/style/style_layer/raster_style_layer.test.ts
+npm notice 887B src/style/style_layer/raster_style_layer.ts
+npm notice 16.2kB src/style/style_layer/symbol_style_layer_properties.g.ts
+npm notice 8.3kB src/style/style_layer/symbol_style_layer.ts
+npm notice 700B src/style/style_layer/typed_style_layer.ts
+npm notice 5.8kB src/style/style_layer/variable_text_anchor.test.ts
+npm notice 5.9kB src/style/style_layer/variable_text_anchor.ts
+npm notice 130.0kB src/style/style.test.ts
+npm notice 79.4kB src/style/style.ts
+npm notice 1.5kB src/style/validate_style.ts
+npm notice 995B src/style/zoom_history.ts
+npm notice 479B src/symbol/anchor.test.ts
+npm notice 507B src/symbol/anchor.ts
+npm notice 2.6kB src/symbol/check_max_angle.test.ts
+npm notice 2.8kB src/symbol/check_max_angle.ts
+npm notice 7.2kB src/symbol/clip_line.test.ts
+npm notice 7.7kB src/symbol/clip_line.ts
+npm notice 3.7kB src/symbol/collision_feature.test.ts
+npm notice 4.7kB src/symbol/collision_feature.ts
+npm notice 886B src/symbol/collision_index.test.ts
+npm notice 28.1kB src/symbol/collision_index.ts
+npm notice 9.5kB src/symbol/cross_tile_symbol_index.test.ts
+npm notice 14.6kB src/symbol/cross_tile_symbol_index.ts
+npm notice 4.7kB src/symbol/get_anchors.test.ts
+npm notice 6.1kB src/symbol/get_anchors.ts
+npm notice 4.4kB src/symbol/grid_index.test.ts
+npm notice 15.5kB src/symbol/grid_index.ts
+npm notice 1.2kB src/symbol/merge_lines.test.ts
+npm notice 2.8kB src/symbol/merge_lines.ts
+npm notice 128B src/symbol/one_em.ts
+npm notice 505B src/symbol/opacity_state.ts
+npm notice 4.8kB src/symbol/path_interpolator.test.ts
+npm notice 2.0kB src/symbol/path_interpolator.ts
+npm notice 2.4kB src/symbol/placement.test.ts
+npm notice 61.5kB src/symbol/placement.ts
+npm notice 12.8kB src/symbol/projection.test.ts
+npm notice 42.7kB src/symbol/projection.ts
+npm notice 4.1kB src/symbol/quads.test.ts
+npm notice 14.7kB src/symbol/quads.ts
+npm notice 11.2kB src/symbol/shaping.test.ts
+npm notice 22.8kB src/symbol/shaping.ts
+npm notice 36.1kB src/symbol/symbol_layout.ts
+npm notice 4.4kB src/symbol/symbol_size.ts
+npm notice 4.2kB src/symbol/symbol_style_layer.test.ts
+npm notice 4.2kB src/symbol/tagged_string.test.ts
+npm notice 13.7kB src/symbol/tagged_string.ts
+npm notice 992B src/symbol/transform_text.ts
+npm notice 9.3kB src/tile/terrain_tile_manager.test.ts
+npm notice 13.2kB src/tile/terrain_tile_manager.ts
+npm notice 1.5kB src/tile/tile_bounds.ts
+npm notice 5.8kB src/tile/tile_cache.test.ts
+npm notice 7.1kB src/tile/tile_cache.ts
+npm notice 1.5kB src/tile/tile_id_to_lng_lat_bounds.test.ts
+npm notice 639B src/tile/tile_id_to_lng_lat_bounds.ts
+npm notice 8.9kB src/tile/tile_id.test.ts
+npm notice 12.1kB src/tile/tile_id.ts
+npm notice 4.7kB src/tile/tile_manager_in_view_tiles.test.ts
+npm notice 2.9kB src/tile/tile_manager_in_view_tiles.ts
+npm notice 2.9kB src/tile/tile_manager_raster_dem.test.ts
+npm notice 1.7kB src/tile/tile_manager_raster_dem.ts
+npm notice 9.9kB src/tile/tile_manager_raster.ts
+npm notice 101.0kB src/tile/tile_manager.test.ts
+npm notice 39.1kB src/tile/tile_manager.ts
+npm notice 11.6kB src/tile/tile.test.ts
+npm notice 18.6kB src/tile/tile.ts
+npm notice 939B src/ui/anchor.ts
+npm notice 145.4kB src/ui/camera.test.ts
+npm notice 65.0kB src/ui/camera.ts
+npm notice 28.4kB src/ui/control/attribution_control.test.ts
+npm notice 8.5kB src/ui/control/attribution_control.ts
+npm notice 2.4kB src/ui/control/control.ts
+npm notice 6.7kB src/ui/control/fullscreen_control.test.ts
+npm notice 7.2kB src/ui/control/fullscreen_control.ts
+npm notice 36.0kB src/ui/control/geolocate_control.test.ts
+npm notice 31.6kB src/ui/control/geolocate_control.ts
+npm notice 3.5kB src/ui/control/globe_control.test.ts
+npm notice 2.7kB src/ui/control/globe_control.ts
+npm notice 2.7kB src/ui/control/logo_control.test.ts
+npm notice 2.5kB src/ui/control/logo_control.ts
+npm notice 9.8kB src/ui/control/navigation_control.test.ts
+npm notice 10.9kB src/ui/control/navigation_control.ts
+npm notice 8.3kB src/ui/control/scale_control.test.ts
+npm notice 4.9kB src/ui/control/scale_control.ts
+npm notice 1.7kB src/ui/control/terrain_control.test.ts
+npm notice 3.0kB src/ui/control/terrain_control.ts
+npm notice 1.3kB src/ui/default_locale.ts
+npm notice 30.3kB src/ui/events.ts
+npm notice 5.7kB src/ui/handler_inertia.ts
+npm notice 11.1kB src/ui/handler_manager.test.ts
+npm notice 28.6kB src/ui/handler_manager.ts
+npm notice 7.7kB src/ui/handler/box_zoom.test.ts
+npm notice 5.2kB src/ui/handler/box_zoom.ts
+npm notice 1.3kB src/ui/handler/click_zoom.ts
+npm notice 12.4kB src/ui/handler/cooperative_gestures.test.ts
+npm notice 3.9kB src/ui/handler/cooperative_gestures.ts
+npm notice 6.5kB src/ui/handler/dblclick_zoom.test.ts
+npm notice 5.3kB src/ui/handler/drag_handler.ts
+npm notice 5.3kB src/ui/handler/drag_move_state_manager.ts
+npm notice 17.0kB src/ui/handler/drag_pan.test.ts
+npm notice 33.6kB src/ui/handler/drag_rotate.test.ts
+npm notice 417B src/ui/handler/handler_util.ts
+npm notice 10.4kB src/ui/handler/keyboard.test.ts
+npm notice 5.3kB src/ui/handler/keyboard.ts
+npm notice 8.1kB src/ui/handler/map_event.test.ts
+npm notice 4.6kB src/ui/handler/map_event.ts
+npm notice 6.9kB src/ui/handler/mouse_handler_interface.test.ts
+npm notice 3.8kB src/ui/handler/mouse_rotate.test.ts
+npm notice 5.6kB src/ui/handler/mouse.ts
+npm notice 26.3kB src/ui/handler/scroll_zoom.test.ts
+npm notice 13.3kB src/ui/handler/scroll_zoom.ts
+npm notice 1.6kB src/ui/handler/shim/dblclick_zoom.ts
+npm notice 2.7kB src/ui/handler/shim/drag_pan.ts
+npm notice 2.5kB src/ui/handler/shim/drag_rotate.ts
+npm notice 4.3kB src/ui/handler/shim/two_fingers_touch.ts
+npm notice 6.6kB src/ui/handler/tap_drag_zoom.test.ts
+npm notice 3.1kB src/ui/handler/tap_drag_zoom.ts
+npm notice 3.6kB src/ui/handler/tap_recognizer.ts
+npm notice 2.8kB src/ui/handler/tap_zoom.ts
+npm notice 3.1kB src/ui/handler/touch_pan.ts
+npm notice 1.2kB src/ui/handler/transform-provider.ts
+npm notice 17.9kB src/ui/handler/two_fingers_touch.test.ts
+npm notice 11.0kB src/ui/handler/two_fingers_touch.ts
+npm notice 22.4kB src/ui/hash.test.ts
+npm notice 5.9kB src/ui/hash.ts
+npm notice 1.8kB src/ui/map_tests/map_animation.test.ts
+npm notice 14.3kB src/ui/map_tests/map_basic.test.ts
+npm notice 4.4kB src/ui/map_tests/map_bounds.test.ts
+npm notice 4.9kB src/ui/map_tests/map_calculate_camera_options.test.ts
+npm notice 5.2kB src/ui/map_tests/map_canvas.test.ts
+npm notice 1.6kB src/ui/map_tests/map_control.test.ts
+npm notice 986B src/ui/map_tests/map_covering_tiles.test.ts
+npm notice 2.7kB src/ui/map_tests/map_cross_window.test.ts
+npm notice 1.0kB src/ui/map_tests/map_disable_handlers.test.ts
+npm notice 39.2kB src/ui/map_tests/map_events.test.ts
+npm notice 13.7kB src/ui/map_tests/map_feature_state.test.ts
+npm notice 2.3kB src/ui/map_tests/map_global_state.test.ts
+npm notice 5.1kB src/ui/map_tests/map_images.test.ts
+npm notice 4.7kB src/ui/map_tests/map_is_moving.test.ts
+npm notice 1.9kB src/ui/map_tests/map_is_rotating.test.ts
+npm notice 2.2kB src/ui/map_tests/map_is_zooming.test.ts
+npm notice 13.6kB src/ui/map_tests/map_layer.test.ts
+npm notice 2.6kB src/ui/map_tests/map_options.test.ts
+npm notice 5.0kB src/ui/map_tests/map_pitch.test.ts
+npm notice 2.9kB src/ui/map_tests/map_pixel_ratio.test.ts
+npm notice 2.7kB src/ui/map_tests/map_query_rendered_features.test.ts
+npm notice 1.8kB src/ui/map_tests/map_refresh_tiles.test.ts
+npm notice 2.4kB src/ui/map_tests/map_render.test.ts
+npm notice 1.6kB src/ui/map_tests/map_request_render_frame.test.ts
+npm notice 4.0kB src/ui/map_tests/map_resize.test.ts
+npm notice 2.0kB src/ui/map_tests/map_set_lod_params.test.ts
+npm notice 1.1kB src/ui/map_tests/map_sky.test.ts
+npm notice 21.1kB src/ui/map_tests/map_style.test.ts
+npm notice 3.8kB src/ui/map_tests/map_terrain.test.ts
+npm notice 6.9kB src/ui/map_tests/map_transform_constrains.test.ts
+npm notice 5.9kB src/ui/map_tests/map_webgl.test.ts
+npm notice 3.8kB src/ui/map_tests/map_world_copies.test.ts
+npm notice 5.0kB src/ui/map_tests/map_zoom.test.ts
+npm notice 167.7kB src/ui/map.ts
+npm notice 48.5kB src/ui/marker.test.ts
+npm notice 35.5kB src/ui/marker.ts
+npm notice 39.0kB src/ui/popup.test.ts
+npm notice 25.5kB src/ui/popup.ts
+npm notice 1.0kB src/util/abort_error.ts
+npm notice 5.2kB src/util/actor_messages.ts
+npm notice 12.4kB src/util/actor.test.ts
+npm notice 10.8kB src/util/actor.ts
+npm notice 12.7kB src/util/ajax.test.ts
+npm notice 12.9kB src/util/ajax.ts
+npm notice 7.4kB src/util/browser.test.ts
+npm notice 3.4kB src/util/browser.ts
+npm notice 3.9kB src/util/color_ramp.test.ts
+npm notice 1.8kB src/util/color_ramp.ts
+npm notice 995B src/util/config.ts
+npm notice 1.2kB src/util/create_tile_mesh.test.ts
+npm notice 8.5kB src/util/create_tile_mesh.ts
+npm notice 741B src/util/dictionary_coder.ts
+npm notice 2.5kB src/util/dispatcher.test.ts
+npm notice 3.4kB src/util/dispatcher.ts
+npm notice 1.6kB src/util/dom.test.ts
+npm notice 4.8kB src/util/dom.ts
+npm notice 8.0kB src/util/evented.test.ts
+npm notice 5.7kB src/util/evented.ts
+npm notice 5.0kB src/util/fast_maths.test.ts
+npm notice 2.4kB src/util/fast_maths.ts
+npm notice 2.6kB src/util/find_pole_of_inaccessibility.test.ts
+npm notice 4.6kB src/util/find_pole_of_inaccessibility.ts
+npm notice 713B src/util/framebuffer_error.ts
+npm notice 2.5kB src/util/geojson_bounds.test.ts
+npm notice 1.6kB src/util/geojson_bounds.ts
+npm notice 1.7kB src/util/geolocation_support.test.ts
+npm notice 953B src/util/geolocation_support.ts
+npm notice 2.4kB src/util/global_worker_pool.ts
+npm notice 16.3kB src/util/image_request.test.ts
+npm notice 10.8kB src/util/image_request.ts
+npm notice 5.3kB src/util/image.ts
+npm notice 6.4kB src/util/intersection_tests.ts
+npm notice 848B src/util/offscreen_canvas_distorted.test.ts
+npm notice 1.7kB src/util/offscreen_canvas_distorted.ts
+npm notice 317B src/util/offscreen_canvas_supported.ts
+npm notice 6.0kB src/util/primitives/aabb.test.ts
+npm notice 3.2kB src/util/primitives/aabb.ts
+npm notice 4.6kB src/util/primitives/bounding_volume_cache.test.ts
+npm notice 2.3kB src/util/primitives/bounding_volume_cache.ts
+npm notice 562B src/util/primitives/bounding_volume.ts
+npm notice 6.0kB src/util/primitives/convex_volume.test.ts
+npm notice 7.0kB src/util/primitives/convex_volume.ts
+npm notice 1.7kB src/util/primitives/frustum.test.ts
+npm notice 9.0kB src/util/primitives/frustum.ts
+npm notice 106B src/util/ref_properties.ts
+npm notice 1.2kB src/util/request_manager.ts
+npm notice 2.0kB src/util/request_performance.test.ts
+npm notice 1.0kB src/util/request_performance.ts
+npm notice 2.0kB src/util/resolve_tokens.test.ts
+npm notice 523B src/util/resolve_tokens.ts
+npm notice 3.7kB src/util/script_detection.test.ts
+npm notice 5.1kB src/util/script_detection.ts
+npm notice 3.5kB src/util/smart_wrap.test.ts
+npm notice 2.6kB src/util/smart_wrap.ts
+npm notice 4.0kB src/util/struct_array.test.ts
+npm notice 7.3kB src/util/struct_array.ts
+npm notice 1.4kB src/util/style.test.ts
+npm notice 1.0kB src/util/style.ts
+npm notice 3.4kB src/util/task_queue.test.ts
+npm notice 1.6kB src/util/task_queue.ts
+npm notice 8.9kB src/util/test/util.ts
+npm notice 1.5kB src/util/throttle.test.ts
+npm notice 724B src/util/throttle.ts
+npm notice 874B src/util/throttled_invoker.ts
+npm notice 6.3kB src/util/time_control.test.ts
+npm notice 2.9kB src/util/time_control.ts
+npm notice 2.4kB src/util/transferable_grid_index.test.ts
+npm notice 7.4kB src/util/transferable_grid_index.ts
+npm notice 5.3kB src/util/unicode_properties.g.ts
+npm notice 26.5kB src/util/util.test.ts
+npm notice 42.3kB src/util/util.ts
+npm notice 4.2kB src/util/vectortile_to_geojson.ts
+npm notice 657B src/util/verticalize_punctuation.test.ts
+npm notice 2.6kB src/util/verticalize_punctuation.ts
+npm notice 5.4kB src/util/web_worker_transfer.test.ts
+npm notice 8.7kB src/util/web_worker_transfer.ts
+npm notice 855B src/util/web_worker.ts
+npm notice 1.4kB src/util/worker_pool.test.ts
+npm notice 1.6kB src/util/worker_pool.ts
+npm notice 2.5kB src/util/world_bounds.test.ts
+npm notice 1.7kB src/util/world_bounds.ts
+npm notice 1.0kB src/webgl/color_mode.ts
+npm notice 11.8kB src/webgl/context.ts
+npm notice 1.0kB src/webgl/cull_face_mode.ts
+npm notice 662B src/webgl/depth_mode.ts
+npm notice 3.5kB src/webgl/draw/draw_background.ts
+npm notice 5.4kB src/webgl/draw/draw_circle.ts
+npm notice 5.6kB src/webgl/draw/draw_collision_debug.ts
+npm notice 5.0kB src/webgl/draw/draw_color_relief.ts
+npm notice 3.3kB src/webgl/draw/draw_custom.test.ts
+npm notice 2.5kB src/webgl/draw/draw_custom.ts
+npm notice 4.7kB src/webgl/draw/draw_debug.test.ts
+npm notice 6.4kB src/webgl/draw/draw_debug.ts
+npm notice 5.2kB src/webgl/draw/draw_fill_extrusion.ts
+npm notice 6.1kB src/webgl/draw/draw_fill.test.ts
+npm notice 6.1kB src/webgl/draw/draw_fill.ts
+npm notice 10.8kB src/webgl/draw/draw_heatmap.ts
+npm notice 6.7kB src/webgl/draw/draw_hillshade.ts
+npm notice 9.9kB src/webgl/draw/draw_line.ts
+npm notice 9.9kB src/webgl/draw/draw_raster.ts
+npm notice 4.8kB src/webgl/draw/draw_sky.ts
+npm notice 9.6kB src/webgl/draw/draw_symbol.test.ts
+npm notice 25.2kB src/webgl/draw/draw_symbol.ts
+npm notice 5.2kB src/webgl/draw/draw_terrain.ts
+npm notice 2.1kB src/webgl/draw/index.ts
+npm notice 1.6kB src/webgl/framebuffer.ts
+npm notice 1.9kB src/webgl/index_buffer.ts
+npm notice 10.1kB src/webgl/program.ts
+npm notice 1.4kB src/webgl/program/atmosphere_program.ts
+npm notice 3.4kB src/webgl/program/background_program.ts
+npm notice 2.9kB src/webgl/program/circle_program.ts
+npm notice 1.3kB src/webgl/program/collision_program.ts
+npm notice 1.7kB src/webgl/program/color_relief_program.ts
+npm notice 913B src/webgl/program/debug_program.ts
+npm notice 4.9kB src/webgl/program/fill_extrusion_program.ts
+npm notice 4.2kB src/webgl/program/fill_program.ts
+npm notice 2.9kB src/webgl/program/heatmap_program.ts
+npm notice 4.9kB src/webgl/program/hillshade_program.ts
+npm notice 9.6kB src/webgl/program/line_program.ts
+npm notice 4.0kB src/webgl/program/pattern.ts
+npm notice 2.6kB src/webgl/program/program_uniforms.ts
+npm notice 882B src/webgl/program/projection_error_measurement_program.ts
+npm notice 1.7kB src/webgl/program/projection_program.ts
+npm notice 3.8kB src/webgl/program/raster_program.ts
+npm notice 2.2kB src/webgl/program/sky_program.ts
+npm notice 11.4kB src/webgl/program/symbol_program.ts
+npm notice 1.4kB src/webgl/program/terrain_program.test.ts
+npm notice 4.4kB src/webgl/program/terrain_program.ts
+npm notice 2.5kB src/webgl/render_pool.test.ts
+npm notice 3.1kB src/webgl/render_pool.ts
+npm notice 9.1kB src/webgl/render_to_texture.test.ts
+npm notice 9.2kB src/webgl/render_to_texture.ts
+npm notice 4.0kB src/webgl/state.test.ts
+npm notice 750B src/webgl/stencil_mode.ts
+npm notice 2.8kB src/webgl/texture.test.ts
+npm notice 5.9kB src/webgl/texture.ts
+npm notice 2.9kB src/webgl/types.ts
+npm notice 4.2kB src/webgl/uniform_binding.test.ts
+npm notice 5.4kB src/webgl/uniform_binding.ts
+npm notice 14.4kB src/webgl/value.ts
+npm notice 5.7kB src/webgl/vertex_array_object.ts
+npm notice 3.4kB src/webgl/vertex_buffer.test.ts
+npm notice 3.4kB src/webgl/vertex_buffer.ts
+npm notice 274B src/webgl/webgl2.ts
+npm notice Tarball Details
+npm notice name: maplibre-gl
+npm notice version: 5.24.0
+npm notice filename: maplibre-gl-5.24.0.tgz
+npm notice package size: 8.8 MB
+npm notice unpacked size: 44.5 MB
+npm notice shasum: a8059371cdbeb04a62850ccc22cb37783928a10d
+npm notice integrity: sha512-ALyFxgtd5R+65[...]IySHs0Xe6ia3A==
+npm notice total files: 695
+npm notice
+maplibre-gl-5.24.0.tgz
+npm notice
+npm notice 📦  @maplibre/maplibre-gl-leaflet@0.1.4
+npm notice Tarball Contents
+npm notice 1.4kB API.md
+npm notice 3.1kB CHANGELOG.md
+npm notice 240B CONTRIBUTING.md
+npm notice 767B LICENSE
+npm notice 4.9kB README.md
+npm notice 11.8kB debug/maps-concurrent-resizing.html
+npm notice 1.3kB debug/max-latitude-bug-reproduction.html
+npm notice 269B debug/README.md
+npm notice 727B dist/leaflet-maplibre-gl.d.mts
+npm notice 727B dist/leaflet-maplibre-gl.d.ts
+npm notice 9.3kB dist/leaflet-maplibre-gl.js
+npm notice 7.5kB dist/leaflet-maplibre-gl.mjs
+npm notice 1.4kB examples/basic-v5.html
+npm notice 1.5kB examples/basic.html
+npm notice 1.7kB examples/cluster.html
+npm notice 202.8kB examples/data/CH_relief_overlay.jpg
+npm notice 15.4kB examples/data/realworld.388.js
+npm notice 3.2kB examples/events.html
+npm notice 1.4kB examples/overlay.html
+npm notice 727B leaflet-maplibre-gl.d.ts
+npm notice 9.3kB leaflet-maplibre-gl.js
+npm notice 2.0kB package.json
+npm notice Tarball Details
+npm notice name: @maplibre/maplibre-gl-leaflet
+npm notice version: 0.1.4
+npm notice filename: maplibre-maplibre-gl-leaflet-0.1.4.tgz
+npm notice package size: 222.0 kB
+npm notice unpacked size: 281.6 kB
+npm notice shasum: ff35ce64888e95e4095666992c345cfde430fc5a
+npm notice integrity: sha512-k57wcndZIvq3m[...]NBaSLwpAu02ew==
+npm notice total files: 22
+npm notice
+maplibre-maplibre-gl-leaflet-0.1.4.tgz
+pack: 0
+/tmp/p
+/tmp/p/maplibre-gl-5.24.0.tgz
+/tmp/p/maplibre-gl-5.24.0
+/tmp/p/maplibre-gl-5.24.0/package
+/tmp/p/maplibre-gl-5.24.0/package/dist
+/tmp/p/maplibre-gl-5.24.0/package/dist/maplibre-gl.d.ts
+/tmp/p/maplibre-gl-5.24.0/package/dist/maplibre-gl.js.map
+/tmp/p/maplibre-gl-5.24.0/package/dist/maplibre-gl-csp-worker-dev.js
+/tmp/p/maplibre-gl-5.24.0/package/dist/maplibre-gl-csp-dev.js
+/tmp/p/maplibre-gl-5.24.0/package/dist/package.json
+/tmp/p/maplibre-gl-5.24.0/package/dist/maplibre-gl-csp-worker.js
+/tmp/p/maplibre-gl-5.24.0/package/dist/maplibre-gl-csp-dev.js.map
+/tmp/p/maplibre-gl-5.24.0/package/dist/maplibre-gl-csp.js
+/tmp/p/maplibre-gl-5.24.0/package/dist/maplibre-gl-dev.js
+/tmp/p/maplibre-gl-5.24.0/package/dist/maplibre-gl.js
+/tmp/p/maplibre-gl-5.24.0/package/dist/LICENSE.txt
+/tmp/p/maplibre-gl-5.24.0/package/dist/maplibre-gl-dev.js.map
+/tmp/p/maplibre-gl-5.24.0/package/dist/maplibre-gl.css
+/tmp/p/maplibre-gl-5.24.0/package/dist/maplibre-gl-csp.js.map
+/tmp/p/maplibre-gl-5.24.0/package/dist/maplibre-gl-csp-worker-dev.js.map
+/tmp/p/maplibre-gl-5.24.0/package/dist/maplibre-gl-csp-worker.js.map
+/tmp/p/maplibre-gl-5.24.0/package/package.json
+/tmp/p/maplibre-gl-5.24.0/package/README.md
+/tmp/p/maplibre-gl-5.24.0/package/LICENSE.txt
+/tmp/p/maplibre-gl-5.24.0/package/build
+/tmp/p/maplibre-gl-5.24.0/package/build/generate-shaders.ts
+/tmp/p/maplibre-gl-5.24.0/package/build/rollup_plugins.ts
+/tmp/p/maplibre-gl-5.24.0/package/build/rollup
+/tmp/p/maplibre-gl-5.24.0/package/build/check-bundle-size.js
+/tmp/p/maplibre-gl-5.24.0/package/build/generate-dist-package.js
+/tmp/p/maplibre-gl-5.24.0/package/build/banner.ts
+/tmp/p/maplibre-gl-5.24.0/package/build/generate-style-code.ts
+/tmp/p/maplibre-gl-5.24.0/package/build/generate-doc-images.ts
+/tmp/p/maplibre-gl-5.24.0/package/build/generate-docs.ts
+/tmp/p/maplibre-gl-5.24.0/package/build/readme.md
+/tmp/p/maplibre-gl-5.24.0/package/build/eslint-rules
+/tmp/p/maplibre-gl-5.24.0/package/build/generate-struct-arrays.ts
+/tmp/p/maplibre-gl-5.24.0/package/build/generate-unicode-data.ts
+/tmp/p/maplibre-gl-5.24.0/package/src
+/tmp/p/maplibre-maplibre-gl-leaflet-0.1.4.tgz
+/tmp/p/maplibre-maplibre-gl-leaflet-0.1.4
+/tmp/p/maplibre-maplibre-gl-leaflet-0.1.4/package
+/tmp/p/maplibre-maplibre-gl-leaflet-0.1.4/package/LICENSE
+/tmp/p/maplibre-maplibre-gl-leaflet-0.1.4/package/API.md
+/tmp/p/maplibre-maplibre-gl-leaflet-0.1.4/package/CHANGELOG.md
+/tmp/p/maplibre-maplibre-gl-leaflet-0.1.4/package/dist
+/tmp/p/maplibre-maplibre-gl-leaflet-0.1.4/package/dist/leaflet-maplibre-gl.mjs
+/tmp/p/maplibre-maplibre-gl-leaflet-0.1.4/package/dist/leaflet-maplibre-gl.d.ts
+/tmp/p/maplibre-maplibre-gl-leaflet-0.1.4/package/dist/leaflet-maplibre-gl.d.mts
+/tmp/p/maplibre-maplibre-gl-leaflet-0.1.4/package/dist/leaflet-maplibre-gl.js
+/tmp/p/maplibre-maplibre-gl-leaflet-0.1.4/package/package.json
+/tmp/p/maplibre-maplibre-gl-leaflet-0.1.4/package/examples
+/tmp/p/maplibre-maplibre-gl-leaflet-0.1.4/package/examples/basic-v5.html
+/tmp/p/maplibre-maplibre-gl-leaflet-0.1.4/package/examples/overlay.html
+/tmp/p/maplibre-maplibre-gl-leaflet-0.1.4/package/examples/data
+/tmp/p/maplibre-maplibre-gl-leaflet-0.1.4/package/examples/cluster.html
+/tmp/p/maplibre-maplibre-gl-leaflet-0.1.4/package/examples/events.html
+/tmp/p/maplibre-maplibre-gl-leaflet-0.1.4/package/examples/basic.html
+/tmp/p/maplibre-maplibre-gl-leaflet-0.1.4/package/debug
+/tmp/p/maplibre-maplibre-gl-leaflet-0.1.4/package/debug/max-latitude-bug-reproduction.html
+/tmp/p/maplibre-maplibre-gl-leaflet-0.1.4/package/debug/README.md
+/tmp/p/maplibre-maplibre-gl-leaflet-0.1.4/package/debug/maps-concurrent-resizing.html
+/tmp/p/maplibre-maplibre-gl-leaflet-0.1.4/package/README.md
+/tmp/p/maplibre-maplibre-gl-leaflet-0.1.4/package/leaflet-maplibre-gl.d.ts
+/tmp/p/maplibre-maplibre-gl-leaflet-0.1.4/package/leaflet-maplibre-gl.js
+/tmp/p/maplibre-maplibre-gl-leaflet-0.1.4/package/CONTRIBUTING.md
+G=maplibre-gl-5.24.0 L=maplibre-maplibre-gl-leaflet-0.1.4
+total 1188
+drwxr-xr-x 2 runner runner    4096 Oct 27 14:11 .
+drwxr-xr-x 4 runner runner    4096 Oct 27 14:11 ..
+-rw-r--r-- 1 runner runner     767 Oct 27 14:11 LICENSE-maplibre-gl-leaflet.txt
+-rw-r--r-- 1 runner runner    5984 Oct 27 14:11 LICENSE-maplibre-gl.txt
+-rw-r--r-- 1 runner runner      57 Oct 27 14:11 VERSIONES.txt
+-rw-r--r-- 1 runner runner   42332 Oct 27 14:11 diagnostico.txt
+-rw-r--r-- 1 runner runner    9296 Oct 27 14:11 leaflet-maplibre-gl.js
+-rw-r--r-- 1 runner runner   70024 Oct 27 14:11 maplibre-gl.css
+-rw-r--r-- 1 runner runner 1056837 Oct 27 14:11 maplibre-gl.js
