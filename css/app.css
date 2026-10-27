@@ -287,6 +287,10 @@ svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width:
 .step .txt small.wait { color: var(--ink); font-weight: 600; }
 .step .alight { display: block; margin-top: 6px; font-weight: 600; }
 .step.bus .txt { padding-left: 12px; border-left: 4px solid var(--lc); }
+/* Vigo Vertical (rampas, escaleras mecánicas y ascensores): un paso más, con su icono. */
+.step.vv .ico svg { color: var(--granite); }
+.vv-chip { display: inline-flex; align-items: flex-end; color: var(--granite); margin-left: 2px; }
+.vv-chip svg { width: 18px; height: 18px; }
 .trip-pin { filter: drop-shadow(0 1px 2px rgba(19, 34, 44, .5)); }
 .trip-pin .pin { width: 30px; height: 30px; font-size: 17px; box-shadow: 0 0 0 3px #fff; }
 

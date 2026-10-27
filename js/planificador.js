@@ -46,7 +46,30 @@
   // Bit del tipo de día (0 domingo … 6 sábado; los festivos, como domingo).
   const dayBit = (d) => 1 << (isHoliday(d) ? 0 : d.getDay());
 
-  function build(data) {
+  // Vigo Vertical (data/vigo-vertical.json): ¿funciona el elemento el a la hora "date"?
+  // Horario por día de la semana ([día, "HH:MM", "HH:MM"], el cierre puede pasar de 24:00) y en
+  // víspera de festivo; los festivos, como domingo (igual que los buses).
+  const hm = (x) => { const [h, m] = x.split(":").map(Number); return h * 3600 + m * 60; };
+  function rangeOf(h, day) {
+    const next = new Date(day.getFullYear(), day.getMonth(), day.getDate() + 1, 12);
+    if (h.vispera && isHoliday(next) && !isHoliday(day)) return [hm(h.vispera[0]), hm(h.vispera[1])];
+    const dow = isHoliday(day) ? 0 : day.getDay();
+    const r = h.dias.find((x) => x[0] === dow);
+    return r ? [hm(r[1]), hm(r[2])] : null;
+  }
+  function openAt(horarios, el, date) {
+    const h = horarios && horarios[el.h];
+    if (!h) return true;
+    const day = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 12);
+    const sec = date.getHours() * 3600 + date.getMinutes() * 60 + date.getSeconds();
+    const today = rangeOf(h, day);
+    if (today && sec >= today[0] && sec < today[1]) return true;
+    const yday = rangeOf(h, new Date(day.getFullYear(), day.getMonth(), day.getDate() - 1, 12));
+    return !!(yday && sec + 86400 >= yday[0] && sec + 86400 < yday[1]);
+  }
+
+  // vv (opcional): data/vigo-vertical.json, para los transbordos que usan rampas o ascensores.
+  function build(data, vv = null) {
     const ids = data.paradas;
     const index = new Map(ids.map((id, i) => [id, i]));
     const pats = data.patrones.map((p, n) => {
@@ -66,6 +89,18 @@
     pats.forEach((pt, n) => pt.p.forEach((s, k) => at[s].push([n, k])));
     const transfers = ids.map((_, i) => [[i, 0]]);
     for (let k = 0; k < data.transbordos.length; k += 3) transfers[data.transbordos[k]].push([data.transbordos[k + 1], data.transbordos[k + 2]]);
+    // Transbordos más cortos con Vigo Vertical: [desde, hasta, metros equivalentes, de ellos sin
+    // andar, [ids de los elementos]]. Solo valen si todos sus elementos funcionan a esa hora.
+    const vvEls = vv ? vv.elementos : [];
+    const vvIdx = new Map(vvEls.map((el, k) => [el.id, k]));
+    for (const [i, j, m, mm, els] of (vv && data.transbordos_vv) || []) {
+      const ks = els.map((id) => vvIdx.get(id));
+      if (ks.every((k) => k != null)) transfers[i].push([j, m, mm, ks]);
+    }
+    const vvOpenAt = (ks, base, sec) => {
+      const d = new Date(base.getTime() + sec * 1000);
+      return ks.every((k) => openAt(vv.horarios, vvEls[k], d));
+    };
 
     // Viajes de cada recorrido para una búsqueda: los de ayer (los que pasan de medianoche), hoy y
     // mañana, con la salida en segundos desde la medianoche de hoy.
@@ -115,7 +150,9 @@
       return out.length ? out : searchWithin(opts, LONG_HORIZON);
     }
     // raw: devolver todas las opciones encontradas, sin elegir (para "llegar a las").
-    function searchWithin({ origins, dests, walk = Infinity, time = new Date(), maxTransfers = 1, prefer = "fast" }, horizon, raw = false) {
+    // originsMech / destsMech (opcionales): de los metros de origins / dests, los que van en rampa,
+    // escalera mecánica o ascensor (cuentan en el tiempo pero no como andar).
+    function searchWithin({ origins, dests, walk = Infinity, time = new Date(), maxTransfers = 1, prefer = "fast", originsMech = null, destsMech = null }, horizon, raw = false) {
       const w = PREFS[prefer] || PREFS.fast;
       const base = new Date(time.getFullYear(), time.getMonth(), time.getDate());
       const now = Math.round((time - base) / 1000);
@@ -133,6 +170,11 @@
       let bestArr = Infinity;
       const keep = (j) => {
         j.w = w;
+        // Lo que se anda de verdad (sin rampas, escaleras mecánicas ni ascensores).
+        const L = j.legs;
+        if (originsMech) L[0].mm = originsMech.get(L[0].to) || 0;
+        if (destsMech) L[L.length - 1].mm = destsMech.get(L[L.length - 1].from) || 0;
+        j.walkM = L.reduce((a, l) => a + (l.type === "walk" ? l.m - (l.mm || 0) : 0), 0);
         j.score = j.arr - now + w.walk * j.walkM / WALK + w.transfer * j.transfers;
         const old = best.get(j.key);
         if (!old || j.score < old.score) best.set(j.key, j);
@@ -179,7 +221,8 @@
         for (let x = k + 1; x < pt.p.length; x++) {
           const ax = tr.dep[q] + pt.t[x] * tr.dur[q];
           if (ax - now > (bestArr - now) * 1.6 + 600) break;   // ya no puede salir a cuenta
-          for (const [s2, m2] of transfers[pt.p[x]]) {
+          for (const [s2, m2, mm2, ks] of transfers[pt.p[x]]) {
+            if (ks && !vvOpenAt(ks, base, ax)) continue;
             const tau2 = ax + m2 / WALK + TRANSFER;
             for (const [n2, k2] of at[s2]) {
               const pt2 = pats[n2];
@@ -195,7 +238,7 @@
               const old = best.get(key);
               if (old && old.score <= sc) continue;
               const l1 = busLeg(pt, tr, q, k, x), l2 = busLeg(pt2, tr2, nt.q, k2, d.j);
-              keep({ key, legs: [{ type: "walk", m: f.mo, to: f.o }, l1, { type: "walk", m: m2, from: l1.alight, to: s2, transfer: true }, l2,
+              keep({ key, legs: [{ type: "walk", m: f.mo, to: f.o }, l1, { type: "walk", m: m2, mm: mm2 || 0, from: l1.alight, to: s2, transfer: true }, l2,
                 { type: "walk", m: d.m, from: l2.alight }], dep: l1.dep - f.mo / WALK, arr: d.arr, walkM, transfers: 1 });
             }
           }
@@ -204,7 +247,7 @@
 
       // RAPTOR: la llegada más temprana con 1, 2… buses. Encuentra lo que la enumeración de arriba
       // no ve (más de un transbordo) y, con 0–1 transbordos, a veces una combinación mejor.
-      raptor({ origins, dests, now, trips, rounds: maxTransfers + 1, keep, busLeg, horizon,
+      raptor({ origins, dests, now, trips, rounds: maxTransfers + 1, keep, busLeg, horizon, open: (ks, sec) => vvOpenAt(ks, base, sec),
         limit: () => (bestArr - now) * 1.6 + 600 + now });
 
       // Salir lo más tarde posible en las opciones con transbordo (menos espera en el cambio).
@@ -281,7 +324,7 @@
     // pasan por paradas mejoradas en la anterior y, después, los transbordos a pie (≤300 m).
     // Una parada solo se guarda si mejora su mejor llegada de cualquier ronda anterior.
     // No se vuelve a subir a la misma línea de la que uno se acaba de bajar (como en la enumeración).
-    function raptor({ origins, dests, now, trips, rounds, keep, busLeg, limit, horizon }) {
+    function raptor({ origins, dests, now, trips, rounds, keep, busLeg, limit, horizon, open }) {
       const S = ids.length;
       const best = new Float64Array(S).fill(Infinity);   // mejor llegada a cada parada (todas las rondas)
       let prev = new Float64Array(S).fill(Infinity);     // llegadas de la ronda anterior
@@ -297,7 +340,7 @@
         const bus = new Float64Array(S).fill(Infinity);
         const pPat = new Int32Array(S).fill(-1), pQ = new Int32Array(S), pFrom = new Int32Array(S), pTo = new Int32Array(S);
         const cur = new Float64Array(S).fill(Infinity);   // llegada de esta ronda (en bus o andando)
-        const wFrom = new Int32Array(S).fill(-1), wM = new Float64Array(S);
+        const wFrom = new Int32Array(S).fill(-1), wM = new Float64Array(S), wMM = new Float64Array(S);
         const curLine = new Array(S).fill(null);          // línea del último bus (en bus o andando después)
         const busLine = new Array(S).fill(null);          // línea del bus con el que se llegó a la parada
         const cap = limit();
@@ -332,13 +375,13 @@
         // Transbordos a pie desde las paradas a las que se ha llegado en bus.
         const next = new Set(reached);
         for (const s of reached) {
-          for (const [s2, m] of transfers[s]) {
-            if (!m) continue;
+          for (const [s2, m, mm, ks] of transfers[s]) {
+            if (!m || (ks && !open(ks, bus[s]))) continue;
             const a = bus[s] + m / WALK;
-            if (a < best[s2] && a < cur[s2]) { cur[s2] = best[s2] = a; wFrom[s2] = s; wM[s2] = m; curLine[s2] = busLine[s]; next.add(s2); }
+            if (a < best[s2] && a < cur[s2]) { cur[s2] = best[s2] = a; wFrom[s2] = s; wM[s2] = m; wMM[s2] = mm || 0; curLine[s2] = busLine[s]; next.add(s2); }
           }
         }
-        R.push({ bus, pPat, pQ, pFrom, pTo, cur, wFrom, wM });
+        R.push({ bus, pPat, pQ, pFrom, pTo, cur, wFrom, wM, wMM });
         prev = cur;
         prevLine = curLine;
         marked = next;
@@ -352,8 +395,8 @@
         if (k === 1) return [{ type: "walk", m: startWalk.get(b), to: b }, leg];
         const p = R[k - 2];
         const before = p.wFrom[b] >= 0 ? p.wFrom[b] : b;
-        const m = p.wFrom[b] >= 0 ? p.wM[b] : 0;
-        return [...legsTo(k - 1, before), { type: "walk", m, from: before, to: b, transfer: true }, leg];
+        const m = p.wFrom[b] >= 0 ? p.wM[b] : 0, mm = p.wFrom[b] >= 0 ? p.wMM[b] : 0;
+        return [...legsTo(k - 1, before), { type: "walk", m, mm, from: before, to: b, transfer: true }, leg];
       };
       R.forEach((r, i) => {
         for (const [d, md] of dests) {
@@ -574,9 +617,10 @@
 
   let pending = null;
   const api = {
-    build, isHoliday, dayBit, WALK,
-    load(url = "data/viajes.json") {
-      if (!pending) pending = fetch(url).then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); }).then(build)
+    build, isHoliday, dayBit, openAt, WALK,
+    load(url = "data/viajes.json", vvUrl = "data/vigo-vertical.json") {
+      const get = (u) => fetch(u).then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); });
+      if (!pending) pending = Promise.all([get(url), get(vvUrl).catch(() => null)]).then(([d, vv]) => build(d, vv))
         .catch((e) => { pending = null; throw e; });
       return pending;
     },

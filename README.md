@@ -136,6 +136,15 @@ escaleras no siguen el terreno: su altura se reparte entre sus extremos. El reli
 una vez del IGN (`tools/descargar_relieve.py`, en la rama `datos-relieve`) y se recortó a 300 m
 alrededor de la red (`tools/preparar_relieve.py`); el Action mensual solo lo lee.
 
+**Vigo Vertical.** Las rampas, escaleras mecánicas y ascensores del Concello
+(`data/vigo-vertical.json`, generado con `tools/actualizar_vigo_vertical.py` desde el KML y
+`data/vigo-vertical/elementos.json`) se añaden a la red como atajos que dependen de la hora: las
+rampas y escaleras, subiendo y en horario, al doble de la velocidad a pie (bajando o fuera de
+horario, andando por la cuesta); los ascensores, en los dos sentidos y solo en horario (45 s de
+espera y 1 m/s). Valen en todos los tramos a pie, también en los transbordos
+(`transbordos_vv` de `data/viajes.json`), salen como un paso propio en Cómo llegar y no cuentan
+como andar en la preferencia "Menos a pie".
+
 Comprobación (octubre de 2026): en 12 rutas de 300 m a 8,6 km por todo Vigo, la distancia
 coincide con la de routing.openstreetmap.de con una diferencia media del 2,5 %, siempre algo
 más corta. Haciendo que OpenStreetMap siga la misma ruta, sus tramos miden lo mismo (±1 %): la

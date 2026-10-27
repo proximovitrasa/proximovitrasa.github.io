@@ -2028,19 +2028,27 @@
   // Paradas alcanzables a pie desde un punto: Map(índice de parada en el plan → metros equivalentes,
   // es decir, el tiempo a pie con las cuestas; ver js/peaton.js). toward: andando desde la parada
   // hasta el punto (las de bajada), para que las cuestas cuenten en el sentido en que se anda.
+  // out.mech: de esos metros, los que van en rampa, escalera mecánica o ascensor (no cuentan como andar).
   function stopsAround(net, plan, ll, radii = [MAX_WALK_STOP, MAX_WALK_STOP * 1.6], toward = false) {
     for (const max of radii) {
       const dist = net.around(ll, max, toward);
       const out = new Map();
+      out.mech = new Map();
       for (const s of stops) {
         const i = plan.index.get(s.id);
         if (i == null || haversine(ll, s.ll) > max) continue;
-        const m = dist(s.ll);
-        if (m <= max) out.set(i, m);
+        const [m, , mm] = dist(s.ll, null, true);
+        if (m <= max) { out.set(i, m); if (mm) out.mech.set(i, mm); }
       }
       if (out.size) return out;
     }
-    return new Map();
+    const none = new Map();
+    none.mech = new Map();
+    return none;
+  }
+  // Vigo Vertical: qué rampas, escaleras mecánicas y ascensores funcionan a la hora del viaje.
+  function setVerticalTime(net, when) {
+    if (net.vertical && net.vertical.length) net.setVertical((el) => PLAN.openAt(net.horarios, el, when));
   }
 
   // Tiempos en vivo de una parada (se reutilizan durante 20 s).
@@ -2104,6 +2112,8 @@
     catch { if (seq === tripSeq) box.innerHTML = `<div class="state"><strong>${esc(t("trip_net_error"))}</strong></div>`; return; }
     try { [plan] = await Promise.all([PLAN.load(), linesReady]); } catch { plan = null; }
     if (seq !== tripSeq) return;
+    setVerticalTime(net, arriveMode() ? new Date(trip.when.getTime() - 15 * 60000) : tripStart());
+    walkCache.clear();
     const r = net.route(trip.a.ll, trip.b.ll);
     lastTrip = {
       hash: location.hash, net, plan, planError: !plan, fecha: net.fecha,
@@ -2154,7 +2164,7 @@
   function planSearch() {
     const lt = lastTrip;
     const walk = lt.walk ? lt.walk.eq : Infinity;
-    const q = { origins: lt.origins, dests: lt.dests, walk, maxTransfers: 2, prefer: tripPref };
+    const q = { origins: lt.origins, dests: lt.dests, walk, maxTransfers: 2, prefer: tripPref, originsMech: lt.origins.mech, destsMech: lt.dests.mech };
     // "Llegar a las" (10): se busca desde 3 h antes (o desde ahora); si no hay forma de llegar a
     // tiempo, lo antes posible.
     const arriveBy = arriveMode() ? trip.when : null;
@@ -2245,9 +2255,9 @@
   const arriveAt = (sec) => t(nextDay(sec) ? "arrive_tomorrow" : "arrive_at", { time: clock(sec) });
   function chain(j) {
     const parts = [];
-    j.legs.forEach((l) => {
+    j.legs.forEach((l, k) => {
       if (l.type === "bus") parts.push(badge(l.line));
-      else if (l.m >= 60) parts.push(walkChip(l.m));
+      else if (l.m >= 60) parts.push(walkChip(l.m) + (walkVV(j, k).length ? `<span class="vv-chip">${ICON_VV}</span>` : ""));
     });
     return parts.join(CHEV);
   }
@@ -2339,9 +2349,11 @@
       // A pie: como antes de existir el planificador.
       const date = new Date(`${lt.fecha}T12:00:00`).toLocaleDateString(lang, { day: "numeric", month: "short", year: "numeric" });
       const osm = `https://www.openstreetmap.org/directions?engine=fossgis_osrm_foot&route=${fmtLL(trip.a.ll)}%3B${fmtLL(trip.b.ll)}`;
+      const vvs = (lt.walk.r.parts || []).filter((p) => p.used);
       return `${back}<div class="trip-card"><span class="mode">${ICON_WALK}</span>
           <span class="what">${esc(t("on_foot"))}<small>${fmtDist(lt.walk.dist)}</small></span>
           <span class="eta">${durHtml(walkMin(lt.walk.eq))}</span></div>
+        ${vvs.length ? `<ol class="steps">${vvSteps(vvs)}</ol>` : ""}
         <p class="trip-note">${esc(t("trip_source", { date }))} <a href="${osm}" target="_blank" rel="noopener">${esc(t("trip_compare"))}</a></p>`;
     }
     const steps = [];
@@ -2365,6 +2377,8 @@
         }
         steps.push(`<li class="step walk"><span class="ico">${ICON_WALK}</span>
           <span class="txt">${esc(text)}<small>${esc(t("walk", { n: walkMin(l.m) }))}</small>${tight}</span></li>`);
+        const vvs = walkVV(j, k);
+        if (vvs.length) steps.push(vvSteps(vvs));
       } else {
         const ln = lines[l.line];
         const dest = ln && ln.sentidos[l.dir] ? ln.sentidos[l.dir].destino : "";
@@ -2393,7 +2407,7 @@
     const k = `${fmtLL(from)}|${fmtLL(to)}`;
     if (!walkCache.has(k)) {
       const r = lastTrip.net.route(from, to);
-      walkCache.set(k, r ? { pts: [from, ...r.coords, to], dist: r.dist + r.offFrom + r.offTo } : { pts: [from, to], dist: null });
+      walkCache.set(k, r ? { pts: [from, ...r.coords, to], dist: r.dist + r.offFrom + r.offTo, parts: r.parts || [] } : { pts: [from, to], dist: null, parts: [] });
       if (walkCache.size > 200) walkCache.delete(walkCache.keys().next().value);
     }
     return walkCache.get(k);
@@ -2405,11 +2419,32 @@
     const llOf = (i) => byId.get(lastTrip.plan.ids[i]).ll;
     return [k === 0 ? trip.a.ll : llOf(j.legs[k - 1].alight), k === j.legs.length - 1 ? trip.b.ll : llOf(j.legs[k + 1].board)];
   }
+  // Metros andando de verdad: sin el largo de las rampas, escaleras mecánicas o ascensores usados.
   function walkReal(j, k) {
     const l = j.legs[k];
     if (l.m < 8) return l.m;
-    const d = walkRoute(...walkEnds(j, k)).dist;
-    return d == null ? l.m : d;
+    const w = walkRoute(...walkEnds(j, k));
+    if (w.dist == null) return l.m;
+    return Math.max(0, w.dist - w.parts.filter((p) => p.used).reduce((a, p) => a + (p.el.L || 0), 0));
+  }
+  const walkVV = (j, k) => (j.legs[k].m < 8 ? [] : walkRoute(...walkEnds(j, k)).parts.filter((p) => p.used));
+  // Pasos de Vigo Vertical (como un modo de transporte más): los tramos seguidos de un mismo
+  // elemento (p. ej. las 5 rampas de Gran Vía) van en un solo paso.
+  const ICON_VV = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2.5"/><path d="M12 6.5l2.6 3h-5.2zM12 17.5l2.6-3h-5.2z"/></svg>';
+  const ICON_RAMP = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 19h4l10-10h4"/><path d="M14 5h5v5"/></svg>';
+  function vvSteps(parts) {
+    const groups = [];
+    for (const p of parts) {
+      const last = groups[groups.length - 1];
+      if (last && last.name === p.el.n && last.up === p.up) { last.m += p.el.m; continue; }
+      groups.push({ name: p.el.n, t: p.el.t, up: p.up, m: p.el.m });
+    }
+    return groups.map((g) => {
+      const lift = g.t === "ascensor" || g.t === "inclinado";
+      const n = Math.max(1, Math.round(g.m / 75));
+      return `<li class="step vv"><span class="ico">${lift ? ICON_VV : ICON_RAMP}</span>
+        <span class="txt">${esc(g.name)}<small>${esc(t("vv_ride", { type: t(`vv_${g.t}`), dir: t(g.up ? "vv_up" : "vv_down"), n }))}</small></span></li>`;
+    }).join("");
   }
   // Trazado de un tramo en bus. Muchos recorridos mezclan el trazado principal de la línea y algún
   // ramal (p. ej. los viajes de la 18A que empiezan en Rúa do Areal), así que cada trozo entre
