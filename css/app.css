@@ -590,3 +590,8 @@ button.badge:hover { filter: brightness(1.08); }
   border: 7px solid transparent; border-top-width: 0; border-bottom: 10px solid #13222C;
   filter: drop-shadow(0 0 1.2px #fff) drop-shadow(0 0 1.2px #fff);
 }
+
+/* Elegir casa/trabajo en el móvil: mientras se escribe, solo el buscador y sus resultados, para
+   que quepan encima del teclado. */
+#panel.fav-picking .search-row, #panel.fav-picking #home > .tabs, #panel.fav-picking #list-note,
+#panel.fav-picking .fav-hw { display: none; }

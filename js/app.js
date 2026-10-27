@@ -1468,7 +1468,9 @@
     if (!box) return;
     const q = $("#fav-pick-q").value.trim();
     const out = [];
-    if (me && !farFromVigo(me)) out.push(pickBtn('data-pk="me"', esc(t("my_location_now")), t("my_location")));
+    const here = me && !farFromVigo(me) ? pickBtn('data-pk="me"', esc(t("my_location_now")), t("my_location")) : null;
+    // Sin texto, "Mi ubicación" arriba; con texto, lo encontrado primero (como en Cómo llegar).
+    if (here && !q) out.push(here);
     if (/\p{L}.*\p{L}.*\p{L}/u.test(q)) {
       const tokens = norm(q).split(" ").filter(Boolean);
       if (!sitesData) ensureSites().then(fillPicker).catch(() => {});
@@ -1483,9 +1485,23 @@
       }
       matchStops(q).slice(0, 4).forEach((s) => out.push(pickBtn(`data-pk="stop" data-i="${esc(s.id)}"`, highlight(s.name, tokens), t("stop_n", { id: s.id }))));
     }
+    if (here && q) out.push(here);
     box.innerHTML = out.join("");
   }
+  // Tecla "Buscar"/Intro: elige el primer resultado (si aún se están cargando las direcciones o
+  // los sitios, espera a que lleguen). Una calle sin número completa "Calle, " para escribirlo.
+  async function pickFirst() {
+    const q = $("#fav-pick-q");
+    if (!q || !q.value.trim()) return;
+    if (/\p{L}.*\p{L}.*\p{L}/u.test(q.value)) {
+      await Promise.all([sitesData ? null : ensureSites().catch(() => {}), dirData ? null : ensureDir().catch(() => {})]);
+      fillPicker();
+    }
+    const first = $("#fav-pick-res button[data-pk]:not([data-pk=\"me\"])");
+    if (first) first.click();
+  }
   function savePick(p) {
+    if (document.activeElement) document.activeElement.blur();
     favs[favPicking] = p;
     saveFavs();
     toast(t(`saved_${favPicking}`));
@@ -1502,6 +1518,24 @@
     if (!trip.a) getPosition((ll) => { if (tripOpen() && !trip.a && !farFromVigo(ll)) setEnd("a", { kind: "me", ll }); });
   }
   $("#list").addEventListener("input", (e) => { if (e.target.id === "fav-pick-q") fillPicker(); });
+  // En el móvil, al escribir, el panel sube a pantalla completa con el buscador arriba: si no, los
+  // resultados quedaban debajo del teclado y parecía que no buscaba.
+  $("#list").addEventListener("focusin", (e) => {
+    if (e.target.id !== "fav-pick-q" || isDesktop()) return;
+    panel.dataset.state = "full";
+    panel.classList.add("fav-picking");   // oculta el buscador principal, las pestañas y casa/trabajo
+    $("#list").scrollTop = 0;
+  });
+  $("#list").addEventListener("focusout", (e) => {
+    if (e.target.id !== "fav-pick-q") return;
+    // Tocar un resultado quita el foco un instante antes del clic: se espera para no mover nada.
+    setTimeout(() => { if (document.activeElement !== $("#fav-pick-q")) panel.classList.remove("fav-picking"); }, 200);
+  });
+  $("#list").addEventListener("keydown", (e) => {
+    if (e.target.id !== "fav-pick-q") return;
+    if (e.key === "Enter") { e.preventDefault(); pickFirst(); }
+    if (e.key === "Escape") { favPicking = null; renderFav(); }
+  });
   $("#list").addEventListener("click", (e) => {
     const b = e.target.closest("button");
     if (!b || mode !== "fav") return;
