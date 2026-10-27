@@ -1,0 +1,30 @@
+# Temporal (rama datos-relieve): descarga el modelo digital del terreno del IGN (MDT05, sin edificios)
+# de la zona de Vitrasa y lo guarda reducido en esta rama. Deja un registro en fuentes/relieve-log.txt.
+name: Descargar relieve
+on:
+  push:
+    branches: [datos-relieve]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  descargar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Descargar MDT del IGN
+        run: |
+          pip install -q rasterio numpy
+          mkdir -p fuentes
+          python3 tools/descargar_relieve.py 2>&1 | tee fuentes/relieve-log.txt || true
+          ls -la fuentes
+      - name: Guardar en la rama
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add fuentes
+          git commit -m "Relieve del IGN descargado" || true
+          git push origin HEAD:${GITHUB_REF_NAME}
