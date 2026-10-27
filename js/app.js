@@ -172,15 +172,14 @@
   map.attributionControl.setPrefix(false);
   if (isDesktop()) L.control.zoom({ position: "topleft" }).addTo(map);
 
-  // Mapa base (33): OpenFreeMap (gratuito y sin clave), Positron en claro y Fiord con el móvil en
-  // modo oscuro. Es vectorial: lo pinta MapLibre debajo de Leaflet con su complemento oficial
+  // Mapa base (33): OpenFreeMap (gratuito y sin clave), siempre Positron (claro), también con el
+  // móvil en modo oscuro: Fiord apenas se veía (decisión del usuario, 27/10). Es vectorial: lo pinta MapLibre debajo de Leaflet con su complemento oficial
   // (vendor/maplibre), que se descarga aparte para no retrasar la web. Todo lo demás del mapa sigue
   // en Leaflet. Si el móvil no tiene WebGL, o OpenFreeMap no carga en BASE_TIMEOUT, se usa el mapa
   // de OpenStreetMap de siempre (exige la cabecera Referer).
   const BASE_TIMEOUT = 8000;
-  const OFM_STYLE = (dark) => `https://tiles.openfreemap.org/styles/${dark ? "fiord" : "positron"}`;
+  const OFM_STYLE = "https://tiles.openfreemap.org/styles/positron";
   const OFM_ATTR = '<a href="https://openfreemap.org/">OpenFreeMap</a> © <a href="https://www.openmaptiles.org/">OpenMapTiles</a>, datos de <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
-  const darkScheme = matchMedia("(prefers-color-scheme: dark)");
   let osmLayer = null, glLayer = null, glReady = false;
   function useOSM() {
     if (glLayer) { map.removeLayer(glLayer); glLayer = null; }
@@ -222,7 +221,7 @@
       await loadScript("vendor/maplibre/maplibre-gl.js");
       await loadScript("vendor/maplibre/leaflet-maplibre-gl.js");
       if (osmLayer && map.hasLayer(osmLayer)) { clearTimeout(timer); return; }   // ya se pasó a OpenStreetMap
-      glLayer = L.maplibreGL({ style: OFM_STYLE(darkScheme.matches), attributionControl: { customAttribution: OFM_ATTR } }).addTo(map);
+      glLayer = L.maplibreGL({ style: OFM_STYLE, attributionControl: { customAttribution: OFM_ATTR } }).addTo(map);
       const gl = glLayer.getMaplibreMap();
       gl.once("load", () => {
         glReady = true;
@@ -237,8 +236,6 @@
       useOSM();
     }
   }
-  // Claro u oscuro según el móvil, también si cambia con la web abierta.
-  darkScheme.addEventListener("change", () => { if (glLayer && glReady) glLayer.getMaplibreMap().setStyle(OFM_STYLE(darkScheme.matches)); });
   startBase();
   map.attributionControl.addAttribution('Portales: <a href="https://datos.vigo.org/">Concello de Vigo</a>, <a href="https://www.sedecatastro.gob.es/">D. G. del Catastro</a>');
   map.attributionControl.addAttribution('Relieve: <a href="https://www.ign.es/">© IGN</a>');
