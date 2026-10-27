@@ -2276,7 +2276,9 @@
   // Hora de una salida o llegada, con "mañana" si es del día siguiente.
   // Duración de una opción: desde que sales de A (andando hasta la primera parada incluido) hasta
   // que llegas a B; sin la espera hasta que toca salir (p. ej. de noche, al primer bus de la mañana).
-  const LEAVE_NOTE_MIN = 20;   // si toca salir más de 20 min después, se dice a qué hora
+  // Si hay que esperar más de 3 min antes de salir, se dice a qué hora (la duración no cuenta esa
+  // espera; sin el aviso, un bus de "17 min" parecía más rápido que andar 19 aunque llegase después).
+  const LEAVE_NOTE_MIN = 3;
   const leaveSec = (j) => Math.max(j.dep, nowSec());
   const tripMin = (j) => (j.arr - leaveSec(j)) / 60;
   function leaveText(j, always) {
