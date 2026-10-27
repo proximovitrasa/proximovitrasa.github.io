@@ -2372,10 +2372,14 @@
   const nextDay = (sec) => sec >= 86400 && new Date(lastTrip.base + sec * 1000).getDate() !== new Date().getDate();
   const atTime = (sec) => t(nextDay(sec) ? "tomorrow_at" : "at_time", { time: clock(sec) });
   const arriveAt = (sec) => t(nextDay(sec) ? "arrive_tomorrow" : "arrive_at", { time: clock(sec) });
+  const SHORT_TRANSFER_MIN = 3;
   function chain(j) {
     const parts = [];
     j.legs.forEach((l, k) => {
       if (l.type === "bus") parts.push(badge(l.line));
+      // En la lista, los cambios a pie cortos (< 3 min, sin rampas ni ascensores) no se pintan: la fila
+      // de 2–3 buses cabe en un renglón en el móvil. En los pasos de la opción siguen con su espera.
+      else if (l.transfer && walkMin(l.m) < SHORT_TRANSFER_MIN && !walkVV(j, k).length) return;
       else if (l.m >= 60) parts.push(walkChip(l.m) + (walkVV(j, k).length ? `<span class="vv-chip">${ICON_VV}</span>` : ""));
     });
     return parts.join(CHEV);

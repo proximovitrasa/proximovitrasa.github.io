@@ -246,7 +246,7 @@ svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width:
 .opt[aria-current="true"] { border-color: var(--focus); box-shadow: inset 3px 0 0 var(--focus); }
 .chain { display: flex; align-items: center; flex-wrap: wrap; gap: 2px; min-width: 0; }
 .chain .badge { height: 30px; min-width: 40px; font-size: 18px; border-radius: 7px; }
-.chain .chev { width: 14px; height: 14px; flex: none; color: var(--granite); }
+.chain .chev { width: 12px; height: 14px; flex: none; color: var(--granite); margin: 0 -1px; }
 .chain .what { font-weight: 600; font-size: 17px; margin-left: 6px; }
 .walk-chip { display: inline-flex; align-items: flex-end; color: var(--granite); }
 .walk-chip svg { width: 22px; height: 22px; }
