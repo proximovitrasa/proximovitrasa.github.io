@@ -97,7 +97,7 @@ def main():
 
     prueba = (-8.72, 42.23, -8.71, 42.24)
     elegida = None
-    for nombre, f in maneras():
+    for nombre, f in [m for m in maneras() if m[0] == "wcs Elevacion25830_5"] + maneras():
         print("Probando", nombre)
         b = probar(f(*prueba))
         if b:
@@ -130,7 +130,14 @@ def main():
                     print("  fallo", caja, ex)
                 time.sleep(3 * (intento + 1))
             if b:
-                trozos.append(MemoryFile(b).open())
+                ruta = f"/tmp/trozo_{len(trozos)}.tif"
+                open(ruta, "wb").write(b)
+                try:
+                    with rasterio.open(ruta) as d:
+                        d.read(1)
+                    trozos.append(rasterio.open(ruta))
+                except Exception as ex:  # noqa: BLE001
+                    print("  trozo ilegible", caja, ex)
             else:
                 print("  SIN DATOS", caja)
     print(f"{len(trozos)} trozos de {len(xs) * len(ys)}")
