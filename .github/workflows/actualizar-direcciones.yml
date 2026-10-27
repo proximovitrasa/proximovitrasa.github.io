@@ -86,6 +86,7 @@ jobs:
           n=sum(1 for _ in csv.DictReader(gzip.open('data/catastro/portales.csv.gz','rt')))
           print('Catastro:', n, 'portales (antes $antes)')
           sys.exit('El Catastro parece incompleto' if n < 0.9*$antes else 0)"
+          pip install -q numpy   # para leer el relieve (data/relieve/mdt_vigo.tif) y calcular las cuestas
           python3 tools/actualizar_peatonal.py
           python3 tools/actualizar_direcciones.py
           node tools/transbordos.js
@@ -96,6 +97,7 @@ jobs:
           const fs=require('fs');
           const net=require('./js/peaton.js').build(JSON.parse(fs.readFileSync('data/peatonal.json')));
           const r=net.route([42.2386,-8.7206],[42.2320,-8.7140]); if(!r||r.dist<300||r.dist>2500) throw new Error('ruta a pie rara');
+          if(JSON.parse(fs.readFileSync('data/peatonal.json')).v<2||r.eq<r.dist*1.02) throw new Error('la red peatonal no tiene cuestas');
           const d=require('./js/direcciones.js').build(JSON.parse(fs.readFileSync('data/direcciones.json')));
           const s=d.matchStreets('camelias')[0]; if(!s||s.portals.length<100) throw new Error('faltan portales');
           const p=require('./js/planificador.js').build(require('./data/viajes.json')); if(p.pats.length<100) throw new Error('planificador');

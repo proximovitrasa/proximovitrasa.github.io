@@ -17,10 +17,15 @@ Formato de salida (compacto, para que la web lo cargue rápido):
     "v": 1,
     "fuente": "...", "fecha": "AAAA-MM-DD",
     "nodos": [lat0, lon0, dlat1, dlon1, ...],   cruces; enteros en 1e-5 grados, diferencias
-    "aristas": [a, b, metros*10, tipo, ...],     4 enteros por tramo entre dos cruces
+    "aristas": [a, b, metros*10, tipo, ida*10, vuelta*10, ...],   6 enteros por tramo entre dos cruces
     "formas": ["polilínea", ...]                  puntos intermedios de cada tramo (Google, precisión 5)
   }
   tipo: 0 normal, 1 escaleras, 2 sin asfaltar (pistas, sendas de tierra...).
+  ida / vuelta: metros de más por las cuestas de a → b y de b → a (tools/relieve.py): el tramo
+  "cuesta" lo mismo que andar metros + ida en llano. Sin relieve, 0.
+
+Relieve: data/relieve/mdt_vigo.tif (MDT05 del IGN, CC BY 4.0). Los puentes y túneles no siguen el
+terreno: su altura se interpola entre sus dos extremos.
 
 Datos © colaboradores de OpenStreetMap, licencia ODbL (https://www.openstreetmap.org/copyright).
 El archivo generado es una base de datos derivada y se distribuye con la misma licencia.
@@ -36,6 +41,8 @@ from collections import defaultdict
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ENTRADA = sys.argv[1] if len(sys.argv) > 1 else os.path.join(RAIZ, "data/osm/vias.json.gz")
 SALIDA = os.path.join(RAIZ, "data/peatonal.json")
+RELIEVE = os.path.join(RAIZ, "data/relieve/mdt_vigo.tif")
+sys.path.insert(0, os.path.join(RAIZ, "tools"))
 
 # ---------- Reglas de acceso a pie (inspiradas en el perfil foot.lua de OSRM) ----------
 PERMITIDAS = {
@@ -83,6 +90,11 @@ def transitable(tags):
     if tags.get("access") in NO_ACCESO and foot not in SI_PIE:
         return False
     return True
+
+
+def elevada(tags):
+    """Puentes y túneles: no van por el terreno."""
+    return tags.get("bridge", "no") != "no" or tags.get("tunnel", "no") not in ("no", "building_passage")
 
 
 # ---------- Geometría ----------
@@ -139,6 +151,74 @@ def codificar(pts):
     return "".join(out)
 
 
+def costes_pares(vias, coord):
+    """{(nodo, nodo siguiente): (metros equivalentes de ida, de vuelta)} para cada vía.
+
+    La altura se mira cada PASO metros (en puentes y túneles, interpolada entre los extremos de la
+    vía) y se suaviza con la media de tres puntos para quitar ruido del terreno."""
+    if not os.path.exists(RELIEVE):
+        print("Sin relieve (data/relieve/mdt_vigo.tif): todo llano")
+        return {}
+    import relieve
+    R = relieve.Relieve(RELIEVE)
+    cache = {}
+
+    def alt(p):
+        k = (round(p[0], 6), round(p[1], 6))
+        if k not in cache:
+            cache[k] = R.altura(*p)
+        return cache[k]
+
+    out = {}
+    for w in vias:
+        nodos = [n for n in w["nodes"] if n in coord]
+        if len(nodos) < 2:
+            continue
+        pts = [coord[n] for n in nodos]
+        largos = [dist(a, b) for a, b in zip(pts, pts[1:])]
+        # Muestras: (metros desde el inicio, punto), con las posiciones de cada nodo.
+        muestras, pos = [(0.0, pts[0])], [0]
+        acum = 0.0
+        for (a, b), L in zip(zip(pts, pts[1:]), largos):
+            k = max(1, math.ceil(L / relieve.PASO))
+            for i in range(1, k + 1):
+                f = i / k
+                muestras.append((acum + L * f, (a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f)))
+            acum += L
+            pos.append(len(muestras) - 1)
+        # Puentes y túneles no siguen el terreno; las escaleras suben o bajan sin altibajos (el
+        # terreno junto a ellas, con muros y rocas, daría subidas y bajadas falsas).
+        if elevada(w.get("tags", {})) or w.get("tags", {}).get("highway") == "steps":
+            z0, z1 = alt(pts[0]), alt(pts[-1])
+            z0 = z1 if z0 is None else z0
+            z1 = z0 if z1 is None else z1
+            if z0 is None:
+                z = [0.0] * len(muestras)
+            else:
+                z = [z0 + (z1 - z0) * (d / acum if acum else 0) for d, _ in muestras]
+        else:
+            z = [alt(p) for _, p in muestras]
+            validos = [v for v in z if v is not None]
+            if not validos:
+                z = [0.0] * len(z)
+            else:
+                ult = validos[0]
+                for i, v in enumerate(z):     # huecos (mar, fuera de la zona): la última conocida
+                    if v is None:
+                        z[i] = ult
+                    else:
+                        ult = v
+            if len(z) >= 3:
+                z = [z[0]] + [(z[i - 1] + z[i] + z[i + 1]) / 3 for i in range(1, len(z) - 1)] + [z[-1]]
+        for i in range(len(nodos) - 1):
+            perfil = [(muestras[m][0], z[m]) for m in range(pos[i], pos[i + 1] + 1)]
+            ida, vuelta = relieve.coste(perfil)
+            if (nodos[i], nodos[i + 1]) not in out:
+                out[(nodos[i], nodos[i + 1])] = (ida, vuelta)
+                out[(nodos[i + 1], nodos[i])] = (vuelta, ida)
+    return out
+
+
 def main():
     with gzip.open(ENTRADA, "rt", encoding="utf-8") as f:
         osm = json.load(f)
@@ -164,6 +244,9 @@ def main():
         cruce.add(w["nodes"][0])
         cruce.add(w["nodes"][-1])
     cruce |= {n for n, c in uso.items() if c > 1}
+
+    # Cuestas: coste de ida y vuelta (metros equivalentes) de cada par de nodos consecutivos.
+    par = costes_pares(usadas, coord)
 
     # Tramos entre cruces.
     tramos = []  # (a, b, [nodos osm], tipo)
@@ -254,14 +337,25 @@ def main():
 
     aristas, formas = [], []
     total = 0.0
+    subida = 0.0
     for L, t, pts in porpar.values():
         inter = simplificar(pts)[1:-1]
-        aristas += [idx[t[0]], idx[t[1]], max(1, round(L * 10)), t[3]]
+        ida = vuelta = 0.0
+        for u, v, a_, b_ in zip(t[2], t[2][1:], pts, pts[1:]):
+            c = par.get((u, v))
+            if c is None:
+                d = dist(a_, b_)
+                c = (d, d)
+            ida += c[0]
+            vuelta += c[1]
+        L10 = max(1, round(L * 10))
+        aristas += [idx[t[0]], idx[t[1]], L10, t[3], max(0, round(ida * 10) - L10), max(0, round(vuelta * 10) - L10)]
+        subida += max(ida, vuelta) - L
         formas.append(codificar(inter) if inter else "")
         total += L
 
     salida = {
-        "v": 1,
+        "v": 2,
         "fuente": "© colaboradores de OpenStreetMap (ODbL), vías de la zona de Vitrasa",
         "fecha": fecha,
         "nodos": nodos,
@@ -272,7 +366,8 @@ def main():
         json.dump(salida, f, separators=(",", ":"), ensure_ascii=False)
     tam = os.path.getsize(SALIDA)
     comp = len(gzip.compress(open(SALIDA, "rb").read(), 9))
-    print(f"Red peatonal: {len(usados)} cruces, {len(formas)} tramos, {total / 1000:.0f} km")
+    print(f"Red peatonal: {len(usados)} cruces, {len(formas)} tramos, {total / 1000:.0f} km"
+          f" (+{subida / 1000:.0f} km equivalentes por cuestas, en el sentido peor)")
     print(f"{SALIDA}: {tam / 1e6:.2f} MB ({comp / 1e6:.2f} MB comprimido)")
 
 

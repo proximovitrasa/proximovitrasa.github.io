@@ -174,6 +174,7 @@
     attribution: '© <a href="https://www.openstreetmap.org/copyright">Colaboradores de OpenStreetMap</a>',
   }).addTo(map);
   map.attributionControl.addAttribution('Portales: <a href="https://datos.vigo.org/">Concello de Vigo</a>, <a href="https://www.sedecatastro.gob.es/">D. G. del Catastro</a>');
+  map.attributionControl.addAttribution('Relieve: <a href="https://www.ign.es/">© IGN</a>');
 
   // Abierta como archivo (file://) no hay web de origen y OpenStreetMap bloquea el mapa.
   if (location.protocol === "file:") {
@@ -1963,10 +1964,12 @@
   }
 
   const WIDE_WALK_STOP = 2500;       // si así no hay ningún bus, se buscan paradas más lejos
-  // Paradas alcanzables a pie desde un punto: Map(índice de parada en el plan → metros).
-  function stopsAround(net, plan, ll, radii = [MAX_WALK_STOP, MAX_WALK_STOP * 1.6]) {
+  // Paradas alcanzables a pie desde un punto: Map(índice de parada en el plan → metros equivalentes,
+  // es decir, el tiempo a pie con las cuestas; ver js/peaton.js). toward: andando desde la parada
+  // hasta el punto (las de bajada), para que las cuestas cuenten en el sentido en que se anda.
+  function stopsAround(net, plan, ll, radii = [MAX_WALK_STOP, MAX_WALK_STOP * 1.6], toward = false) {
     for (const max of radii) {
-      const dist = net.around(ll, max);
+      const dist = net.around(ll, max, toward);
       const out = new Map();
       for (const s of stops) {
         const i = plan.index.get(s.id);
@@ -2043,18 +2046,18 @@
     const r = net.route(trip.a.ll, trip.b.ll);
     lastTrip = {
       hash: location.hash, net, plan, planError: !plan, fecha: net.fecha,
-      walk: r ? { dist: r.dist + r.offFrom + r.offTo, r } : null,
+      walk: r ? { dist: r.dist + r.offFrom + r.offTo, eq: r.eq + r.offFrom + r.offTo, r } : null,
       approx: [trip.a, trip.b].filter((p) => p.kind === "addr" && p.approx).map((p) => p.label),
       cands: [], opts: [], live: false,
     };
     if (plan) {
       lastTrip.origins = stopsAround(net, plan, trip.a.ll);
-      lastTrip.dests = stopsAround(net, plan, trip.b.ll);
+      lastTrip.dests = stopsAround(net, plan, trip.b.ll, undefined, true);
       planSearch();
       // Siempre debe salir al menos una opción en bus: si no hay ninguna, paradas más lejos.
       if (!lastTrip.cands.length) {
         lastTrip.origins = stopsAround(net, plan, trip.a.ll, [WIDE_WALK_STOP]);
-        lastTrip.dests = stopsAround(net, plan, trip.b.ll, [WIDE_WALK_STOP]);
+        lastTrip.dests = stopsAround(net, plan, trip.b.ll, [WIDE_WALK_STOP], true);
         planSearch();
       }
     }
@@ -2089,7 +2092,7 @@
   // Busca de nuevo (las opciones del horario, aún sin tiempos en vivo).
   function planSearch() {
     const lt = lastTrip;
-    const walk = lt.walk ? lt.walk.dist : Infinity;
+    const walk = lt.walk ? lt.walk.eq : Infinity;
     const q = { origins: lt.origins, dests: lt.dests, walk, maxTransfers: 2, prefer: tripPref };
     // "Llegar a las" (10): se busca desde 3 h antes (o desde ahora); si no hay forma de llegar a
     // tiempo, lo antes posible.
@@ -2129,7 +2132,7 @@
     if (seq !== tripSeq || lastTrip !== lt) return;
     const now = new Date();
     const re = lt.cands.map((j) => lt.plan.retime(j, (leg) => liveFor(lt.plan, leg), now, lt.start));
-    lt.opts = lt.plan.choose(re, lt.start, lt.walk ? lt.walk.dist : Infinity);
+    lt.opts = lt.plan.choose(re, lt.start, lt.walk ? lt.walk.eq : Infinity);
     lt.live = true;
     lt.updated = now;
     // La opción abierta se mantiene aunque deje de estar entre las mejores.
@@ -2212,8 +2215,8 @@
     if (!first) return true;
     if (tripPref === "walk") return false;
     return lt.arriveBy
-      ? (lt.arriveBy - lt.base) / 1000 - walkMin(lt.walk.dist) * 60 >= first.dep
-      : startSec() + walkMin(lt.walk.dist) * 60 <= first.arr;
+      ? (lt.arriveBy - lt.base) / 1000 - walkMin(lt.walk.eq) * 60 >= first.dep
+      : startSec() + walkMin(lt.walk.eq) * 60 <= first.arr;
   }
   const busKey = (l) => `${l.line}|${l.board}`;
 
@@ -2222,7 +2225,7 @@
     const lt = lastTrip;
     if (!lt) return;
     const box = $("#trip-result");
-    const walkMinTotal = lt.walk ? walkMin(lt.walk.dist) : Infinity;
+    const walkMinTotal = lt.walk ? walkMin(lt.walk.eq) : Infinity;
     const notes = (lt.approx || []).map((label) => `<p class="trip-note">${esc(t("approx_note", { label }))}</p>`).join("");
     if (trip.sel) {
       const j = trip.sel === "walk" ? null : lt.opts.find((o) => o.key === trip.sel);
@@ -2250,7 +2253,7 @@
       const T = arr ? (lt.arriveBy - lt.base) / 1000 : null;
       const walkDep = arr ? T - walkMinTotal * 60 : startSec();
       const w = `<li><button type="button" class="opt walk" data-opt="walk"${cur("walk")}>
-        <span class="chain">${walkChip(lt.walk.dist)}<span class="what">${esc(t("on_foot"))}</span></span>
+        <span class="chain">${walkChip(lt.walk.eq)}<span class="what">${esc(t("on_foot"))}</span></span>
         <span class="eta">${durHtml(walkMinTotal)}</span>
         <span class="when">${arr ? `${esc(t("leave_time", { time: clock(Math.max(walkDep, nowSec())) }))} · ` : ""}${esc(fmtDist(lt.walk.dist))}</span>
         <span class="arr">${esc(arriveAt(walkDep + walkMinTotal * 60))}</span>
@@ -2277,7 +2280,7 @@
       const osm = `https://www.openstreetmap.org/directions?engine=fossgis_osrm_foot&route=${fmtLL(trip.a.ll)}%3B${fmtLL(trip.b.ll)}`;
       return `${back}<div class="trip-card"><span class="mode">${ICON_WALK}</span>
           <span class="what">${esc(t("on_foot"))}<small>${fmtDist(lt.walk.dist)}</small></span>
-          <span class="eta">${durHtml(walkMin(lt.walk.dist))}</span></div>
+          <span class="eta">${durHtml(walkMin(lt.walk.eq))}</span></div>
         <p class="trip-note">${esc(t("trip_source", { date }))} <a href="${osm}" target="_blank" rel="noopener">${esc(t("trip_compare"))}</a></p>`;
     }
     const steps = [];
@@ -2285,11 +2288,12 @@
     legs.forEach((l, k) => {
       if (l.type === "walk") {
         const next = legs[k + 1];
+        const real = walkReal(j, k);
         let text;
-        if (k === 0) text = t("step_walk_to", { dist: fmtDist(l.m), place: stopName(next.board) });
-        else if (l.transfer) text = l.m < 30 ? t("step_change_same") : t("step_change", { dist: fmtDist(l.m), place: stopName(next.board) });
-        else text = t("step_walk_dest", { dist: fmtDist(l.m) });
-        if (l.m < 30 && !l.transfer) return;
+        if (k === 0) text = t("step_walk_to", { dist: fmtDist(real), place: stopName(next.board) });
+        else if (l.transfer) text = real < 30 ? t("step_change_same") : t("step_change", { dist: fmtDist(real), place: stopName(next.board) });
+        else text = t("step_walk_dest", { dist: fmtDist(real) });
+        if (real < 30 && !l.transfer) return;
         // Transbordo: siempre la espera prevista en la parada hasta que pase el siguiente bus
         // (con aviso si es menos de 5 min).
         let tight = "";
@@ -2324,14 +2328,27 @@
   }
 
   // ---------- Opciones: mapa ----------
-  function walkPath(from, to) {
+  function walkRoute(from, to) {
     const k = `${fmtLL(from)}|${fmtLL(to)}`;
     if (!walkCache.has(k)) {
       const r = lastTrip.net.route(from, to);
-      walkCache.set(k, r ? [from, ...r.coords, to] : [from, to]);
+      walkCache.set(k, r ? { pts: [from, ...r.coords, to], dist: r.dist + r.offFrom + r.offTo } : { pts: [from, to], dist: null });
       if (walkCache.size > 200) walkCache.delete(walkCache.keys().next().value);
     }
     return walkCache.get(k);
+  }
+  const walkPath = (from, to) => walkRoute(from, to).pts;
+  // Extremos del tramo a pie k de una opción, y sus metros reales (l.m es el tiempo: metros
+  // equivalentes con las cuestas).
+  function walkEnds(j, k) {
+    const llOf = (i) => byId.get(lastTrip.plan.ids[i]).ll;
+    return [k === 0 ? trip.a.ll : llOf(j.legs[k - 1].alight), k === j.legs.length - 1 ? trip.b.ll : llOf(j.legs[k + 1].board)];
+  }
+  function walkReal(j, k) {
+    const l = j.legs[k];
+    if (l.m < 8) return l.m;
+    const d = walkRoute(...walkEnds(j, k)).dist;
+    return d == null ? l.m : d;
   }
   // Trazado de un tramo en bus. Muchos recorridos mezclan el trazado principal de la línea y algún
   // ramal (p. ej. los viajes de la 18A que empiezan en Rúa do Areal), así que cada trozo entre

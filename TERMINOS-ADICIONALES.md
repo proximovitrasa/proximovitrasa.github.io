@@ -39,6 +39,7 @@ La AGPL-3.0 solo cubre el trabajo propio de este repositorio. Estas partes conse
 | `data/peatonal.json`, `data/direcciones.json`, `data/sitios.json`, `data/osm/` | © colaboradores de OpenStreetMap | ODbL 1.0 |
 | `data/concello/`, paradas, líneas y horarios (`data/paradas.geojson`, `data/lineas.json`, `data/viajes.json`, `data/oficial/`) | Concello de Vigo (datos abiertos) | según sus condiciones de uso (ODC-BY para la numeración de portales) |
 | `data/catastro/` | Dirección General del Catastro | según sus condiciones de uso |
+| `data/relieve/` | © Instituto Geográfico Nacional (MDT05, PNOA-LiDAR) | CC BY 4.0 |
 | `fonts/` | Barlow, de Jeremy Tribby | SIL Open Font License 1.1 (`fonts/OFL.txt`) |
 | `vendor/leaflet/` | Leaflet | BSD-2-Clause |
 

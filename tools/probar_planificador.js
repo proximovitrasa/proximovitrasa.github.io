@@ -11,7 +11,7 @@ const peaton = R("js/peaton.js").build(R("data/peatonal.json"));
 const P = R("js/planificador.js").build(R("data/viajes.json"));
 const paradas = JSON.parse(fs.readFileSync(path.join(repo, "data/paradas.geojson"), "utf8")).features.map((f) => ({ id: String(f.properties.id), ll: [f.geometry.coordinates[1], f.geometry.coordinates[0]] }));
 const hav = (a, b) => { const r = Math.PI / 180, dl = (b[0] - a[0]) * r, dn = (b[1] - a[1]) * r; const h = Math.sin(dl / 2) ** 2 + Math.cos(a[0] * r) * Math.cos(b[0] * r) * Math.sin(dn / 2) ** 2; return 12742000 * Math.asin(Math.sqrt(h)); };
-function stopsAround(ll) { for (const max of [1000, 1600]) { const dist = peaton.around(ll, max); const out = new Map();
+function stopsAround(ll, toward) { for (const max of [1000, 1600]) { const dist = peaton.around(ll, max, toward); const out = new Map();
   for (const s of paradas) { const i = P.index.get(s.id); if (i == null || hav(ll, s.ll) > max) continue; const m = dist(s.ll); if (m <= max) out.set(i, m); } if (out.size) return out; } return new Map(); }
 let seed = 777; const rnd = () => ((seed = (seed * 1103515245 + 12345) % 2 ** 31) / 2 ** 31);
 const jitter = (ll) => [ll[0] + (rnd() - 0.5) * 0.012, ll[1] + (rnd() - 0.5) * 0.016];
@@ -21,7 +21,7 @@ const N = Number(process.argv[2] || 400);
 for (let i = 0; i < N; i++) {
   const a = jitter(paradas[Math.floor(rnd() * paradas.length)].ll), b = jitter(paradas[Math.floor(rnd() * paradas.length)].ll);
   if (hav(a, b) < 1500) continue;
-  const o = stopsAround(a), d = stopsAround(b);
+  const o = stopsAround(a), d = stopsAround(b, true);
   const time = new Date(2026, 9, 21, 7 + Math.floor(rnd() * 15), Math.floor(rnd() * 60));
   const base = new Date(2026, 9, 21).getTime(), now = (time - base) / 1000;
   for (const j of P.search({ origins: o, dests: d, walk: Infinity, time, maxTransfers: 2 })) {

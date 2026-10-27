@@ -34,12 +34,15 @@ data/viajes.json        horarios y tiempos entre paradas de cada recorrido, y tr
 data/peatonal.json      red peatonal: calles, aceras y caminos de la zona de Vitrasa (OpenStreetMap)
 data/direcciones.json   calles con nombre y números de portal (OpenStreetMap)
 data/osm/vias.json.gz   vías de OpenStreetMap descargadas, de las que sale la red peatonal
+data/relieve/mdt_vigo.tif  relieve del IGN (MDT05) para las cuestas de la red peatonal
 data/osm/direcciones.json.gz   portales de OpenStreetMap descargados
 tools/actualizar_paradas.py   genera paradas.geojson desde la lista oficial
 tools/actualizar_lineas.py    genera lineas.json desde el GTFS oficial
 tools/actualizar_viajes.py    genera viajes.json (horarios) desde el GTFS oficial
 tools/transbordos.js          añade a viajes.json los transbordos a pie entre paradas cercanas
-tools/actualizar_peatonal.py  genera peatonal.json desde las vías de OpenStreetMap
+tools/actualizar_peatonal.py  genera peatonal.json desde las vías de OpenStreetMap (con las cuestas)
+tools/relieve.py        lee el relieve y calcula el coste de andar en cuesta
+tools/descargar_relieve.py, tools/preparar_relieve.py  descarga (una vez) y recorte del relieve
 tools/actualizar_direcciones.py  genera direcciones.json desde las vías y portales de OpenStreetMap
 vendor/leaflet/         Leaflet 1.9.4
 fonts/                  Barlow (licencia OFL)
@@ -119,9 +122,19 @@ python3 tools/actualizar_peatonal.py
 
 El script se queda con las vías por las que se puede ir a pie (mismas reglas generales que el
 perfil a pie de OSRM), une los tramos, descarta islas sueltas y guarda la red en un formato
-compacto (unos 39.000 cruces, 0,7 MB comprimido). Al elegir la ruta, las pistas y sendas de
+compacto (unos 39.000 cruces, 0,8 MB comprimido). Al elegir la ruta, las pistas y sendas de
 tierra cuentan un 25 % más largas para preferir calles y aceras; la distancia mostrada es la
-real. El tiempo se calcula a 4,5 km/h, sin tener en cuenta las cuestas por ahora.
+real.
+
+**Cuestas.** El tiempo a pie es el de 4,5 km/h en llano, corregido por la pendiente con el
+relieve del IGN (`data/relieve/mdt_vigo.tif`, MDT05 del PNOA-LiDAR, sin edificios). Subiendo se
+usa la fórmula de Tobler (×e^(3,5·pendiente): un 10 % de subida cuesta un 42 % más de tiempo);
+bajando, hasta el 10 % igual que en llano y, más empinado, más despacio (`tools/relieve.py`).
+Cada tramo guarda lo que cuesta de más en cada sentido, así que subir y bajar la misma calle no
+tardan lo mismo, y la ruta elegida puede rodear una cuesta si compensa. Puentes, túneles y
+escaleras no siguen el terreno: su altura se reparte entre sus extremos. El relieve se descargó
+una vez del IGN (`tools/descargar_relieve.py`, en la rama `datos-relieve`) y se recortó a 300 m
+alrededor de la red (`tools/preparar_relieve.py`); el Action mensual solo lo lee.
 
 Comprobación (octubre de 2026): en 12 rutas de 300 m a 8,6 km por todo Vigo, la distancia
 coincide con la de routing.openstreetmap.de con una diferencia media del 2,5 %, siempre algo

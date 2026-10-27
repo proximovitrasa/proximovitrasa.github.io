@@ -11,6 +11,9 @@
   // Al elegir la ruta, las pistas y sendas de tierra cuentan algo más largas de lo que son,
   // para preferir calles y aceras si el rodeo es pequeño. La distancia mostrada es la real.
   const FACTOR = [1, 1, 1.25];        // por tipo: normal, escaleras, sin asfaltar
+  // Cuestas (v2 de peatonal.json): cada tramo lleva los metros de más que "cuesta" en cada sentido
+  // (tools/relieve.py). El tiempo a pie se da en "metros equivalentes" (eq): los que se andarían en
+  // llano a 4,5 km/h en el mismo tiempo. La distancia (dist) sigue siendo la real.
 
   function haversine(lat1, lon1, lat2, lon2) {
     const R = 6371000, r = Math.PI / 180;
@@ -77,13 +80,17 @@
       nlat[i] = la / 1e5; nlon[i] = lo / 1e5;
     }
     // Tramos: extremos, longitud y forma completa (incluidos los extremos).
-    const E = data.aristas.length / 4;
+    const W = data.v >= 2 ? 6 : 4;
+    const E = data.aristas.length / W;
     const ea = new Int32Array(E), eb = new Int32Array(E), elen = new Float64Array(E), etype = new Uint8Array(E);
+    const tab = new Float64Array(E), tba = new Float64Array(E);   // metros equivalentes a → b y b → a
     const eoff = new Int32Array(E + 1);
     const pts = [];
     for (let e = 0; e < E; e++) {
-      const a = data.aristas[4 * e], b = data.aristas[4 * e + 1];
-      ea[e] = a; eb[e] = b; elen[e] = data.aristas[4 * e + 2] / 10; etype[e] = data.aristas[4 * e + 3];
+      const a = data.aristas[W * e], b = data.aristas[W * e + 1];
+      ea[e] = a; eb[e] = b; elen[e] = data.aristas[W * e + 2] / 10; etype[e] = data.aristas[W * e + 3];
+      tab[e] = elen[e] + (W === 6 ? data.aristas[W * e + 4] / 10 : 0);
+      tba[e] = elen[e] + (W === 6 ? data.aristas[W * e + 5] / 10 : 0);
       eoff[e] = pts.length / 2;
       pts.push(nlat[a], nlon[a]);
       if (data.formas[e]) decodePolyline(data.formas[e], pts);
@@ -159,7 +166,8 @@
       }
       const f = total ? along / total : 0;
       const slat = P[2 * p] + t * (P[2 * p + 2] - P[2 * p]), slon = P[2 * p + 1] + t * (P[2 * p + 3] - P[2 * p + 1]);
-      return { e, p, t, ll: [slat, slon], off: bestD, da: f * elen[e], db: (1 - f) * elen[e] };
+      // ta: del punto al cruce a (se recorre en sentido b → a); tb: del punto al cruce b.
+      return { e, p, t, ll: [slat, slon], off: bestD, da: f * elen[e], db: (1 - f) * elen[e], ta: f * tba[e], tb: (1 - f) * tab[e] };
     }
 
     // Forma del tramo e desde el cruce "from", opcionalmente recortada.
@@ -180,6 +188,16 @@
     const prevE = new Int32Array(N);
     const touched = [];
 
+    // Coste de recorrer el tramo e desde el cruce u: para elegir ruta (con FACTOR) y en tiempo (eq).
+    const wOf = (e, u) => elen[e] * (FACTOR[etype[e]] - 1) + (ea[e] === u ? tab[e] : tba[e]);
+    const tOf = (e, u) => (ea[e] === u ? tab[e] : tba[e]);
+    // Del punto ajustado s al extremo a / b de su tramo, y desde ellos hasta el punto (sentido contrario).
+    const fromSnap = (s, toA) => (toA ? s.ta : s.tb) + (toA ? s.da : s.db) * (FACTOR[etype[s.e]] - 1);
+    const toSnapT = (g, fromA) => (fromA ? g.da / elen[g.e] * tab[g.e] : g.db / elen[g.e] * tba[g.e]) || 0;
+    const toSnapW = (g, fromA) => toSnapT(g, fromA) + (fromA ? g.da : g.db) * (FACTOR[etype[g.e]] - 1);
+    // Mismo tramo: de s a g directamente.
+    const sameT = (s, g) => (s.da <= g.da ? (g.da - s.da) / elen[s.e] * tab[s.e] : (s.da - g.da) / elen[s.e] * tba[s.e]) || 0;
+
     // Ruta más corta a pie entre dos puntos [lat, lon].
     function route(from, to) {
       const s = snap(from[0], from[1]), g = snap(to[0], to[1]);
@@ -188,7 +206,7 @@
       touched.length = 0;
       const tlat = g.ll[0], tlon = g.ll[1];
       const h = (i) => haversine(nlat[i], nlon[i], tlat, tlon);
-      const goal = new Map([[ea[g.e], g.da], [eb[g.e], g.db]]);   // cruce → metros hasta el destino
+      const goal = new Map([[ea[g.e], toSnapW(g, true)], [eb[g.e], toSnapW(g, false)]]);   // cruce → coste hasta el destino
       const heap = Heap(1024);
       const relax = (i, d, viaE) => {
         if (d < dist[i]) {
@@ -196,12 +214,10 @@
           dist[i] = d; prevE[i] = viaE; heap.push(d + h(i), i);
         }
       };
-      const fs = FACTOR[etype[s.e]], fg = FACTOR[etype[g.e]];
-      for (const k of goal.keys()) goal.set(k, goal.get(k) * fg);
-      relax(ea[s.e], s.da * fs, -1);
-      relax(eb[s.e], s.db * fs, -1);
+      relax(ea[s.e], fromSnap(s, true), -1);
+      relax(eb[s.e], fromSnap(s, false), -1);
       // Mismo tramo: ir directamente por él.
-      let best = s.e === g.e ? Math.abs(s.da - g.da) * fs : Infinity, bestNode = -2;
+      let best = s.e === g.e ? sameT(s, g) + Math.abs(s.da - g.da) * (FACTOR[etype[s.e]] - 1) : Infinity, bestNode = -2;
       while (heap.size) {
         const u = heap.pop();
         const du = dist[u];
@@ -210,17 +226,17 @@
         for (let k = deg[u]; k < deg[u + 1]; k++) {
           const e = adj[k];
           const v = ea[e] === u ? eb[e] : ea[e];
-          relax(v, du + elen[e] * FACTOR[etype[e]], e);
+          relax(v, du + wOf(e, u), e);
         }
       }
       if (best === Infinity) return null;
 
-      // Reconstruir la geometría y la distancia real.
-      let coords, real;
+      // Reconstruir la geometría, la distancia real y el tiempo (eq).
+      let coords, real, eq;
       if (bestNode === -2) {
         real = Math.abs(s.da - g.da);
+        eq = sameT(s, g);
         // Origen y destino en el mismo tramo.
-        coords = [s.ll];
         const lo = s.da <= g.da ? s : g, hi = lo === s ? g : s;
         const mid = [];
         for (let q = lo.p + 1; q <= hi.p; q++) mid.push([P[2 * q], P[2 * q + 1]]);
@@ -229,17 +245,20 @@
       } else {
         const chain = [];
         let u = bestNode;
-        real = 0;
+        real = 0; eq = 0;
         while (prevE[u] !== -1) {
           const e = prevE[u];
           const v = ea[e] === u ? eb[e] : ea[e];   // de v se llegó a u
           chain.push(edgeCoords(e, ea[e] === v));
           real += elen[e];
+          eq += tOf(e, v);
           u = v;
         }
         chain.reverse();
         real += u === ea[s.e] ? s.da : s.db;
+        eq += u === ea[s.e] ? s.ta : s.tb;
         real += bestNode === ea[g.e] ? g.da : g.db;
+        eq += toSnapT(g, bestNode === ea[g.e]);
         coords = partial(s, u === ea[s.e]);
         for (const c of chain) coords.push(...c.slice(1));
         const tail = partial(g, bestNode === ea[g.e]).reverse();
@@ -247,6 +266,7 @@
       }
       return {
         dist: real,              // metros por la red, de punto ajustado a punto ajustado
+        eq,                      // lo mismo en tiempo: metros equivalentes en llano (cuestas incluidas)
         coords,
         from: s.ll, to: g.ll,
         offFrom: s.off, offTo: g.off,   // metros desde el punto pedido hasta la calle más cercana
@@ -254,33 +274,47 @@
       };
     }
 
-    // Distancias a pie desde un punto a todo lo que hay alrededor, hasta "max" metros por la red.
-    // Devuelve una función que da los metros hasta otro punto (Infinity si queda más lejos).
+    // Distancias a pie desde un punto a todo lo que hay alrededor, hasta "max" metros equivalentes.
+    // Devuelve una función que da los metros equivalentes (tiempo, con cuestas) hasta otro punto
+    // (Infinity si queda más lejos); con real = true, [eq, metros reales del mismo camino].
+    // toward = true: al revés, desde cada punto HASTA "from" (para las paradas de bajada: las cuestas
+    // cuentan en el sentido en que se anda).
     // Se usa para ver qué paradas hay cerca del origen y del destino, y para los transbordos.
-    // La distancia incluye el tramo desde cada punto hasta la calle más cercana.
-    function around(from, max) {
+    // Incluye el tramo desde cada punto hasta la calle más cercana.
+    function around(from, max, toward = false) {
       const s = snap(from[0], from[1]);
       if (!s) return () => Infinity;
-      const d = new Map();                       // cruce → metros (solo los alcanzados)
+      const d = new Map(), r = new Map();          // cruce → metros equivalentes / reales
       const heap = Heap(256);
-      const push = (i, v) => { if (v <= max && v < (d.has(i) ? d.get(i) : Infinity)) { d.set(i, v); heap.push(v, i); } };
-      push(ea[s.e], s.da + s.off);
-      push(eb[s.e], s.db + s.off);
+      const push = (i, v, m) => { if (v <= max && v < (d.has(i) ? d.get(i) : Infinity)) { d.set(i, v); r.set(i, m); heap.push(v, i); } };
+      // Andar del punto al cruce, o (toward) del cruce al punto.
+      const startA = toward ? s.da / elen[s.e] * tab[s.e] || 0 : s.ta;
+      const startB = toward ? s.db / elen[s.e] * tba[s.e] || 0 : s.tb;
+      push(ea[s.e], startA + s.off, s.da + s.off);
+      push(eb[s.e], startB + s.off, s.db + s.off);
       while (heap.size) {
         const u = heap.pop();
-        const du = d.get(u);
+        const du = d.get(u), ru = r.get(u);
         for (let k = deg[u]; k < deg[u + 1]; k++) {
           const e = adj[k];
-          push(ea[e] === u ? eb[e] : ea[e], du + elen[e]);
+          const v = ea[e] === u ? eb[e] : ea[e];
+          push(v, du + (toward ? tOf(e, v) : tOf(e, u)), ru + elen[e]);
         }
       }
-      return (ll, snapped) => {
+      return (ll, snapped, real = false) => {
         const g = snapped || snap(ll[0], ll[1]);
-        if (!g) return Infinity;
-        let best = Math.min((d.has(ea[g.e]) ? d.get(ea[g.e]) : Infinity) + g.da,
-                            (d.has(eb[g.e]) ? d.get(eb[g.e]) : Infinity) + g.db);
-        if (g.e === s.e) best = Math.min(best, Math.abs(s.da - g.da) + s.off);
-        return best + g.off;
+        if (!g) return real ? [Infinity, Infinity] : Infinity;
+        // Del cruce al punto g (o, toward, de g al cruce).
+        const ga = toward ? g.ta : (g.da / elen[g.e] * tab[g.e] || 0);
+        const gb = toward ? g.tb : (g.db / elen[g.e] * tba[g.e] || 0);
+        let best = Infinity, bestR = Infinity;
+        if (d.has(ea[g.e]) && d.get(ea[g.e]) + ga < best) { best = d.get(ea[g.e]) + ga; bestR = r.get(ea[g.e]) + g.da; }
+        if (d.has(eb[g.e]) && d.get(eb[g.e]) + gb < best) { best = d.get(eb[g.e]) + gb; bestR = r.get(eb[g.e]) + g.db; }
+        if (g.e === s.e) {
+          const same = toward ? sameT(g, s) : sameT(s, g);
+          if (same + s.off < best) { best = same + s.off; bestR = Math.abs(s.da - g.da) + s.off; }
+        }
+        return real ? [best + g.off, bestR + g.off] : best + g.off;
       };
     }
 

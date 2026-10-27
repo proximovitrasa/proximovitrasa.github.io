@@ -1,7 +1,9 @@
 /* Calcula los transbordos a pie entre paradas cercanas y los guarda en data/viajes.json.
    Uso (después de tools/actualizar_viajes.py):  node tools/transbordos.js
    Distancia por la red peatonal propia (data/peatonal.json), no en línea recta: así no se proponen
-   transbordos que obligan a rodear una autovía o la vía del tren. */
+   transbordos que obligan a rodear una autovía o la vía del tren. Se guardan los metros
+   equivalentes (el tiempo a pie, con las cuestas: ver js/peaton.js); el límite de 300 m es de
+   metros reales. */
 "use strict";
 const fs = require("fs");
 const path = require("path");
@@ -28,11 +30,11 @@ const t0 = Date.now();
 const out = [];
 let pares = 0;
 for (let i = 0; i < ids.length; i++) {
-  const dist = net.around(pts[i], MAX + 200);
+  const dist = net.around(pts[i], MAX * 4);
   for (let j = 0; j < ids.length; j++) {
     if (i === j || recta(pts[i], pts[j]) > MAX) continue;
-    const m = dist(pts[j], snaps[j]);
-    if (m <= MAX) { out.push(i, j, Math.round(m)); pares++; }
+    const [eq, m] = dist(pts[j], snaps[j], true);
+    if (m <= MAX) { out.push(i, j, Math.round(eq)); pares++; }
   }
 }
 viajes.transbordos = out;
