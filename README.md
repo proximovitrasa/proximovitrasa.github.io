@@ -45,6 +45,7 @@ tools/relieve.py        lee el relieve y calcula el coste de andar en cuesta
 tools/descargar_relieve.py, tools/preparar_relieve.py  descarga (una vez) y recorte del relieve
 tools/actualizar_direcciones.py  genera direcciones.json desde las vías y portales de OpenStreetMap
 vendor/leaflet/         Leaflet 1.9.4
+vendor/maplibre/        MapLibre GL JS 5.24 y su complemento para Leaflet (mapa base de OpenFreeMap)
 fonts/                  Barlow (licencia OFL)
 icons/, manifest.webmanifest, sw.js   app instalable
 ```

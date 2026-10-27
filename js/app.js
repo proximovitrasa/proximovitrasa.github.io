@@ -172,12 +172,74 @@
   map.attributionControl.setPrefix(false);
   if (isDesktop()) L.control.zoom({ position: "topleft" }).addTo(map);
 
-  // Mapa base de OpenStreetMap: gratuito y sin clave.
-  // OpenStreetMap exige saber desde qué web se piden los mapas (cabecera Referer).
-  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    maxZoom: 19, referrerPolicy: "strict-origin-when-cross-origin",
-    attribution: '© <a href="https://www.openstreetmap.org/copyright">Colaboradores de OpenStreetMap</a>',
-  }).addTo(map);
+  // Mapa base (33): OpenFreeMap (gratuito y sin clave), Positron en claro y Fiord con el móvil en
+  // modo oscuro. Es vectorial: lo pinta MapLibre debajo de Leaflet con su complemento oficial
+  // (vendor/maplibre), que se descarga aparte para no retrasar la web. Todo lo demás del mapa sigue
+  // en Leaflet. Si el móvil no tiene WebGL, o OpenFreeMap no carga en BASE_TIMEOUT, se usa el mapa
+  // de OpenStreetMap de siempre (exige la cabecera Referer).
+  const BASE_TIMEOUT = 8000;
+  const OFM_STYLE = (dark) => `https://tiles.openfreemap.org/styles/${dark ? "fiord" : "positron"}`;
+  const OFM_ATTR = '<a href="https://openfreemap.org/">OpenFreeMap</a> © <a href="https://www.openmaptiles.org/">OpenMapTiles</a>, datos de <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
+  const darkScheme = matchMedia("(prefers-color-scheme: dark)");
+  let osmLayer = null, glLayer = null, glReady = false;
+  function useOSM() {
+    if (glLayer) { map.removeLayer(glLayer); glLayer = null; }
+    map.getContainer().classList.remove("gl-base");
+    if (!osmLayer) osmLayer = L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19, referrerPolicy: "strict-origin-when-cross-origin",
+      attribution: '© <a href="https://www.openstreetmap.org/copyright">Colaboradores de OpenStreetMap</a>',
+    });
+    if (!map.hasLayer(osmLayer)) osmLayer.addTo(map);
+  }
+  function hasWebGL() {
+    try { const c = document.createElement("canvas"); return !!(window.WebGL2RenderingContext && c.getContext("webgl2")) || !!c.getContext("webgl"); }
+    catch { return false; }
+  }
+  const loadScript = (src) => new Promise((ok, ko) => {
+    const el = document.createElement("script");
+    el.src = src; el.onload = ok; el.onerror = ko;
+    document.head.appendChild(el);
+  });
+  // De momento, OpenFreeMap solo si se pide (?mapa=nuevo; ?mapa=clasico vuelve), y se recuerda en
+  // este dispositivo: así se prueba en móviles reales antes de ponerlo a todo el mundo.
+  const BASE_KEY = "pv:mapa";
+  function baseChoice() {
+    const q = new URLSearchParams(location.search).get("mapa");
+    try {
+      if (q === "nuevo") localStorage.setItem(BASE_KEY, "ofm");
+      else if (q === "clasico") localStorage.setItem(BASE_KEY, "osm");
+      return localStorage.getItem(BASE_KEY) || BASE_DEFAULT;
+    } catch { return q === "nuevo" ? "ofm" : BASE_DEFAULT; }
+  }
+  const BASE_DEFAULT = "osm";
+  async function startBase() {
+    if (baseChoice() !== "ofm" || !hasWebGL()) { useOSM(); return; }
+    const timer = setTimeout(() => { if (!glReady) useOSM(); }, BASE_TIMEOUT);
+    try {
+      const css = document.createElement("link");
+      css.rel = "stylesheet"; css.href = "vendor/maplibre/maplibre-gl.css";
+      document.head.appendChild(css);
+      await loadScript("vendor/maplibre/maplibre-gl.js");
+      await loadScript("vendor/maplibre/leaflet-maplibre-gl.js");
+      if (osmLayer && map.hasLayer(osmLayer)) { clearTimeout(timer); return; }   // ya se pasó a OpenStreetMap
+      glLayer = L.maplibreGL({ style: OFM_STYLE(darkScheme.matches), attributionControl: { customAttribution: OFM_ATTR } }).addTo(map);
+      const gl = glLayer.getMaplibreMap();
+      gl.once("load", () => {
+        glReady = true;
+        clearTimeout(timer);
+        map.getContainer().classList.add("gl-base");
+      });
+      // Sin el estilo (OpenFreeMap caído o sin red), a OpenStreetMap; los fallos sueltos de una
+      // tesela una vez cargado el mapa no cambian nada.
+      gl.on("error", () => { if (!glReady) { clearTimeout(timer); useOSM(); } });
+    } catch {
+      clearTimeout(timer);
+      useOSM();
+    }
+  }
+  // Claro u oscuro según el móvil, también si cambia con la web abierta.
+  darkScheme.addEventListener("change", () => { if (glLayer && glReady) glLayer.getMaplibreMap().setStyle(OFM_STYLE(darkScheme.matches)); });
+  startBase();
   map.attributionControl.addAttribution('Portales: <a href="https://datos.vigo.org/">Concello de Vigo</a>, <a href="https://www.sedecatastro.gob.es/">D. G. del Catastro</a>');
   map.attributionControl.addAttribution('Relieve: <a href="https://www.ign.es/">© IGN</a>');
 

@@ -42,5 +42,6 @@ La AGPL-3.0 solo cubre el trabajo propio de este repositorio. Estas partes conse
 | `data/relieve/` | © Instituto Geográfico Nacional (MDT05, PNOA-LiDAR) | CC BY 4.0 |
 | `fonts/` | Barlow, de Jeremy Tribby | SIL Open Font License 1.1 (`fonts/OFL.txt`) |
 | `vendor/leaflet/` | Leaflet | BSD-2-Clause |
+| `vendor/maplibre/` | MapLibre GL JS (BSD-3-Clause, con partes de terceros: `LICENSE-maplibre-gl.txt`) y su complemento para Leaflet (ISC: `LICENSE-maplibre-gl-leaflet.txt`) | las suyas |
 
 «Vitrasa» es una marca de su titular. ProximoVitrasa es un proyecto independiente y no oficial.

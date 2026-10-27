@@ -532,6 +532,9 @@ button.badge:hover { filter: brightness(1.08); }
 .leaflet-bar a { color: var(--ink); background: var(--surface); border-color: var(--line); }
 /* Mapa base de OpenStreetMap con sus colores, apenas suavizado para que destaquen las paradas. */
 .leaflet-tile-pane { filter: saturate(.85); }
+/* Con OpenFreeMap (lienzo WebGL) no se aplica el filtro: se recalcularía en cada fotograma. */
+.gl-base .leaflet-tile-pane { filter: none; }
+.gl-base .leaflet-gl-layer { pointer-events: none; }
 .hide-stops .stop-icon { display: none; }
 .trip-stops .stop-icon { display: none; }   /* Cómo llegar con un viaje dibujado: solo sus paradas */
 .leaflet-marker-icon.stop-icon:hover { z-index: 1000 !important; }
