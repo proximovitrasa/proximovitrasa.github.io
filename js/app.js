@@ -188,7 +188,10 @@
 
   // Icono de parada (señal con un autobús). Rojo normal, azul ría en favoritas
   // y, con una línea elegida, del color oficial de esa línea.
-  const stopSvg = (bg, fg) => `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect x="1.5" y="1.5" width="29" height="29" rx="8" fill="${bg}" stroke="#fff" stroke-width="2.5"/><g fill="${fg}"><path d="M10.2 7.5h11.6a2.7 2.7 0 0 1 2.7 2.7v11.3a1.6 1.6 0 0 1-1.6 1.6H9.1a1.6 1.6 0 0 1-1.6-1.6V10.2a2.7 2.7 0 0 1 2.7-2.7z"/><rect x="9.6" y="23" width="3.2" height="2.6" rx="1"/><rect x="19.2" y="23" width="3.2" height="2.6" rx="1"/></g><g fill="${bg}"><rect x="9.8" y="10.4" width="12.4" height="5.6" rx="1.2"/><rect x="12.5" y="8.3" width="7" height="1.2" rx=".6"/><circle cx="11.2" cy="19.4" r="1.3"/><circle cx="20.8" cy="19.4" r="1.3"/></g></svg>`;
+  // La sombra va dentro del SVG (antes era un drop-shadow de CSS, que se recalculaba en cada
+  // fotograma al mover el mapa): 1 px hacia abajo y 2 px de difuminado, medidos en píxeles de pantalla.
+  const STOP_PAD = 3;   // margen alrededor del icono para que la sombra no se corte
+  const stopSvg = (bg, fg, size) => { const u = 32 / size; return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${-STOP_PAD} ${-STOP_PAD} ${32 + 2 * STOP_PAD} ${32 + 2 * STOP_PAD}"><defs><filter id="sh" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="${u.toFixed(2)}" stdDeviation="${u.toFixed(2)}" flood-color="#13222C" flood-opacity=".45"/></filter></defs><rect x="1.5" y="1.5" width="29" height="29" rx="8" fill="${bg}" stroke="#fff" stroke-width="2.5" filter="url(#sh)"/><g fill="${fg}"><path d="M10.2 7.5h11.6a2.7 2.7 0 0 1 2.7 2.7v11.3a1.6 1.6 0 0 1-1.6 1.6H9.1a1.6 1.6 0 0 1-1.6-1.6V10.2a2.7 2.7 0 0 1 2.7-2.7z"/><rect x="9.6" y="23" width="3.2" height="2.6" rx="1"/><rect x="19.2" y="23" width="3.2" height="2.6" rx="1"/></g><g fill="${bg}"><rect x="9.8" y="10.4" width="12.4" height="5.6" rx="1.2"/><rect x="12.5" y="8.3" width="7" height="1.2" rx=".6"/><circle cx="11.2" cy="19.4" r="1.3"/><circle cx="20.8" cy="19.4" r="1.3"/></g></svg>`; };
   const sizeFor = (z) => (z <= 12 ? 12 : z === 13 ? 16 : z === 14 ? 20 : z === 15 ? 26 : 30);
   const iconCache = new Map();
   function iconFor(s, z) {
@@ -198,14 +201,53 @@
     else if (favStop(s.id)) bg = "#13222C";
     const size = sizeFor(z) + (l && active.stops.has(s.id) ? 4 : 0), k = `${bg}|${fg}|${size}`;
     if (!iconCache.has(k)) {
-      iconCache.set(k, L.icon({
-        iconUrl: `data:image/svg+xml,${encodeURIComponent(stopSvg(bg, fg))}`,
-        iconSize: [size, size], iconAnchor: [size / 2, size / 2], className: "stop-icon",
-      }));
+      const full = Math.round(size * (32 + 2 * STOP_PAD) / 32);
+      const icon = L.icon({
+        iconUrl: `data:image/svg+xml,${encodeURIComponent(stopSvg(bg, fg, size))}`,
+        iconSize: [full, full], iconAnchor: [full / 2, full / 2], className: "stop-icon",
+      });
+      icon.key = k;
+      iconCache.set(k, icon);
     }
     return iconCache.get(k);
   }
-  const refreshIcon = (s) => s.marker.setIcon(iconFor(s, map.getZoom()));
+
+  // ---------- Paradas en el mapa: solo las que caen en pantalla ----------
+  // Cada parada tiene su marcador (se crea la primera vez que entra en pantalla), pero solo
+  // están en el mapa las de la vista actual con un margen. El aspecto (icono, transparencia
+  // con una línea abierta, orden) se aplica al añadirlas y, después, solo a las que están.
+  const STOP_MARGIN = 0.35;   // margen alrededor de la pantalla, en fracción de su tamaño
+  let shownStops = new Set();
+  function stopMarker(s) {
+    if (!s.marker) {
+      s.marker = L.marker(s.ll, { icon: iconFor(s, map.getZoom()), keyboard: false, alt: s.name })
+        .on("click", () => { if (tripOpen()) tripPickStop(s); else navigate(s.id, { replace: !!current }); });
+      if (canHover) s.marker.bindTooltip(() => `${esc(s.name)} (${esc(s.id)})`, { direction: "top", offset: [0, -6] });
+      s.look = { icon: s.marker.options.icon.key, op: 1, z: 0 };
+    }
+    return s.marker;
+  }
+  function styleStop(s) {
+    const m = stopMarker(s);
+    const icon = iconFor(s, map.getZoom());
+    const on = !active || active.stops.has(s.id);
+    const op = on ? 1 : 0.12, z = active && on ? 500 : 0;
+    if (s.look.icon !== icon.key) { m.setIcon(icon); s.look.icon = icon.key; if (s.look.op !== 1) m.setOpacity(s.look.op); }
+    if (s.look.op !== op) { m.setOpacity(op); s.look.op = op; }
+    if (s.look.z !== z) { m.setZIndexOffset(z); s.look.z = z; }
+  }
+  function syncStops() {
+    if (!stops.length) return;
+    const b = map.getBounds().pad(STOP_MARGIN);
+    const next = new Set();
+    for (const s of stops) if (b.contains(s.ll)) next.add(s);
+    shownStops.forEach((s) => { if (!next.has(s)) s.marker.remove(); });
+    next.forEach((s) => { styleStop(s); if (!shownStops.has(s)) s.marker.addTo(map); });
+    shownStops = next;
+  }
+  // Volver a pintar todas las paradas visibles (al abrir o cerrar una línea, por ejemplo).
+  const restyleStops = () => shownStops.forEach(styleStop);
+  const refreshIcon = (s) => { if (shownStops.has(s)) styleStop(s); };
   const lineGroup = L.layerGroup().addTo(map);
 
   const selRing = L.circleMarker(VIGO, { renderer, radius: 22, weight: 3, color: RED, fill: false, interactive: false });
@@ -224,10 +266,11 @@
   map.on("zoomend", () => {
     updateStopVisibility();
     const z = map.getZoom();
-    stops.forEach((s) => s.marker.setIcon(iconFor(s, z)));
+    syncStops();   // también cambia el icono de las visibles; las demás, al entrar en pantalla
     selRing.setRadius(sizeFor(z) / 2 + 7);
   });
-  map.on("moveend", () => { if (mode === "near" && !me && !current && !active) renderNear(); });
+  map.on("moveend", () => {
+    syncStops(); if (mode === "near" && !me && !current && !active) renderNear(); });
 
   // Centra un punto en la zona del mapa que no tapa el panel.
   function focusOn(ll, zoom) {
@@ -249,15 +292,12 @@
         const [lon, lat] = f.geometry.coordinates;
         const s = { id: f.properties.id, name: f.properties.nombre, lines: f.properties.lineas || [], ll: [lat, lon] };
         s.key = norm(`${s.name} ${s.id}`);
-        s.marker = L.marker(s.ll, { icon: iconFor(s, map.getZoom()), keyboard: false, alt: s.name })
-          .on("click", () => { if (tripOpen()) tripPickStop(s); else navigate(s.id, { replace: !!current }); })
-          .addTo(map);
-        if (canHover) s.marker.bindTooltip(() => `${esc(s.name)} (${esc(s.id)})`, { direction: "top", offset: [0, -6] });
         byId.set(s.id, s);
         return s;
       });
       // Encuadre inicial: el centro de Vigo, donde está la mayoría de paradas.
       map.setView(VIGO, 14);
+      syncStops();
       route();
     })
     .catch(() => {
@@ -611,29 +651,23 @@
   // ---------- Línea iluminada ----------
   function clearLine() {
     if (!active) return;
-    const was = active.stops;
     active = null;
     stopTrack();
     lineGroup.clearLayers();
     selRing.remove();
     updateStopVisibility();
-    stops.forEach((s) => { s.marker.setOpacity(1).setZIndexOffset(0); if (was.has(s.id)) refreshIcon(s); });
+    restyleStops();
   }
 
   function drawLine() {
     const l = lines[active.code];
     lineGroup.clearLayers();
     // Solo el sentido elegido: su trazado y sus paradas.
-    const prev = active.stops;
     const dir = l.sentidos[active.dir];
     const v = active.variant && active.variant.main ? active.variant : null;
     active.stops = new Set(v ? [...v.main, ...v.extra] : [...dir.paradas, ...(dir.otras || [])]);
     updateStopVisibility();
-    stops.forEach((s) => {
-      const on = active.stops.has(s.id);
-      s.marker.setOpacity(on ? 1 : 0.12).setZIndexOffset(on ? 500 : 0);
-      if (on || prev.has(s.id)) refreshIcon(s);
-    });
+    restyleStops();
     // Variante: su recorrido pasando por sus paradas (y, más fino, el de sus viajes distintos).
     if (v) {
       v.others.forEach((ids) => thinStroke(pathThrough(dir, ids), l.color));
