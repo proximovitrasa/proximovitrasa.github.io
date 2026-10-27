@@ -1,0 +1,56 @@
+{
+  "_": "Datos propios de cada elemento del KML (data/vigo-vertical/vigo-vertical.kml), por el id de su Placemark. tools/actualizar_vigo_vertical.py los une con la geometría. tipo: rampa | escalera (mecánica) | ascensor | inclinado. horario: clave de 'horarios'. confirmar: lo que falta comprobar en la página oficial (web).",
+  "horarios": {
+    "general": {
+      "nota": "Horario general del Vigo Vertical (ficha oficial de las rampas de Gran Vía; el Halo abrió con el mismo en 2024).",
+      "dias": [[0, "06:00", "23:00"], [1, "06:00", "23:00"], [2, "06:00", "23:00"], [3, "06:00", "23:00"], [4, "06:00", "23:00"], [5, "06:00", "25:00"], [6, "06:00", "25:00"]],
+      "vispera": ["06:00", "25:00"]
+    },
+    "porta-do-sol": {
+      "nota": "Como el general, pero los sábados hasta las 2:00 (desde el 11/05/2024).",
+      "dias": [[0, "06:00", "23:00"], [1, "06:00", "23:00"], [2, "06:00", "23:00"], [3, "06:00", "23:00"], [4, "06:00", "23:00"], [5, "06:00", "25:00"], [6, "06:00", "26:00"]],
+      "vispera": ["06:00", "25:00"]
+    },
+    "halo": {
+      "nota": "Halo: de domingo a jueves de 5:30 a 0:30; viernes, sábados y vísperas de festivo, de 5:30 a 2:00 (desde mayo de 2024).",
+      "dias": [[0, "05:30", "24:30"], [1, "05:30", "24:30"], [2, "05:30", "24:30"], [3, "05:30", "24:30"], [4, "05:30", "24:30"], [5, "05:30", "26:00"], [6, "05:30", "26:00"]],
+      "vispera": ["05:30", "26:00"]
+    }
+  },
+  "elementos": {
+    "0386B17892429AFC1821": { "nombre": "Ascensor inclinado de Juan Ramón Jiménez", "tipo": "inclinado", "horario": "general", "web": "https://hoxe.vigo.org/movemonos/movilidad_vigo_vertical.php?idpoi=4842&lang=cas", "confirmar": "horario" },
+    "06E2DF1030429AFD04F1": { "nombre": "Ascensor de Juan Ramón Jiménez", "tipo": "ascensor", "horario": "general", "confirmar": "nombre y horario (¿ascensor-mirador de septiembre de 2026?)" },
+    "098C7B5618429AFEA879": { "nombre": "Ascensor de Marqués de Valterra", "tipo": "ascensor", "horario": "general", "web": "https://hoxe.vigo.org/movemonos/movilidad_vigo_vertical.php?idpoi=4847&lang=cas", "confirmar": "nombre y horario" },
+    "07DD600F2D429B012FBE": { "nombre": "Rampas de Pintor Colmeiro", "tipo": "rampa", "horario": "general", "confirmar": "horario" },
+    "048D3454BC429B01C2EB": { "nombre": "Rampas de Pintor Colmeiro", "tipo": "rampa", "horario": "general", "confirmar": "horario" },
+    "03093CA19F429B03794A": { "nombre": "Rampas de Pintor Lugrís", "tipo": "rampa", "horario": "general", "confirmar": "horario" },
+    "015A6F8126429B03E1D8": { "nombre": "Rampas de Pintor Lugrís", "tipo": "rampa", "horario": "general", "confirmar": "horario" },
+    "0C0E5D9287429B04C37C": { "nombre": "Ascensor del parque Camilo José Cela", "tipo": "ascensor", "horario": "general", "web": "https://hoxe.vigo.org/movemonos/movilidad_vigo_vertical.php?idpoi=4843&lang=cas", "confirmar": "nombre y horario" },
+    "06E8518FC8429B05B908": { "nombre": "Rampas del Paseo de Granada", "tipo": "rampa", "horario": "general", "confirmar": "horario" },
+    "0F03A35F54429B065F43": { "nombre": "Escaleras mecánicas de Porta do Sol", "tipo": "escalera", "horario": "porta-do-sol", "web": "https://hoxe.vigo.org/movemonos/movilidad_vigo_vertical.php?idpoi=4844&lang=cas", "confirmar": "horario" },
+    "043090E684429B06D384": { "nombre": "Escaleras mecánicas de Porta do Sol", "tipo": "escalera", "horario": "porta-do-sol", "web": "https://hoxe.vigo.org/movemonos/movilidad_vigo_vertical.php?idpoi=4844&lang=cas", "confirmar": "horario" },
+    "0AB751EC5F429B07264A": { "nombre": "Escaleras mecánicas de Porta do Sol", "tipo": "escalera", "horario": "porta-do-sol", "web": "https://hoxe.vigo.org/movemonos/movilidad_vigo_vertical.php?idpoi=4844&lang=cas", "confirmar": "horario" },
+    "083B4A8DC2429B0788B7": { "nombre": "Escaleras mecánicas de Porta do Sol", "tipo": "escalera", "horario": "porta-do-sol", "web": "https://hoxe.vigo.org/movemonos/movilidad_vigo_vertical.php?idpoi=4844&lang=cas", "confirmar": "horario" },
+    "0CCD63EF78429B083EA6": { "nombre": "Halo", "tipo": "ascensor", "horario": "halo", "web": "https://hoxe.vigo.org/movemonos/movilidad_vigo_vertical.php?idpoi=4849&lang=cas", "confirmar": "horario actual" },
+    "06ED10D440429B09C2C2": { "nombre": "Ascensor de Urzaiz - estación Vialia", "tipo": "ascensor", "horario": "general", "web": "https://hoxe.vigo.org/movemonos/movilidad_vigo_vertical.php?idpoi=4856&lang=cas", "confirmar": "horario" },
+    "051C2D070C429B0AE016": { "nombre": "Rampas de Escultor Gregorio Fernández", "tipo": "rampa", "horario": "general", "web": "https://hoxe.vigo.org/movemonos/movilidad_vigo_vertical.php?idpoi=4860&lang=cas", "confirmar": "horario" },
+    "05CE2BA509429B0B55A0": { "nombre": "Rampas de Escultor Gregorio Fernández", "tipo": "rampa", "horario": "general", "web": "https://hoxe.vigo.org/movemonos/movilidad_vigo_vertical.php?idpoi=4860&lang=cas", "confirmar": "horario" },
+    "06460616DF429B0CBC7C": { "nombre": "Rampas de Gran Vía", "tipo": "rampa", "horario": "general", "web": "https://hoxe.vigo.org/movemonos/movilidad_vigo_vertical.php?idpoi=4854&lang=cas" },
+    "05AD7D376C429B0D09CD": { "nombre": "Rampas de Gran Vía", "tipo": "rampa", "horario": "general", "web": "https://hoxe.vigo.org/movemonos/movilidad_vigo_vertical.php?idpoi=4854&lang=cas" },
+    "0EAF5613E6429B0D6057": { "nombre": "Rampas de Gran Vía", "tipo": "rampa", "horario": "general", "web": "https://hoxe.vigo.org/movemonos/movilidad_vigo_vertical.php?idpoi=4854&lang=cas" },
+    "0A63BBDD2B429B0EA969": { "nombre": "Rampas de Gran Vía", "tipo": "rampa", "horario": "general", "web": "https://hoxe.vigo.org/movemonos/movilidad_vigo_vertical.php?idpoi=4854&lang=cas" },
+    "01F7E31CE7429B0EF7D4": { "nombre": "Rampas de Gran Vía", "tipo": "rampa", "horario": "general", "web": "https://hoxe.vigo.org/movemonos/movilidad_vigo_vertical.php?idpoi=4854&lang=cas" },
+    "0C3671CD33429B10D70F": { "nombre": "Ascensor de San Salvador - Isabel a Católica", "tipo": "ascensor", "horario": "general", "web": "https://hoxe.vigo.org/movemonos/movilidad_vigo_vertical.php?idpoi=4846&lang=cas", "confirmar": "horario" },
+    "04DE7BBB74429B11E217": { "nombre": "Ascensor de Pizarro", "tipo": "ascensor", "horario": "general", "web": "https://hoxe.vigo.org/movemonos/movilidad_vigo_vertical.php?idpoi=4848&lang=cas", "confirmar": "horario" },
+    "0F8BD1D722429B1417DD": { "nombre": "Escaleras mecánicas de Pizarro", "tipo": "escalera", "horario": "general", "confirmar": "horario" },
+    "091932A8FB429B168059": { "nombre": "Escaleras mecánicas de Praza de Portugal", "tipo": "escalera", "horario": "general", "web": "https://hoxe.vigo.org/movemonos/movilidad_vigo_vertical.php?idpoi=4845&lang=cas", "confirmar": "horario" },
+    "00070BEB9C429B19C864": { "nombre": "Escaleras mecánicas de Talude", "tipo": "escalera", "horario": "general", "web": "https://hoxe.vigo.org/movemonos/movilidad_vigo_vertical.php?idpoi=4851&lang=cas", "confirmar": "horario" },
+    "0EC1B86318429B23E640": { "nombre": "Rampas de Lavadores (Ramón Nieto)", "tipo": "rampa", "horario": "general", "confirmar": "nombre y horario" },
+    "0CE2BA96E0429B26EE70": { "nombre": "Rampas de Aragón - Travesía de Vigo", "tipo": "rampa", "horario": "general", "web": "https://hoxe.vigo.org/movemonos/movilidad_vigo_vertical.php?idpoi=4855&lang=cas", "confirmar": "horario" },
+    "04F269A59D429B287CA2": { "nombre": "Rampas de Carral", "tipo": "rampa", "horario": "general", "web": "https://hoxe.vigo.org/movemonos/movilidad_vigo_vertical.php?idpoi=4853&lang=cas", "confirmar": "horario" },
+    "0E5D983EE4429B43995A": { "nombre": "Rampas de Curros", "tipo": "rampa", "horario": "general", "confirmar": "nombre y horario" },
+    "0B17317810429B43FBFF": { "nombre": "Rampas de Curros", "tipo": "rampa", "horario": "general", "confirmar": "nombre y horario" },
+    "0DC5DEED89429B45B23F": { "nombre": "Rampas de Curros", "tipo": "rampa", "horario": "general", "confirmar": "nombre y horario" },
+    "0A85993C88429B4AAB90": { "nombre": "Rampas de Teis", "tipo": "rampa", "horario": "general", "web": "https://hoxe.vigo.org/movemonos/movilidad_vigo_vertical.php?idpoi=4852&lang=cas", "confirmar": "horario" }
+  }
+}

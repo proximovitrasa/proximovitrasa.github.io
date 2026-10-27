@@ -1,0 +1,783 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2" xmlns:gx="http://www.google.com/kml/ext/2.2" xmlns:kml="http://www.opengis.net/kml/2.2" xmlns:atom="http://www.w3.org/2005/Atom">
+<Document id="1Uh30byqCFah9ediAbTWdgDAtSnKs8EbP">
+	<name>Vigo vertical</name>
+	<visibility>0</visibility>
+	<Schema name="__managed_schema" id="__managed_schema">
+		<SimpleField type="int" name="10A05110C8429B11E217">
+			<displayName>Precisión (m)</displayName>
+		</SimpleField>
+		<SimpleField type="int" name="10A8D17439429B10D70F">
+			<displayName>Precisión (m)</displayName>
+		</SimpleField>
+		<SimpleField type="int" name="0469896138429AFEA87A">
+			<displayName>Precisión (m)</displayName>
+		</SimpleField>
+		<SimpleField type="int" name="0DEFD778B4429AFD04F2">
+			<displayName>Precisión (m)</displayName>
+		</SimpleField>
+	</Schema>
+	<gx:CascadingStyle kml:id="__managed_style_001201C5B742A866A5C5_normal">
+		<Style>
+			<IconStyle>
+				<Icon>
+					<href>https://earth.google.com/earth/document/icon?color=1976d2&amp;id=2000&amp;scale=4</href>
+				</Icon>
+				<hotSpot x="64" y="128" xunits="pixels" yunits="insetPixels"/>
+			</IconStyle>
+			<LabelStyle>
+			</LabelStyle>
+			<LineStyle>
+				<color>ff2dc0fb</color>
+				<width>1.52381</width>
+			</LineStyle>
+			<PolyStyle>
+				<color>40ffffff</color>
+			</PolyStyle>
+			<BalloonStyle>
+			</BalloonStyle>
+		</Style>
+	</gx:CascadingStyle>
+	<StyleMap id="__managed_style_001201C5B742A866A5C5">
+		<Pair>
+			<key>normal</key>
+			<styleUrl>#__managed_style_001201C5B742A866A5C5_normal</styleUrl>
+		</Pair>
+		<Pair>
+			<key>highlight</key>
+			<styleUrl>#__managed_style_001201C5B742A866A5C5_highlight</styleUrl>
+		</Pair>
+	</StyleMap>
+	<gx:CascadingStyle kml:id="__managed_style_018DAD82FD42A866A5C6_highlight">
+		<Style>
+			<IconStyle>
+				<scale>1.2</scale>
+				<Icon>
+					<href>https://earth.google.com/earth/document/icon?color=1976d2&amp;id=2000&amp;scale=4</href>
+				</Icon>
+				<hotSpot x="64" y="128" xunits="pixels" yunits="insetPixels"/>
+			</IconStyle>
+			<LabelStyle>
+			</LabelStyle>
+			<LineStyle>
+				<color>ff2dc0fb</color>
+				<width>2.28571</width>
+			</LineStyle>
+			<PolyStyle>
+				<color>40ffffff</color>
+			</PolyStyle>
+			<BalloonStyle>
+			</BalloonStyle>
+		</Style>
+	</gx:CascadingStyle>
+	<gx:CascadingStyle kml:id="__managed_style_001201C5B742A866A5C5_highlight">
+		<Style>
+			<IconStyle>
+				<scale>1.2</scale>
+				<Icon>
+					<href>https://earth.google.com/earth/document/icon?color=1976d2&amp;id=2000&amp;scale=4</href>
+				</Icon>
+				<hotSpot x="64" y="128" xunits="pixels" yunits="insetPixels"/>
+			</IconStyle>
+			<LabelStyle>
+			</LabelStyle>
+			<LineStyle>
+				<color>ff2dc0fb</color>
+				<width>2.28571</width>
+			</LineStyle>
+			<PolyStyle>
+				<color>40ffffff</color>
+			</PolyStyle>
+			<BalloonStyle>
+			</BalloonStyle>
+		</Style>
+	</gx:CascadingStyle>
+	<gx:CascadingStyle kml:id="__managed_style_018DAD82FD42A866A5C6_normal">
+		<Style>
+			<IconStyle>
+				<Icon>
+					<href>https://earth.google.com/earth/document/icon?color=1976d2&amp;id=2000&amp;scale=4</href>
+				</Icon>
+				<hotSpot x="64" y="128" xunits="pixels" yunits="insetPixels"/>
+			</IconStyle>
+			<LabelStyle>
+			</LabelStyle>
+			<LineStyle>
+				<color>ff2dc0fb</color>
+				<width>1.52381</width>
+			</LineStyle>
+			<PolyStyle>
+				<color>40ffffff</color>
+			</PolyStyle>
+			<BalloonStyle>
+			</BalloonStyle>
+		</Style>
+	</gx:CascadingStyle>
+	<StyleMap id="__managed_style_018DAD82FD42A866A5C6">
+		<Pair>
+			<key>normal</key>
+			<styleUrl>#__managed_style_018DAD82FD42A866A5C6_normal</styleUrl>
+		</Pair>
+		<Pair>
+			<key>highlight</key>
+			<styleUrl>#__managed_style_018DAD82FD42A866A5C6_highlight</styleUrl>
+		</Pair>
+	</StyleMap>
+	<Placemark id="0386B17892429AFC1821">
+		<name>ascensor inclinado </name>
+		<LookAt>
+			<longitude>-8.730802563765863</longitude>
+			<latitude>42.23046626476822</latitude>
+			<altitude>52.82029690335881</altitude>
+			<heading>11.27372602707013</heading>
+			<tilt>0</tilt>
+			<gx:fovy>35.00000000003597</gx:fovy>
+			<range>275.318103905338</range>
+			<altitudeMode>absolute</altitudeMode>
+		</LookAt>
+		<styleUrl>#__managed_style_018DAD82FD42A866A5C6</styleUrl>
+		<LineString>
+			<coordinates>
+				-8.730434140533001,42.23039714368734,0 -8.7308019354917,42.23046437204701,0 
+			</coordinates>
+		</LineString>
+	</Placemark>
+	<Placemark id="06E2DF1030429AFD04F1">
+		<name>Ascensor </name>
+		<LookAt>
+			<longitude>-8.732045206057787</longitude>
+			<latitude>42.23063135776403</latitude>
+			<altitude>32.70669493993737</altitude>
+			<heading>17.79717351816301</heading>
+			<tilt>0</tilt>
+			<gx:fovy>35.00000000003597</gx:fovy>
+			<range>208.789771675838</range>
+			<altitudeMode>absolute</altitudeMode>
+		</LookAt>
+		<styleUrl>#__managed_style_018DAD82FD42A866A5C6</styleUrl>
+		<ExtendedData>
+			<SchemaData schemaUrl="#__managed_schema">
+				<SimpleData name="0DEFD778B4429AFD04F2">0</SimpleData>
+			</SchemaData>
+		</ExtendedData>
+		<Point>
+			<extrude>1</extrude>
+			<coordinates>-8.731997932567175,42.23069772760409,32.90515445856629</coordinates>
+		</Point>
+	</Placemark>
+	<Placemark id="098C7B5618429AFEA879">
+		<name>Ascensor </name>
+		<LookAt>
+			<longitude>-8.732646834409575</longitude>
+			<latitude>42.23083536553403</latitude>
+			<altitude>21.54525169824926</altitude>
+			<heading>357.6409848462023</heading>
+			<tilt>0</tilt>
+			<gx:fovy>35</gx:fovy>
+			<range>180.5802227846652</range>
+			<altitudeMode>absolute</altitudeMode>
+		</LookAt>
+		<styleUrl>#__managed_style_001201C5B742A866A5C5</styleUrl>
+		<ExtendedData>
+			<SchemaData schemaUrl="#__managed_schema">
+				<SimpleData name="0469896138429AFEA87A">0</SimpleData>
+			</SchemaData>
+		</ExtendedData>
+		<Point>
+			<extrude>1</extrude>
+			<coordinates>-8.732729473505511,42.23087468850942,20.2857914980725</coordinates>
+		</Point>
+	</Placemark>
+	<Placemark id="07DD600F2D429B012FBE">
+		<name>Rampa</name>
+		<LookAt>
+			<longitude>-8.728414125469351</longitude>
+			<latitude>42.22428129080979</latitude>
+			<altitude>64.11611156576704</altitude>
+			<heading>175.604985043577</heading>
+			<tilt>0</tilt>
+			<gx:fovy>35</gx:fovy>
+			<range>351.7077629792402</range>
+			<altitudeMode>absolute</altitudeMode>
+		</LookAt>
+		<styleUrl>#__managed_style_018DAD82FD42A866A5C6</styleUrl>
+		<LineString>
+			<coordinates>
+				-8.729004272589853,42.224086160799,0 -8.72856169518456,42.22423961501269,0 
+			</coordinates>
+		</LineString>
+	</Placemark>
+	<Placemark id="048D3454BC429B01C2EB">
+		<name>Rampa</name>
+		<LookAt>
+			<longitude>-8.727523568144498</longitude>
+			<latitude>42.22453594080798</latitude>
+			<altitude>71.21495396331137</altitude>
+			<heading>175.6055835324344</heading>
+			<tilt>0</tilt>
+			<gx:fovy>35</gx:fovy>
+			<range>344.6089046697307</range>
+			<altitudeMode>absolute</altitudeMode>
+		</LookAt>
+		<styleUrl>#__managed_style_018DAD82FD42A866A5C6</styleUrl>
+		<LineString>
+			<coordinates>
+				-8.728409212331766,42.22427989647002,0 -8.727529772377375,42.22453478913462,0 
+			</coordinates>
+		</LineString>
+	</Placemark>
+	<Placemark id="03093CA19F429B03794A">
+		<name>Rampa</name>
+		<LookAt>
+			<longitude>-8.731719357679179</longitude>
+			<latitude>42.22433965971744</latitude>
+			<altitude>45.09215484291625</altitude>
+			<heading>126.2547245021466</heading>
+			<tilt>0</tilt>
+			<gx:fovy>35</gx:fovy>
+			<range>222.1406715246485</range>
+			<altitudeMode>absolute</altitudeMode>
+		</LookAt>
+		<styleUrl>#__managed_style_018DAD82FD42A866A5C6</styleUrl>
+		<LineString>
+			<coordinates>
+				-8.732399581959232,42.22456977109751,0 -8.731809273304394,42.22437019118453,0 
+			</coordinates>
+		</LineString>
+	</Placemark>
+	<Placemark id="015A6F8126429B03E1D8">
+		<name>Rampa</name>
+		<LookAt>
+			<longitude>-8.731229819929222</longitude>
+			<latitude>42.22416220207795</latitude>
+			<altitude>48.06150726204222</altitude>
+			<heading>126.2550534869979</heading>
+			<tilt>0</tilt>
+			<gx:fovy>35</gx:fovy>
+			<range>219.1713197378704</range>
+			<altitudeMode>absolute</altitudeMode>
+		</LookAt>
+		<styleUrl>#__managed_style_018DAD82FD42A866A5C6</styleUrl>
+		<LineString>
+			<coordinates>
+				-8.731740277248745,42.22434610842958,0 -8.731232034903226,42.22416162032731,0 
+			</coordinates>
+		</LineString>
+	</Placemark>
+	<Placemark id="0C0E5D9287429B04C37C">
+		<name>Ascensor</name>
+		<LookAt>
+			<longitude>-8.732081633311632</longitude>
+			<latitude>42.232806213439</latitude>
+			<altitude>18.15400963649055</altitude>
+			<heading>2.198927155124509</heading>
+			<tilt>0</tilt>
+			<gx:fovy>35</gx:fovy>
+			<range>128.028098857103</range>
+			<altitudeMode>absolute</altitudeMode>
+		</LookAt>
+		<styleUrl>#__managed_style_001201C5B742A866A5C5</styleUrl>
+		<Point>
+			<coordinates>-8.732081633311632,42.232806213439,18.15400963649055</coordinates>
+		</Point>
+	</Placemark>
+	<Placemark id="06E8518FC8429B05B908">
+		<name>Rampa</name>
+		<LookAt>
+			<longitude>-8.726042972977078</longitude>
+			<latitude>42.23559659617507</latitude>
+			<altitude>59.80100011327801</altitude>
+			<heading>357.5754986700264</heading>
+			<tilt>0</tilt>
+			<gx:fovy>35</gx:fovy>
+			<range>88.55330377870816</range>
+			<altitudeMode>absolute</altitudeMode>
+		</LookAt>
+		<styleUrl>#__managed_style_018DAD82FD42A866A5C6</styleUrl>
+		<LineString>
+			<coordinates>
+				-8.726135278985854,42.23508222700539,0 -8.726043836367458,42.23559489508066,0 
+			</coordinates>
+		</LineString>
+	</Placemark>
+	<Placemark id="0F03A35F54429B065F43">
+		<name>Escaleras</name>
+		<LookAt>
+			<longitude>-8.725608243553918</longitude>
+			<latitude>42.23723454478878</latitude>
+			<altitude>41.72588127163308</altitude>
+			<heading>357.5754426427326</heading>
+			<tilt>0</tilt>
+			<gx:fovy>35</gx:fovy>
+			<range>95.47128989721388</range>
+			<altitudeMode>absolute</altitudeMode>
+		</LookAt>
+		<styleUrl>#__managed_style_018DAD82FD42A866A5C6</styleUrl>
+		<LineString>
+			<coordinates>
+				-8.725777582384286,42.23715024629539,0 -8.725609134376684,42.23723479691828,0 
+			</coordinates>
+		</LineString>
+	</Placemark>
+	<Placemark id="043090E684429B06D384">
+		<name>Escaleras</name>
+		<LookAt>
+			<longitude>-8.725449963381131</longitude>
+			<latitude>42.23729207766574</latitude>
+			<altitude>37.73180767085264</altitude>
+			<heading>357.5754282044293</heading>
+			<tilt>0</tilt>
+			<gx:fovy>35</gx:fovy>
+			<range>99.46535811808644</range>
+			<altitudeMode>absolute</altitudeMode>
+		</LookAt>
+		<styleUrl>#__managed_style_018DAD82FD42A866A5C6</styleUrl>
+		<LineString>
+			<coordinates>
+				-8.725551112818266,42.23723384812138,0 -8.725448594096655,42.23729237648,0 
+			</coordinates>
+		</LineString>
+	</Placemark>
+	<Placemark id="0AB751EC5F429B07264A">
+		<name>Escaleras</name>
+		<LookAt>
+			<longitude>-8.725277340957714</longitude>
+			<latitude>42.23746639721483</latitude>
+			<altitude>33.50811307828295</altitude>
+			<heading>357.5754125427552</heading>
+			<tilt>0</tilt>
+			<gx:fovy>35</gx:fovy>
+			<range>103.6890584046159</range>
+			<altitudeMode>absolute</altitudeMode>
+		</LookAt>
+		<styleUrl>#__managed_style_018DAD82FD42A866A5C6</styleUrl>
+		<LineString>
+			<coordinates>
+				-8.72536562258807,42.23735352941613,0 -8.725277872747936,42.2374657251399,0 
+			</coordinates>
+		</LineString>
+	</Placemark>
+	<Placemark id="083B4A8DC2429B0788B7">
+		<name>Escaleras</name>
+		<LookAt>
+			<longitude>-8.725120541522939</longitude>
+			<latitude>42.23769710465103</latitude>
+			<altitude>29.07222050306441</altitude>
+			<heading>357.5753943365898</heading>
+			<tilt>0</tilt>
+			<gx:fovy>35</gx:fovy>
+			<range>108.1249496132841</range>
+			<altitudeMode>absolute</altitudeMode>
+		</LookAt>
+		<styleUrl>#__managed_style_018DAD82FD42A866A5C6</styleUrl>
+		<LineString>
+			<coordinates>
+				-8.725208424969278,42.23756445411031,0 -8.725119504693126,42.23769735868208,0 
+			</coordinates>
+		</LineString>
+	</Placemark>
+	<Placemark id="0CCD63EF78429B083EA6">
+		<name>Ascensor</name>
+		<LookAt>
+			<longitude>-8.71225066724614</longitude>
+			<latitude>42.23577901711867</latitude>
+			<altitude>27.56234395417791</altitude>
+			<heading>342.4378594286166</heading>
+			<tilt>0</tilt>
+			<gx:fovy>35</gx:fovy>
+			<range>232.1741847546946</range>
+			<altitudeMode>absolute</altitudeMode>
+		</LookAt>
+		<styleUrl>#__managed_style_001201C5B742A866A5C5</styleUrl>
+		<Point>
+			<coordinates>-8.71225066724614,42.23577901711867,27.56234395417791</coordinates>
+		</Point>
+	</Placemark>
+	<Placemark id="06ED10D440429B09C2C2">
+		<name>Ascendor</name>
+		<LookAt>
+			<longitude>-8.714296186302178</longitude>
+			<latitude>42.23373826048492</latitude>
+			<altitude>50.44932709833567</altitude>
+			<heading>342.437200456851</heading>
+			<tilt>0</tilt>
+			<gx:fovy>35</gx:fovy>
+			<range>88.53093739532598</range>
+			<altitudeMode>absolute</altitudeMode>
+		</LookAt>
+		<styleUrl>#__managed_style_001201C5B742A866A5C5</styleUrl>
+		<Point>
+			<coordinates>-8.714296186302178,42.23373826048492,50.44932709833567</coordinates>
+		</Point>
+	</Placemark>
+	<Placemark id="051C2D070C429B0AE016">
+		<name>Rampa</name>
+		<LookAt>
+			<longitude>-8.710954235947765</longitude>
+			<latitude>42.23347465999991</latitude>
+			<altitude>62.18231206756782</altitude>
+			<heading>201.2582451279985</heading>
+			<tilt>0</tilt>
+			<gx:fovy>35</gx:fovy>
+			<range>229.3131187121253</range>
+			<altitudeMode>absolute</altitudeMode>
+		</LookAt>
+		<styleUrl>#__managed_style_018DAD82FD42A866A5C6</styleUrl>
+		<LineString>
+			<coordinates>
+				-8.710663518702518,42.2340997597754,0 -8.710952594267154,42.2335089805017,0 
+			</coordinates>
+		</LineString>
+	</Placemark>
+	<Placemark id="05CE2BA509429B0B55A0">
+		<name>Rampa</name>
+		<LookAt>
+			<longitude>-8.711438893632081</longitude>
+			<latitude>42.23268053296756</latitude>
+			<altitude>70.98200773436299</altitude>
+			<heading>201.2578913668046</heading>
+			<tilt>0</tilt>
+			<gx:fovy>35</gx:fovy>
+			<range>220.5134418063972</range>
+			<altitudeMode>absolute</altitudeMode>
+		</LookAt>
+		<styleUrl>#__managed_style_018DAD82FD42A866A5C6</styleUrl>
+		<LineString>
+			<coordinates>
+				-8.711008365200696,42.23340138529445,0 -8.711437691492064,42.23268178488991,0 
+			</coordinates>
+		</LineString>
+	</Placemark>
+	<Placemark id="06460616DF429B0CBC7C">
+		<name>Rampa</name>
+		<LookAt>
+			<longitude>-8.717619922824266</longitude>
+			<latitude>42.2325707993021</latitude>
+			<altitude>65.18603821328961</altitude>
+			<heading>201.252886745064</heading>
+			<tilt>0</tilt>
+			<gx:fovy>35</gx:fovy>
+			<range>287.0514622724295</range>
+			<altitudeMode>absolute</altitudeMode>
+		</LookAt>
+		<styleUrl>#__managed_style_018DAD82FD42A866A5C6</styleUrl>
+		<LineString>
+			<coordinates>
+				-8.71794300558671,42.23201480979977,0 -8.717622261265008,42.23256962118204,0 
+			</coordinates>
+		</LineString>
+	</Placemark>
+	<Placemark id="05AD7D376C429B0D09CD">
+		<name>Rampa</name>
+		<LookAt>
+			<longitude>-8.717188444090485</longitude>
+			<latitude>42.23333658389363</latitude>
+			<altitude>57.10946705410816</altitude>
+			<heading>201.2531537327753</heading>
+			<tilt>0</tilt>
+			<gx:fovy>35</gx:fovy>
+			<range>295.1280444333315</range>
+			<altitudeMode>absolute</altitudeMode>
+		</LookAt>
+		<styleUrl>#__managed_style_018DAD82FD42A866A5C6</styleUrl>
+		<LineString>
+			<coordinates>
+				-8.717515125789037,42.23278190659257,0 -8.717189833649572,42.23333566683284,0 
+			</coordinates>
+		</LineString>
+	</Placemark>
+	<Placemark id="0EAF5613E6429B0D6057">
+		<name>Rampa</name>
+		<LookAt>
+			<longitude>-8.716988386954247</longitude>
+			<latitude>42.23370582625574</latitude>
+			<altitude>52.89708927242938</altitude>
+			<heading>201.2532675615914</heading>
+			<tilt>0</tilt>
+			<gx:fovy>35</gx:fovy>
+			<range>299.3404108737741</range>
+			<altitudeMode>absolute</altitudeMode>
+		</LookAt>
+		<styleUrl>#__managed_style_018DAD82FD42A866A5C6</styleUrl>
+		<LineString>
+			<coordinates>
+				-8.717157563305566,42.23340584425051,0 -8.716986439077438,42.23370627233663,0 
+			</coordinates>
+		</LineString>
+	</Placemark>
+	<Placemark id="0A63BBDD2B429B0EA969">
+		<name>Rampa</name>
+		<LookAt>
+			<longitude>-8.718366444019187</longitude>
+			<latitude>42.23127344863607</latitude>
+			<altitude>78.83916083971691</altitude>
+			<heading>185.6875424376328</heading>
+			<tilt>0</tilt>
+			<gx:fovy>35</gx:fovy>
+			<range>155.9908294926936</range>
+			<altitudeMode>absolute</altitudeMode>
+		</LookAt>
+		<styleUrl>#__managed_style_018DAD82FD42A866A5C6</styleUrl>
+		<LineString>
+			<coordinates>
+				-8.718032112309452,42.23186679455456,0 -8.718364940018514,42.23127340357078,0 
+			</coordinates>
+		</LineString>
+	</Placemark>
+	<Placemark id="01F7E31CE7429B0EF7D4">
+		<name>Rampa</name>
+		<LookAt>
+			<longitude>-8.718698909026022</longitude>
+			<latitude>42.2307012007793</latitude>
+			<altitude>85.34871337193539</altitude>
+			<heading>185.6873004878232</heading>
+			<tilt>0</tilt>
+			<gx:fovy>35</gx:fovy>
+			<range>149.4812616469062</range>
+			<altitudeMode>absolute</altitudeMode>
+		</LookAt>
+		<styleUrl>#__managed_style_018DAD82FD42A866A5C6</styleUrl>
+		<LineString>
+			<coordinates>
+				-8.718456116691625,42.23113238303853,0 -8.718699008500611,42.23070221224664,0 
+			</coordinates>
+		</LineString>
+	</Placemark>
+	<Placemark id="0C3671CD33429B10D70F">
+		<name>Ascensor</name>
+		<LookAt>
+			<longitude>-8.712158590956566</longitude>
+			<latitude>42.23157559888921</latitude>
+			<altitude>86.35033143546826</altitude>
+			<heading>317.3444795878212</heading>
+			<tilt>0</tilt>
+			<gx:fovy>35</gx:fovy>
+			<range>68.48634105701422</range>
+			<altitudeMode>absolute</altitudeMode>
+		</LookAt>
+		<styleUrl>#__managed_style_001201C5B742A866A5C5</styleUrl>
+		<ExtendedData>
+			<SchemaData schemaUrl="#__managed_schema">
+				<SimpleData name="10A8D17439429B10D70F">0</SimpleData>
+			</SchemaData>
+		</ExtendedData>
+		<Point>
+			<extrude>1</extrude>
+			<coordinates>-8.712143912017982,42.23156942991675,86.44822548517958</coordinates>
+		</Point>
+	</Placemark>
+	<Placemark id="04DE7BBB74429B11E217">
+		<name>Ascensor </name>
+		<LookAt>
+			<longitude>-8.714565419463003</longitude>
+			<latitude>42.23067026319156</latitude>
+			<altitude>96.07629036101358</altitude>
+			<heading>144.3330502390729</heading>
+			<tilt>0</tilt>
+			<gx:fovy>35</gx:fovy>
+			<range>88.40245237327508</range>
+			<altitudeMode>absolute</altitudeMode>
+		</LookAt>
+		<styleUrl>#__managed_style_001201C5B742A866A5C5</styleUrl>
+		<ExtendedData>
+			<SchemaData schemaUrl="#__managed_schema">
+				<SimpleData name="10A05110C8429B11E217">0</SimpleData>
+			</SchemaData>
+		</ExtendedData>
+		<Point>
+			<extrude>1</extrude>
+			<coordinates>-8.714629268590848,42.23068739107661,95.23905772477643</coordinates>
+		</Point>
+	</Placemark>
+	<Placemark id="0F8BD1D722429B1417DD">
+		<name>escaleras </name>
+		<LookAt>
+			<longitude>-8.713640197639307</longitude>
+			<latitude>42.23117721152533</latitude>
+			<altitude>89.46766571648351</altitude>
+			<heading>172.0774402039924</heading>
+			<tilt>0</tilt>
+			<gx:fovy>35</gx:fovy>
+			<range>65.16916883104386</range>
+			<altitudeMode>absolute</altitudeMode>
+		</LookAt>
+		<styleUrl>#__managed_style_018DAD82FD42A866A5C6</styleUrl>
+		<LineString>
+			<coordinates>
+				-8.713628642194266,42.23129059863807,0 -8.713640591511293,42.2311773415471,0 
+			</coordinates>
+		</LineString>
+	</Placemark>
+	<Placemark id="091932A8FB429B168059">
+		<name>Escaleras </name>
+		<LookAt>
+			<longitude>-8.718088762694045</longitude>
+			<latitude>42.23607185963532</latitude>
+			<altitude>28.61314375890674</altitude>
+			<heading>14.68583223185291</heading>
+			<tilt>0</tilt>
+			<gx:fovy>35</gx:fovy>
+			<range>129.2385142172679</range>
+			<altitudeMode>absolute</altitudeMode>
+		</LookAt>
+		<styleUrl>#__managed_style_018DAD82FD42A866A5C6</styleUrl>
+		<LineString>
+			<coordinates>
+				-8.718038838531649,42.2361921942849,0 -8.71808816821153,42.23607096299274,0 
+			</coordinates>
+		</LineString>
+	</Placemark>
+	<Placemark id="00070BEB9C429B19C864">
+		<name>Escalera</name>
+		<LookAt>
+			<longitude>-8.708448652902163</longitude>
+			<latitude>42.23102999494107</latitude>
+			<altitude>96.56157148765894</altitude>
+			<heading>201.3833312210105</heading>
+			<tilt>0</tilt>
+			<gx:fovy>35</gx:fovy>
+			<range>209.8180458714342</range>
+			<altitudeMode>absolute</altitudeMode>
+		</LookAt>
+		<styleUrl>#__managed_style_018DAD82FD42A866A5C6</styleUrl>
+		<LineString>
+			<coordinates>
+				-8.708327903859839,42.23123953059308,0 -8.708445143913064,42.23103196810882,0 
+			</coordinates>
+		</LineString>
+	</Placemark>
+	<Placemark id="0EC1B86318429B23E640">
+		<name>Rampa</name>
+		<LookAt>
+			<longitude>-8.674926063528012</longitude>
+			<latitude>42.22721035907083</latitude>
+			<altitude>104.5882788880904</altitude>
+			<heading>317.0018791365619</heading>
+			<tilt>0</tilt>
+			<gx:fovy>35</gx:fovy>
+			<range>245.5445769645667</range>
+			<altitudeMode>absolute</altitudeMode>
+		</LookAt>
+		<styleUrl>#__managed_style_018DAD82FD42A866A5C6</styleUrl>
+		<LineString>
+			<coordinates>
+				-8.675174749337048,42.22679427391932,0 -8.674928436067137,42.22721018918774,0 
+			</coordinates>
+		</LineString>
+	</Placemark>
+	<Placemark id="0CE2BA96E0429B26EE70">
+		<name>Rampa</name>
+		<LookAt>
+			<longitude>-8.700525496075155</longitude>
+			<latitude>42.24122428537986</latitude>
+			<altitude>77.9052561355429</altitude>
+			<heading>317.0343004962599</heading>
+			<tilt>0</tilt>
+			<gx:fovy>35</gx:fovy>
+			<range>342.5665409693465</range>
+			<altitudeMode>absolute</altitudeMode>
+		</LookAt>
+		<styleUrl>#__managed_style_018DAD82FD42A866A5C6</styleUrl>
+		<LineString>
+			<coordinates>
+				-8.700186725882467,42.24089138200826,0 -8.700523541119498,42.24122242246001,0 
+			</coordinates>
+		</LineString>
+	</Placemark>
+	<Placemark id="04F269A59D429B287CA2">
+		<name>Rampa</name>
+		<LookAt>
+			<longitude>-8.724831284522516</longitude>
+			<latitude>42.23800303244129</latitude>
+			<altitude>24.26554193235698</altitude>
+			<heading>205.3575420154926</heading>
+			<tilt>0</tilt>
+			<gx:fovy>35</gx:fovy>
+			<range>266.0749004582613</range>
+			<altitudeMode>absolute</altitudeMode>
+		</LookAt>
+		<styleUrl>#__managed_style_018DAD82FD42A866A5C6</styleUrl>
+		<LineString>
+			<coordinates>
+				-8.724670132180485,42.23827339791138,0 -8.724830727752746,42.2380047587173,0 
+			</coordinates>
+		</LineString>
+	</Placemark>
+	<Placemark id="0E5D983EE4429B43995A">
+		<name>Rampa</name>
+		<LookAt>
+			<longitude>-8.690674156136112</longitude>
+			<latitude>42.22832145122541</latitude>
+			<altitude>79.04823586295183</altitude>
+			<heading>16.01547616705529</heading>
+			<tilt>0</tilt>
+			<gx:fovy>35</gx:fovy>
+			<range>210.0572618744263</range>
+			<altitudeMode>absolute</altitudeMode>
+		</LookAt>
+		<styleUrl>#__managed_style_018DAD82FD42A866A5C6</styleUrl>
+		<LineString>
+			<coordinates>
+				-8.690521848022609,42.22820590377777,0 -8.690672586199859,42.22832042058275,0 
+			</coordinates>
+		</LineString>
+	</Placemark>
+	<Placemark id="0B17317810429B43FBFF">
+		<name>Rampa </name>
+		<LookAt>
+			<longitude>-8.690620862711697</longitude>
+			<latitude>42.22848235521028</latitude>
+			<altitude>82.35346201837461</altitude>
+			<heading>16.01551198449344</heading>
+			<tilt>0</tilt>
+			<gx:fovy>35</gx:fovy>
+			<range>206.7520434953258</range>
+			<altitudeMode>absolute</altitudeMode>
+		</LookAt>
+		<styleUrl>#__managed_style_018DAD82FD42A866A5C6</styleUrl>
+		<LineString>
+			<coordinates>
+				-8.690675126734103,42.22833754316076,0 -8.690621651253739,42.22848107174154,0 
+			</coordinates>
+		</LineString>
+	</Placemark>
+	<Placemark id="0DC5DEED89429B45B23F">
+		<name>Rampa</name>
+		<LookAt>
+			<longitude>-8.690246354228403</longitude>
+			<latitude>42.22883399925333</latitude>
+			<altitude>87.12950552922516</altitude>
+			<heading>16.0157866282315</heading>
+			<tilt>0</tilt>
+			<gx:fovy>35</gx:fovy>
+			<range>159.8260268587546</range>
+			<altitudeMode>absolute</altitudeMode>
+		</LookAt>
+		<styleUrl>#__managed_style_018DAD82FD42A866A5C6</styleUrl>
+		<LineString>
+			<coordinates>
+				-8.690625068462156,42.22860770751793,0 -8.690247674006649,42.22883363198437,0 
+			</coordinates>
+		</LineString>
+	</Placemark>
+	<Placemark id="0A85993C88429B4AAB90">
+		<name>Rampa</name>
+		<LookAt>
+			<longitude>-8.691610629917882</longitude>
+			<latitude>42.25176857124038</latitude>
+			<altitude>35.78184926361423</altitude>
+			<heading>0</heading>
+			<tilt>0</tilt>
+			<gx:fovy>35</gx:fovy>
+			<range>220.5639457954022</range>
+			<altitudeMode>absolute</altitudeMode>
+		</LookAt>
+		<styleUrl>#__managed_style_018DAD82FD42A866A5C6</styleUrl>
+		<LineString>
+			<coordinates>
+				-8.691581022307449,42.25136273536435,0 -8.691611648321523,42.25176726509029,0 
+			</coordinates>
+		</LineString>
+	</Placemark>
+</Document>
+</kml>
