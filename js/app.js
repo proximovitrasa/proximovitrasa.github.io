@@ -1689,6 +1689,7 @@
     L.DomUtil.setPosition(numCanvas, map.containerPointToLayerPoint([0, 0]));
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, size.x, size.y);
+    drawVertical(ctx);
     if (!numsOn()) return;
     if (!dirData) { ensureDir().then(drawNums).catch(() => {}); return; }
     const b = map.getBounds().pad(0.05);
@@ -1713,6 +1714,66 @@
       ctx.fillText(pt.n, p.x, p.y);
     }
   }
+  // ---------- Vigo Vertical en el mapa ----------
+  // Rampas, escaleras mecánicas y ascensores (data/vigo-vertical.json), dibujados en el mismo lienzo
+  // que los números de portal y con el mismo estilo discreto, desde zoom 16; no se pueden tocar.
+  // Rampa: trazo con una flecha hacia arriba; escalera mecánica: además, peldaños; ascensor: un
+  // cuadradito con flechas arriba y abajo (el inclinado, sobre su trazo).
+  const VV_ZOOM = 16;
+  let vvData = null, vvLoading = null;
+  function ensureVertical() {
+    if (!vvLoading) vvLoading = fetch("data/vigo-vertical.json").then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); })
+      .then((d) => { vvData = d; return d; }).catch((e) => { vvLoading = null; throw e; });
+    return vvLoading;
+  }
+  const VV_INK = "rgba(91,79,69,.78)", VV_HALO = "rgba(255,255,255,.85)";
+  function liftIcon(ctx, x, y, s) {
+    ctx.fillStyle = VV_HALO;
+    const box = (x0, y0, w, r) => { ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(x0, y0, w, w, r); else ctx.rect(x0, y0, w, w); ctx.fill(); };
+    box(x - s / 2 - 1.5, y - s / 2 - 1.5, s + 3, 4);
+    ctx.fillStyle = VV_INK;
+    box(x - s / 2, y - s / 2, s, 3);
+    ctx.fillStyle = "#fff";
+    const a = s * 0.22;
+    ctx.beginPath(); ctx.moveTo(x, y - s * 0.36); ctx.lineTo(x + a, y - s * 0.06); ctx.lineTo(x - a, y - s * 0.06); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(x, y + s * 0.36); ctx.lineTo(x + a, y + s * 0.06); ctx.lineTo(x - a, y + s * 0.06); ctx.fill();
+  }
+  function drawVertical(ctx) {
+    if (map.getZoom() < VV_ZOOM || active) return;
+    if (!vvData) { ensureVertical().then(drawNums).catch(() => {}); return; }
+    const z = map.getZoom(), lw = z >= 18 ? 4 : 3, s = z >= 18 ? 14 : 12;
+    const b = map.getBounds().pad(0.1);
+    ctx.lineCap = "round"; ctx.lineJoin = "round";
+    for (const el of vvData.elementos) {
+      if (!b.contains(el.ka) && !b.contains(el.kb)) continue;
+      const p = map.latLngToContainerPoint(el.ka), q = map.latLngToContainerPoint(el.kb);
+      if (el.t === "ascensor") { liftIcon(ctx, p.x, p.y, s); continue; }
+      const dx = q.x - p.x, dy = q.y - p.y, L = Math.hypot(dx, dy) || 1, ux = dx / L, uy = dy / L;
+      ctx.strokeStyle = VV_HALO; ctx.lineWidth = lw + 3;
+      ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(q.x, q.y); ctx.stroke();
+      ctx.strokeStyle = VV_INK; ctx.lineWidth = lw;
+      ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(q.x, q.y); ctx.stroke();
+      if (el.t === "escalera" && L > 14) {   // peldaños
+        ctx.lineWidth = 1.5;
+        for (let d = 5; d < L - 3; d += 5) {
+          const cx = p.x + ux * d, cy = p.y + uy * d;
+          ctx.beginPath(); ctx.moveTo(cx - uy * (lw + 2), cy + ux * (lw + 2)); ctx.lineTo(cx + uy * (lw + 2), cy - ux * (lw + 2)); ctx.stroke();
+        }
+      }
+      const mx = (p.x + q.x) / 2, my = (p.y + q.y) / 2;
+      if (el.t === "inclinado") { liftIcon(ctx, mx, my, s); continue; }
+      if (L < 10) continue;
+      // Flecha hacia el extremo de arriba (las rampas y escaleras suben).
+      const h = lw + 4;
+      ctx.fillStyle = VV_INK; ctx.strokeStyle = VV_HALO; ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(mx + ux * h, my + uy * h);
+      ctx.lineTo(mx - ux * h * 0.6 - uy * h, my - uy * h * 0.6 + ux * h);
+      ctx.lineTo(mx - ux * h * 0.6 + uy * h, my - uy * h * 0.6 - ux * h);
+      ctx.closePath(); ctx.stroke(); ctx.fill();
+    }
+  }
+
   // Durante el zoom animado el lienzo se esconde; se vuelve a dibujar al terminar.
   map.on("zoomstart", () => { numCanvas.style.visibility = "hidden"; });
   map.on("moveend zoomend resize", () => { numCanvas.style.visibility = ""; drawNums(); });
