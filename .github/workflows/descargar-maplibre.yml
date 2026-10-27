@@ -1,0 +1,40 @@
+# Temporal (rama datos-maplibre): descarga MapLibre GL JS y su complemento para Leaflet desde npm
+# y los guarda en vendor/maplibre/ de esta rama. No toca main.
+name: Descargar MapLibre
+on:
+  push:
+    branches: [datos-maplibre]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  descargar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Descargar paquetes
+        run: |
+          set -e
+          mkdir -p /tmp/p vendor/maplibre && cd /tmp/p
+          npm pack maplibre-gl@5 @maplibre/maplibre-gl-leaflet
+          for f in *.tgz; do mkdir -p "${f%.tgz}" && tar xzf "$f" -C "${f%.tgz}"; done
+          ls -R /tmp/p | head -80
+          G=$(ls -d maplibre-gl-[0-9]*); L=$(ls -d maplibre-maplibre-gl-leaflet-*)
+          cd "$GITHUB_WORKSPACE"
+          cp /tmp/p/$G/package/dist/maplibre-gl.js /tmp/p/$G/package/dist/maplibre-gl.css vendor/maplibre/
+          cp /tmp/p/$G/package/LICENSE.txt vendor/maplibre/LICENSE-maplibre-gl.txt
+          cp /tmp/p/$L/package/leaflet-maplibre-gl.js vendor/maplibre/
+          cp /tmp/p/$L/package/LICENSE* vendor/maplibre/LICENSE-maplibre-gl-leaflet.txt || true
+          echo "maplibre-gl: $(node -p "require('/tmp/p/$G/package/package.json').version")" > vendor/maplibre/VERSIONES.txt
+          echo "@maplibre/maplibre-gl-leaflet: $(node -p "require('/tmp/p/$L/package/package.json').version")" >> vendor/maplibre/VERSIONES.txt
+          ls -la vendor/maplibre; cat vendor/maplibre/VERSIONES.txt
+      - name: Guardar en la rama
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add vendor/maplibre
+          git commit -m "MapLibre descargado de npm" || echo "sin cambios"
+          git push origin HEAD:${GITHUB_REF_NAME}
