@@ -129,9 +129,11 @@
 
   // Favoritas (5): paradas (con las líneas que se quieren ver, o todas), direcciones o sitios, y
   // casa y trabajo. Se guardan en este dispositivo; las de antes (una lista de paradas) se pasan solas.
-  // { stops: [{ id, lines: null | [códigos] }], places: [{ ll, label, site? }], home, work }
+  // { stops: [{ id, lines: null | [códigos] }], places: [{ ll, label, site? }], home, work,
+  //   trips: [{ a, b, al, bl, key, lines }] }  (trayectos, 37: a/b = extremo en la dirección web,
+  //   "" para "Mi ubicación"; al/bl = nombres; key = combinación de líneas de la opción o "walk")
   function loadFavs() {
-    const empty = { stops: [], places: [], home: null, work: null };
+    const empty = { stops: [], places: [], home: null, work: null, trips: [] };
     try {
       const v2 = JSON.parse(localStorage.getItem(FAV_KEY2));
       if (v2 && Array.isArray(v2.stops)) return { ...empty, ...v2 };
@@ -149,6 +151,7 @@
   const favStop = (id) => favs.stops.find((f) => f.id === id);
   const placeKey = (p) => `${fmtLL(p.ll)}|${p.label}`;
   const favPlace = (p) => favs.places.find((f) => placeKey(f) === placeKey(p));
+  const tripFavKey = (f) => `${f.a}|${f.b}|${f.key}`;
 
   // Buscadas recientemente (14): las últimas paradas, direcciones y sitios elegidos en el buscador o
   // en Desde/Hasta, para volver a ellos sin escribir. [{ id } | { ll, label, site? }], la última primero.
@@ -1371,6 +1374,7 @@
   }, true);
 
   // ---------- Pestaña Favoritas (5) ----------
+  const STAR_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.9-5.2-2.8-5.2 2.8 1-5.9L3.5 9.7l5.9-.8z"/></svg>';
   const EDIT_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4l10.5-10.5a2.1 2.1 0 0 0-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg>';
   let favTimer = null;
   let favPicking = null;          // "home" | "work" mientras se elige con el buscador del propio botón
@@ -1424,7 +1428,19 @@
       <button type="button" class="fav-go" data-ftrip="${i}">${esc(t("trip_here"))}</button>`;
       items.push(li);
     });
-    fillList(items, favs.stops.length || favs.places.length ? "" : t("no_favs"));
+    // Trayectos guardados (37): A → B con sus líneas; tocar abre Cómo llegar con esa opción.
+    favs.trips.forEach((f, i) => {
+      const li = document.createElement("li");
+      li.className = "fav-trip";
+      const how = f.key === "walk" ? `<span class="what">${esc(t("on_foot"))}</span>` : f.lines.map(badge).join(CHEV);
+      li.innerHTML = `<button type="button" data-ftripfav="${i}">
+        <span class="name">${esc(f.al || t("my_location"))} → ${esc(f.bl || t("my_location"))}</span>
+        <span class="sub chain">${how}</span>
+      </button>
+      <button type="button" class="icon-btn fav fav-trip-del" aria-pressed="true" data-ftripdel="${i}" aria-label="${esc(t("trip_unfav"))}" title="${esc(t("trip_unfav"))}">${STAR_SVG}</button>`;
+      items.push(li);
+    });
+    fillList(items, favs.stops.length || favs.places.length || favs.trips.length ? "" : t("no_favs"));
     if (favPicking) { const q = $("#fav-pick-q"); q.focus(); fillPicker(); }
     refreshFavLive();
   }
@@ -1508,6 +1524,19 @@
     favPicking = null;
     renderFav();
   }
+  // Abrir un trayecto guardado: sus extremos (con tu ubicación de ahora si era "Mi ubicación") y,
+  // si esa combinación de líneas sale, se destaca y se dibuja (trip.want).
+  function openFavTrip(f) {
+    trip.a = trip.b = null;
+    trip.sel = null;
+    trip.want = { a: f.a, b: f.b, key: f.key };
+    const meEnd = me && !farFromVigo(me) ? { kind: "me", ll: me } : null;
+    trip.a = f.a ? parseEnd(decodeURIComponent(f.a)) : meEnd;
+    trip.b = f.b ? parseEnd(decodeURIComponent(f.b)) : meEnd;
+    navigate(`ir/${endToken(trip.a)}/${endToken(trip.b)}`);
+    const w = !f.a ? "a" : !f.b ? "b" : null;
+    if (w && !trip[w]) getPosition((ll) => { if (tripOpen() && !trip[w] && !farFromVigo(ll)) setEnd(w, { kind: "me", ll }); });
+  }
   // Ir a casa o al trabajo: Cómo llegar desde tu ubicación (si se puede) hasta allí.
   function goTo(p) {
     trip.a = trip.b = null;
@@ -1575,6 +1604,15 @@
     }
     if (b.dataset.fplace) { e.stopPropagation(); const p = favs.places[Number(b.dataset.fplace)]; openPlace({ ll: p.ll, label: p.label, approx: false, site: p.site }); return; }
     if (b.dataset.ftrip) { e.stopPropagation(); goTo(favs.places[Number(b.dataset.ftrip)]); }
+    if (b.dataset.ftripfav) { e.stopPropagation(); openFavTrip(favs.trips[Number(b.dataset.ftripfav)]); return; }
+    if (b.dataset.ftripdel) {
+      e.stopPropagation();
+      favs.trips.splice(Number(b.dataset.ftripdel), 1);
+      saveFavs();
+      toast(t("trip_unfaved"));
+      renderFav();
+      return;
+    }
   }, true);
   // Estrella en la ficha de una dirección o de un sitio.
   function updatePlaceFav() {
@@ -2344,9 +2382,34 @@
   const isTight = (j) => j.legs.some((l, k) => l.transfer && transferSlack(j, k) < TIGHT_MIN);
 
   // Opción que se ve en el mapa: la elegida o, si no, la primera de la lista.
+  // Trayectos favoritos (37): la estrella de cada opción la guarda o la quita.
+  const favEnd = (p) => (p && p.kind !== "me" ? endToken(p) : "");
+  const favEndLabel = (p) => (p && p.kind !== "me" ? endLabel(p) : null);
+  const tripFavFor = (key) => favs.trips.find((f) => f.a === favEnd(trip.a) && f.b === favEnd(trip.b) && f.key === key);
+  function starBtn(key) {
+    const on = !!tripFavFor(key);
+    const label = t(on ? "trip_unfav" : "trip_fav");
+    return `<button type="button" class="icon-btn fav opt-star" data-star="${esc(key)}" aria-pressed="${on}" aria-label="${esc(label)}" title="${esc(label)}">${STAR_SVG}</button>`;
+  }
+  function toggleTripFav(key) {
+    const f = tripFavFor(key);
+    if (f) { favs.trips = favs.trips.filter((x) => x !== f); toast(t("trip_unfaved")); }
+    else {
+      const j = key === "walk" ? null : lastTrip.opts.find((o) => o.key === key);
+      favs.trips.push({ a: favEnd(trip.a), b: favEnd(trip.b), al: favEndLabel(trip.a), bl: favEndLabel(trip.b), key,
+        lines: j ? j.legs.filter((l) => l.type === "bus").map((l) => l.line) : [] });
+      toast(t("trip_faved"));
+    }
+    saveFavs();
+    renderTripResult();
+  }
+  // Al abrir un trayecto guardado, su opción se destaca si sale (mismos extremos y líneas).
+  const wanted = () => trip.want && trip.want.a === favEnd(trip.a) && trip.want.b === favEnd(trip.b) ? trip.want.key : null;
   function shownKey() {
     const lt = lastTrip;
     if (trip.sel) return trip.sel;
+    const w = wanted();
+    if (w && (w === "walk" ? lt.walk : lt.opts.some((o) => o.key === w))) return w;
     return walkOnTop() || !lt.opts[0] ? "walk" : lt.opts[0].key;
   }
   // ¿Va primero ir andando? Si llega antes que el primer bus (o, con "llegar a las", deja salir más
@@ -2384,23 +2447,23 @@
       const lt0 = leaveText(j, arr);
       const leave = lt0 ? `${esc(lt0)} · ` : "";
       const late = j.late ? ` <span class="warn">${esc(t("arrive_late_live"))}</span>` : "";
-      return `<li><button type="button" class="opt" data-opt="${esc(j.key)}"${cur(j.key)}>
+      return `<li class="opt-li"><button type="button" class="opt" data-opt="${esc(j.key)}"${cur(j.key)}>
         <span class="chain">${chain(j)}</span>
         <span class="eta">${durHtml(total)}</span>
         <span class="when">${leave}${whenHtml(first)} · ${esc(stopName(first.board))}${late}${first.doubtful ? ` <span class="warn">${esc(t("no_live"))}</span>` : ""}${isTight(j) ? ` <span class="warn">${esc(t("tight_transfer"))}</span>` : ""}</span>
         <span class="arr">${esc(arriveAt(j.arr))}</span>
-      </button></li>`;
+      </button>${starBtn(j.key)}</li>`;
     });
     // Ir andando: primero si llega antes que cualquier bus; si no, al final.
     if (lt.walk) {
       const T = arr ? (lt.arriveBy - lt.base) / 1000 : null;
       const walkDep = arr ? T - walkMinTotal * 60 : startSec();
-      const w = `<li><button type="button" class="opt walk" data-opt="walk"${cur("walk")}>
+      const w = `<li class="opt-li"><button type="button" class="opt walk" data-opt="walk"${cur("walk")}>
         <span class="chain">${walkChip(lt.walk.eq)}<span class="what">${esc(t("on_foot"))}</span></span>
         <span class="eta">${durHtml(walkMinTotal)}</span>
         <span class="when">${arr ? `${esc(t("leave_time", { time: clock(Math.max(walkDep, nowSec())) }))} · ` : ""}${esc(fmtDist(lt.walk.dist))}</span>
         <span class="arr">${esc(arriveAt(walkDep + walkMinTotal * 60))}</span>
-      </button></li>`;
+      </button>${starBtn("walk")}</li>`;
       if (walkOnTop()) items.unshift(w); else items.push(w);
     }
     let head = "";
@@ -2677,6 +2740,8 @@
 
   // Elegir una opción (entra en el historial: el botón Atrás del móvil vuelve a la lista).
   $("#trip-result").addEventListener("click", (e) => {
+    const star = e.target.closest("button[data-star]");
+    if (star && lastTrip) { e.stopPropagation(); toggleTripFav(star.dataset.star); return; }
     if (e.target.closest("[data-opt-back]")) { goBack(); return; }
     const b = e.target.closest("button[data-opt]");
     if (!b || !lastTrip) return;

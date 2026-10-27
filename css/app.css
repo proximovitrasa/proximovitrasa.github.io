@@ -595,3 +595,16 @@ button.badge:hover { filter: brightness(1.08); }
    que quepan encima del teclado. */
 #panel.fav-picking .search-row, #panel.fav-picking #home > .tabs, #panel.fav-picking #list-note,
 #panel.fav-picking .fav-hw { display: none; }
+
+/* Estrella de cada opción de Cómo llegar (37): a la derecha, dentro de la tarjeta. */
+.opt-li { position: relative; }
+.opt-li .opt { padding-right: 50px; }
+.opt-star { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); width: 40px; height: 40px; }
+.opt-star svg { width: 20px; height: 20px; }
+.stops .fav-trip { display: flex; align-items: center; border-bottom: 1px solid var(--line); padding-right: 8px; }
+.stops .fav-trip > button[data-ftripfav] { flex: 1; min-width: 0; border-bottom: 0; }
+.stops .fav-trip > .fav-trip-del { flex: none; width: 44px; height: 44px; padding: 0; border: 0; display: grid; place-items: center; }
+.fav-trip-del svg { width: 20px; height: 20px; }
+.fav-trip .chain { margin-top: 4px; }
+.fav-trip .chain .badge { height: 24px; min-width: 32px; font-size: 15px; }
+.fav-trip .chain .what { font-size: 15px; margin-left: 0; }
