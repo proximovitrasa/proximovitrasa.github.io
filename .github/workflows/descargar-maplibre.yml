@@ -16,20 +16,24 @@ jobs:
         with:
           node-version: 20
       - name: Descargar paquetes
+        shell: bash
         run: |
-          set -e
-          mkdir -p /tmp/p vendor/maplibre && cd /tmp/p
-          npm pack maplibre-gl@5 @maplibre/maplibre-gl-leaflet
+          mkdir -p /tmp/p vendor/maplibre
+          D="$GITHUB_WORKSPACE/vendor/maplibre/diagnostico.txt"
+          cd /tmp/p
+          { npm pack maplibre-gl@5 @maplibre/maplibre-gl-leaflet; echo "pack: $?"; } > "$D" 2>&1
           for f in *.tgz; do mkdir -p "${f%.tgz}" && tar xzf "$f" -C "${f%.tgz}"; done
-          G=$(ls -d maplibre-gl-[0-9]*); L=$(ls -d maplibre-maplibre-gl-leaflet-*)
+          find /tmp/p -maxdepth 4 -not -path "*/src/*" >> "$D" 2>&1
+          G=$(ls -d maplibre-gl-[0-9]* | head -1); L=$(ls -d maplibre-maplibre-gl-leaflet-* | head -1)
+          echo "G=$G L=$L" >> "$D"
           cd "$GITHUB_WORKSPACE"
-          cp /tmp/p/$G/package/dist/maplibre-gl.js /tmp/p/$G/package/dist/maplibre-gl.css vendor/maplibre/
-          cp /tmp/p/$G/package/LICENSE* vendor/maplibre/ && for f in vendor/maplibre/LICENSE*; do [ "$f" = vendor/maplibre/LICENSE-maplibre-gl.txt ] || mv "$f" vendor/maplibre/LICENSE-maplibre-gl.txt; done
-          cp /tmp/p/$L/package/leaflet-maplibre-gl.js vendor/maplibre/
-          cp /tmp/p/$L/package/LICENSE* vendor/maplibre/LICENSE-maplibre-gl-leaflet.txt || true
-          echo "maplibre-gl: $(node -p "require('/tmp/p/$G/package/package.json').version")" > vendor/maplibre/VERSIONES.txt
-          echo "@maplibre/maplibre-gl-leaflet: $(node -p "require('/tmp/p/$L/package/package.json').version")" >> vendor/maplibre/VERSIONES.txt
-          ls -la vendor/maplibre; cat vendor/maplibre/VERSIONES.txt
+          cp "/tmp/p/$G/package/dist/maplibre-gl.js" "/tmp/p/$G/package/dist/maplibre-gl.css" vendor/maplibre/ >> "$D" 2>&1
+          for f in /tmp/p/$G/package/LICENSE*; do cp "$f" vendor/maplibre/LICENSE-maplibre-gl.txt; done >> "$D" 2>&1
+          cp "/tmp/p/$L/package/leaflet-maplibre-gl.js" vendor/maplibre/ >> "$D" 2>&1
+          for f in /tmp/p/$L/package/LICENSE*; do cp "$f" vendor/maplibre/LICENSE-maplibre-gl-leaflet.txt; done >> "$D" 2>&1
+          { echo "maplibre-gl: $(node -p "require('/tmp/p/$G/package/package.json').version")"; echo "@maplibre/maplibre-gl-leaflet: $(node -p "require('/tmp/p/$L/package/package.json').version")"; } > vendor/maplibre/VERSIONES.txt 2>> "$D"
+          ls -la vendor/maplibre >> "$D" 2>&1
+          true
       - name: Guardar en la rama
         run: |
           git config user.name "github-actions[bot]"
