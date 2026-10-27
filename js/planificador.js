@@ -6,6 +6,10 @@
 (function (root) {
   "use strict";
 
+  // Inicio del día de servicio, como en GTFS: mediodía menos 12 h (hora local). Así, los días de
+  // cambio de hora (23 o 25 h), "segundos desde el inicio" coincide con la hora del reloj; con la
+  // medianoche real, el 25/10/2026 todo iba una hora adelantado desde las 3:00.
+  const dayBase = (d) => new Date(new Date(d.getFullYear(), d.getMonth(), d.getDate(), 12).getTime() - 43200000);
   const WALK = 75 / 60;          // metros por segundo a pie (4,5 km/h)
   const TRANSFER = 60;           // margen para cambiar de bus (s)
   const HORIZON = 4 * 3600;      // se buscan buses que salgan como mucho 4 h después de ahora…
@@ -105,7 +109,7 @@
     // Viajes de cada recorrido para una búsqueda: los de ayer (los que pasan de medianoche), hoy y
     // mañana, con la salida en segundos desde la medianoche de hoy.
     function tripsFor(date) {
-      const day = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+      const day = dayBase(date);
       const days = [-1, 0, 1].map((o) => ({ o: o * 86400, bit: dayBit(new Date(day.getTime() + o * 86400000 + 3600000 * 12)) }));
       const cache = new Map();
       return (pt) => {
@@ -154,7 +158,7 @@
     // escalera mecánica o ascensor (cuentan en el tiempo pero no como andar).
     function searchWithin({ origins, dests, walk = Infinity, time = new Date(), maxTransfers = 1, prefer = "fast", originsMech = null, destsMech = null }, horizon, raw = false) {
       const w = PREFS[prefer] || PREFS.fast;
-      const base = new Date(time.getFullYear(), time.getMonth(), time.getDate());
+      const base = dayBase(time);
       const now = Math.round((time - base) / 1000);
       const trips = tripsFor(time);
       // Paradas de destino de cada recorrido, en orden: [posición, metros].
@@ -265,7 +269,7 @@
     function searchArriveBy(opts) {
       const time = opts.time || new Date();
       const start = new Date(Math.max(time.getTime(), opts.arriveBy.getTime() - 3 * 3600 * 1000));
-      const base = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+      const base = dayBase(start);
       const now = (start - base) / 1000, T = (opts.arriveBy - base) / 1000;
       const trips = tripsFor(start);
       // Varias búsquedas, cada vez más cerca de la hora de llegada: cada una puede encontrar otras
@@ -279,7 +283,7 @@
         const off = (from - start) / 1000;
         for (const j of searchWithin({ ...opts, time: from }, HORIZON, true)) {
           // Los tiempos de cada búsqueda van desde la medianoche de su día: se pasan al de "start".
-          const shift = off - ((from - new Date(from.getFullYear(), from.getMonth(), from.getDate())) / 1000 - now);
+          const shift = off - ((from - dayBase(from)) / 1000 - now);
           if (shift) { j.dep += shift; j.arr += shift; j.legs.forEach((l) => { if (l.type === "bus") { l.dep += shift; l.arr += shift; l.tripDep += shift; } }); }
           if (!shiftToArriveBy(j, trips, now, T)) continue;
           const w = j.w || PREFS.fast;
@@ -480,7 +484,7 @@
     }
     // Selección final, con las opciones ya corregidas por los tiempos en vivo.
     function choose(list, time = new Date(), walk = Infinity) {
-      const base = new Date(time.getFullYear(), time.getMonth(), time.getDate());
+      const base = dayBase(time);
       return pick(list.slice(), (time - base) / 1000, walk);
     }
 
@@ -491,7 +495,7 @@
     // time: ahora (los minutos de la API cuentan desde aquí); start: hora de salida pedida (la
     // misma que en search). Con salida más tarde, solo sirven los buses en vivo que pasan después.
     function retime(j, live, time = new Date(), start = time) {
-      const base = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+      const base = dayBase(start);
       const now = (time - base) / 1000;
       const s0 = Math.max(now, (start - base) / 1000);
       const trips = tripsFor(start);
@@ -567,7 +571,7 @@
     // Próximos pasos por la parada s a partir de "time" (Date), como mucho "horizon" segundos
     // después (y "back" segundos antes); "at" en segundos desde la medianoche del día de "time".
     function upcoming(s, time = new Date(), horizon = 3 * 3600, back = 60) {
-      const base = new Date(time.getFullYear(), time.getMonth(), time.getDate());
+      const base = dayBase(time);
       const now = (time - base) / 1000;
       const trips = tripsFor(time);
       const out = [];

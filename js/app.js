@@ -2,6 +2,8 @@
 /* Próximo Vitrasa: mapa de paradas y próximos buses en Vigo. */
 (() => {
   "use strict";
+  // Inicio del día de servicio (mediodía − 12 h, como en GTFS): ver dayBase en planificador.js.
+  const dayBase = (d) => new Date(new Date(d.getFullYear(), d.getMonth(), d.getDate(), 12).getTime() - 43200000);
 
   // ---------- Configuración ----------
   // Tiempos en vivo: API de datos abiertos del Concello de Vigo.
@@ -958,7 +960,7 @@
     if (si == null) return null;
     const v = active && active.variant ? norm(active.variant.ruta) : null;
     const now = new Date();
-    const nowS = (now - new Date(now.getFullYear(), now.getMonth(), now.getDate())) / 1000;
+    const nowS = (now - dayBase(now)) / 1000;
     const x = stopPlan.upcoming(si, now, 6 * 3600, 0).find((p) => {
       const pt = stopPlan.pats[p.pat];
       return pt.l === tr.code && pt.s === tr.dir && p.at >= nowS - 30 && (!v || (pt.h && pt.h.some((h) => norm(h) === v)));
@@ -1165,7 +1167,7 @@
     const box = $("#arrivals");
     const s = current;
     const now = new Date();
-    const nowS = (now - new Date(now.getFullYear(), now.getMonth(), now.getDate())) / 1000;
+    const nowS = (now - dayBase(now)) / 1000;
     // Horario publicado de esta parada (si ya ha cargado): pasos de hace 30 min a dentro de 3 h.
     const si = stopPlan && s ? stopPlan.index.get(s.id) : null;
     const passes = si != null ? stopPlan.upcoming(si, now, 3 * 3600, 30 * 60) : [];
@@ -1289,7 +1291,7 @@
       const order = Object.keys(lines || {});
       const groups = [...all.values()].sort((a, b) => (!a.times.length - !b.times.length) || order.indexOf(a.line) - order.indexOf(b.line) || a.dir - b.dir);
       const date = new Date(`${plan.fecha}T12:00:00`).toLocaleDateString(lang, { day: "numeric", month: "short", year: "numeric" });
-      const nowS = (Date.now() - new Date().setHours(0, 0, 0, 0)) / 1000;
+      const nowS = (Date.now() - dayBase(new Date())) / 1000;
       const isToday = sched.day === todayType();
       const html = groups.map((g) => {
         const ln = lines && lines[g.line];
@@ -2223,7 +2225,7 @@
   }
   function setStart(lt, start) {
     lt.start = start;
-    lt.base = new Date(start.getFullYear(), start.getMonth(), start.getDate()).getTime();
+    lt.base = dayBase(start).getTime();
   }
   const arriveMode = () => !!(trip.when && trip.whenMode === "arr");
 
@@ -2597,20 +2599,34 @@
     if (fit) fitPoints(all, 17);
   }
 
-  const busState = (b) => BUS.busAt(b.loc, b.est, (Date.now() - b.at) / 60000);
+  // Bus que aún no ha salido de cabecera (tareas 38 y 44): la API ya lo da con los minutos que
+  // faltan, pero está esperando en la primera parada (o terminando el viaje anterior). Sin esto se
+  // dibujaba avanzando desde que llegaba el dato. Se mira el dato tal como llegó: si lo pone a menos
+  // de HEAD_M del principio del recorrido (o antes de él), el bus se queda quieto en la cabecera,
+  // con "Cabecera" en vez de los minutos y todo el recorrido hasta tu parada. Solo en el trazado
+  // principal y no en las circulares (allí antes de la cabecera está la vuelta anterior).
+  const HEAD_M = 150;
+  function busState(b) {
+    const s = BUS.busAt(b.loc, b.est, (Date.now() - b.at) / 60000);
+    if (b.loc.circular || b.loc.branch !== -1) return s;
+    const s0 = BUS.busAt(b.loc, b.est, 0);
+    if (!s0 || (s0.state === "route" && s0.d >= HEAD_M)) return s;
+    return { state: "head", d: 0, left: b.loc.along, ...BUS.pointAt(b.loc.shape, 0) };
+  }
   function drawTripBuses() {
     tripBuses.forEach((b) => {
       const s = busState(b);
       // En los pasos: a qué distancia va el bus de la parada.
       const span = document.querySelector(`#trip-result .bus-pos[data-bus="${CSS.escape(b.key)}"]`);
-      if (span) span.textContent = s && s.state === "route" ? `· ${t("bus_far", { dist: fmtDist(s.left) })}` : s && s.state === "depot" ? `· ${t("bus_depot")}` : "";
-      if (!s || s.state !== "route") {
+      if (span) span.textContent = s && s.state === "route" ? `· ${t("bus_far", { dist: fmtDist(s.left) })}` : s && (s.state === "depot" || s.state === "head") ? `· ${t("bus_depot")}` : "";
+      if (!s || (s.state !== "route" && s.state !== "head")) {
         if (b.marker) { b.marker.remove(); b.marker = null; }
         if (b.tail) { b.tail.forEach((x) => x.remove()); b.tail = null; }
         return;
       }
       if (!b.marker) b.marker = busMarker(b.color, b.texto, s.ll);
       placeBus(b.marker, s, b.est, b.at);
+      if (s.state === "head") { const el = b.marker.getElement(); if (el) el.querySelector(".bus-eta").textContent = t("bus_head"); }
       // Lo que le queda por recorrer hasta la parada de subida: mismo color, más clarito.
       const sh = b.loc.shape;
       const pts = s.d <= b.loc.along ? BUS.slice(sh, s.d, b.loc.along)
