@@ -21,11 +21,10 @@ jobs:
           mkdir -p /tmp/p vendor/maplibre && cd /tmp/p
           npm pack maplibre-gl@5 @maplibre/maplibre-gl-leaflet
           for f in *.tgz; do mkdir -p "${f%.tgz}" && tar xzf "$f" -C "${f%.tgz}"; done
-          ls -R /tmp/p | head -80
           G=$(ls -d maplibre-gl-[0-9]*); L=$(ls -d maplibre-maplibre-gl-leaflet-*)
           cd "$GITHUB_WORKSPACE"
           cp /tmp/p/$G/package/dist/maplibre-gl.js /tmp/p/$G/package/dist/maplibre-gl.css vendor/maplibre/
-          cp /tmp/p/$G/package/LICENSE.txt vendor/maplibre/LICENSE-maplibre-gl.txt
+          cp /tmp/p/$G/package/LICENSE* vendor/maplibre/ && for f in vendor/maplibre/LICENSE*; do [ "$f" = vendor/maplibre/LICENSE-maplibre-gl.txt ] || mv "$f" vendor/maplibre/LICENSE-maplibre-gl.txt; done
           cp /tmp/p/$L/package/leaflet-maplibre-gl.js vendor/maplibre/
           cp /tmp/p/$L/package/LICENSE* vendor/maplibre/LICENSE-maplibre-gl-leaflet.txt || true
           echo "maplibre-gl: $(node -p "require('/tmp/p/$G/package/package.json').version")" > vendor/maplibre/VERSIONES.txt
