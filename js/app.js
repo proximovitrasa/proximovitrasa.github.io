@@ -2120,6 +2120,8 @@
   // con los tiempos en vivo de las paradas de subida. Cada 30 s se vuelve a calcular todo.
   const PLAN = window.PV_PLAN;
   const MAX_WALK_STOP = 1000;        // metros a pie como máximo hasta la parada de subida o desde la de bajada
+  const FULL_EVERY = 4;                 // cada 4 vueltas (2 min) se piden todas las paradas de los candidatos
+  const LIVE_MAX_AGE = 180000;          // un dato en vivo de más de 3 min no se usa en Cómo llegar
   const liveCache = new Map();       // parada → { at, list | null } (null: sin respuesta)
   const walkCache = new Map();       // tramos a pie ya calculados
   let tripTimer = null, tripTick = null, tripBuses = [];
@@ -2181,7 +2183,7 @@
   // devuelve null (se usa el horario, sin marcarlo dudoso).
   function liveFor(plan, leg) {
     const e = liveCache.get(plan.ids[leg.board]);
-    if (!e || !e.list) return null;
+    if (!e || !e.list || Date.now() - e.at > LIVE_MAX_AGE) return null;   // dato viejo: el horario
     const l = lines[leg.line];
     const d = l && l.sentidos[leg.dir];
     const id = plan.ids[leg.board];
@@ -2305,8 +2307,15 @@
     const lt = lastTrip;
     if (!lt || !lt.plan) return;
     clearTimeout(tripTimer);
+    // Paradas de subida que se piden en vivo (31, fase 3): la primera vez y cada FULL_EVERY vueltas,
+    // las de todos los candidatos (una opción oculta puede pasar delante si su bus va mejor); en las
+    // demás, solo las de las opciones que se ven y la abierta. Así, cada 30 s, unas pocas paradas en
+    // vez de las de hasta 8 candidatos con 3 buses.
+    lt.liveRound = (lt.liveRound || 0) + 1;
+    const full = lt.liveRound === 1 || lt.liveRound % FULL_EVERY === 1;
+    const keys = new Set([...(lt.opts || []).map((j) => j.key), trip.sel]);
     const ids = new Set();
-    lt.cands.forEach((j) => j.legs.forEach((l) => l.type === "bus" && ids.add(lt.plan.ids[l.board])));
+    lt.cands.forEach((j) => { if (full || keys.has(j.key)) j.legs.forEach((l) => l.type === "bus" && ids.add(lt.plan.ids[l.board])); });
     await Promise.all([...ids].map(getLive));
     if (seq !== tripSeq || lastTrip !== lt) return;
     const now = new Date();
