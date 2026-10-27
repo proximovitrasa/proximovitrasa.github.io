@@ -173,9 +173,9 @@
   if (isDesktop()) L.control.zoom({ position: "topleft" }).addTo(map);
 
   // Mapa base (33): OpenFreeMap (gratuito y sin clave), siempre Positron (claro), también con el
-  // móvil en modo oscuro: Fiord apenas se veía (decisión del usuario, 27/10). Es vectorial: lo pinta MapLibre debajo de Leaflet con su complemento oficial
-  // (vendor/maplibre), que se descarga aparte para no retrasar la web. Todo lo demás del mapa sigue
-  // en Leaflet. Si el móvil no tiene WebGL, o OpenFreeMap no carga en BASE_TIMEOUT, se usa el mapa
+  // móvil en modo oscuro: Fiord apenas se veía (decisión del usuario, 27/10). Es vectorial: lo pinta
+  // MapLibre debajo de Leaflet con su complemento oficial (vendor/maplibre), que se descarga aparte
+  // para no retrasar la web. Todo lo demás del mapa sigue en Leaflet. Si el móvil no tiene WebGL, o OpenFreeMap no carga en BASE_TIMEOUT, se usa el mapa
   // de OpenStreetMap de siempre (exige la cabecera Referer).
   const BASE_TIMEOUT = 8000;
   const OFM_STYLE = "https://tiles.openfreemap.org/styles/positron";
@@ -199,20 +199,9 @@
     el.src = src; el.onload = ok; el.onerror = ko;
     document.head.appendChild(el);
   });
-  // De momento, OpenFreeMap solo si se pide (?mapa=nuevo; ?mapa=clasico vuelve), y se recuerda en
-  // este dispositivo: así se prueba en móviles reales antes de ponerlo a todo el mundo.
-  const BASE_KEY = "pv:mapa";
-  function baseChoice() {
-    const q = new URLSearchParams(location.search).get("mapa");
-    try {
-      if (q === "nuevo") localStorage.setItem(BASE_KEY, "ofm");
-      else if (q === "clasico") localStorage.setItem(BASE_KEY, "osm");
-      return localStorage.getItem(BASE_KEY) || BASE_DEFAULT;
-    } catch { return q === "nuevo" ? "ofm" : BASE_DEFAULT; }
-  }
-  const BASE_DEFAULT = "osm";
   async function startBase() {
-    if (baseChoice() !== "ofm" || !hasWebGL()) { useOSM(); return; }
+    try { localStorage.removeItem("pv:mapa"); } catch { /* del interruptor de prueba del 27/10 */ }
+    if (!hasWebGL()) { useOSM(); return; }
     const timer = setTimeout(() => { if (!glReady) useOSM(); }, BASE_TIMEOUT);
     try {
       const css = document.createElement("link");
