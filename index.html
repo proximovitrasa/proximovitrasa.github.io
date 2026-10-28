@@ -106,11 +106,17 @@
         </button>
         <div class="stop-title line-title">
           <span id="line-badge" class="badge"></span>
-          <h2 id="line-name"></h2>
+          <div class="line-name-wrap">
+            <h2 id="line-name"></h2>
+            <!-- Horarios de la línea (35): en la parada desde la que se abrió o, si no, desde su cabecera -->
+            <button id="line-sched" class="sched-pill" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg><span data-i18n="sched_btn"></span></button>
+          </div>
         </div>
+        <div class="head-actions">
         <button class="icon-btn share" type="button" data-share="line" data-i18n-aria="share" data-i18n-title="share">
           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="18" cy="5.5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="18.5" r="2.5"/><path d="M8.2 10.8l7.6-4.1M8.2 13.2l7.6 4.1"/></svg>
         </button>
+        </div>
       </div>
       <div id="line-dirs" class="tabs dirs" role="tablist" data-i18n-aria="direction"></div>
       <!-- Con una variante (un letrero) a la vista: volver a la línea completa -->
@@ -256,6 +262,7 @@
           <p id="stop-lines" class="lines" data-i18n-aria="lines_here"></p>
         </div>
         <div class="head-actions">
+        <button id="sched-open" class="icon-btn" type="button" data-i18n-aria="sched_btn" data-i18n-title="sched_btn"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg></button>
         <button class="icon-btn share" type="button" data-share="stop" data-i18n-aria="share" data-i18n-title="share">
           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="18" cy="5.5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="18.5" r="2.5"/><path d="M8.2 10.8l7.6-4.1M8.2 13.2l7.6 4.1"/></svg>
         </button>
@@ -271,7 +278,6 @@
         <span id="updated"></span>
         <button id="refresh" type="button" data-i18n="refresh"></button>
         <button id="trip-here" type="button" data-i18n="trip_here"></button>
-        <button id="sched-open" type="button" data-i18n="sched_btn"></button>
         <a id="infobus" target="_blank" rel="noopener" data-i18n="infobus"></a>
       </footer>
     </section>

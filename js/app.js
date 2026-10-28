@@ -659,7 +659,11 @@
     const h = decodeURIComponent(location.hash.slice(1));
     if (h === "ir" || h.startsWith("ir/")) { showTrip(h); return; }
     if (h === "info") { showInfo(); return; }
-    if (h.startsWith("horario/") && byId.has(h.slice(8))) { showSched(h.slice(8)); return; }
+    // #horario/<parada>[/<línea>]: horarios de una parada, de todas sus líneas o de una (35).
+    if (h.startsWith("horario/")) {
+      const [sid, ln] = h.slice(8).split("/").map(decodeURIComponent);
+      if (byId.has(sid)) { showSched(sid, ln && lines && lines[ln] ? ln : null); return; }
+    }
     if (h.startsWith("dir/") && showPlace(h.slice(4))) return;
     if (h.startsWith("linea/")) {
       // #linea/18A, #linea/18A/5660 (abierta desde esa parada: se ve el próximo bus hacia ella) o
@@ -706,6 +710,7 @@
     if (!active) return;
     active = null;
     stopTrack();
+    stopFleet();
     lineGroup.clearLayers();
     selRing.remove();
     updateStopVisibility();
@@ -843,6 +848,7 @@
       if (origin) { focusOn(origin.ll, LINE_STOPS_ZOOM); selRing.setLatLng(origin.ll).addTo(map); }
       else fitLine();
       startTrack();
+      startFleet();
     } else drawBus();
     renderBusCard();
     lineRuta = null;
@@ -963,8 +969,7 @@
   function busNow(i = 0) {
     const est = track && (track.ests || [])[i];
     if (!est) return null;
-    const min = (Date.now() - track.at) / 60000;
-    return BUS.busAt(track.loc, est, min);
+    return busState({ loc: track.loc, est, at: track.at });   // con "cabecera" (38), como en Cómo llegar
   }
 
   const BUS_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3.5h10a2.5 2.5 0 0 1 2.5 2.5v10.5a1.5 1.5 0 0 1-1.5 1.5H6a1.5 1.5 0 0 1-1.5-1.5V6A2.5 2.5 0 0 1 7 3.5z"/><rect x="6" y="17" width="3" height="3" rx="1"/><rect x="15" y="17" width="3" height="3" rx="1"/><rect class="w" x="6.6" y="6.2" width="10.8" height="5" rx="1"/><circle class="w" cx="8" cy="14.4" r="1.1"/><circle class="w" cx="16" cy="14.4" r="1.1"/></svg>';
@@ -995,11 +1000,110 @@
     (tr.ests || []).forEach((est, i) => {
       const b = busNow(i);
       let mk = tr.markers[i];
-      if (!b || b.state !== "route" || !active || active.dir !== tr.dir) { if (mk) mk.remove(); return; }
+      if (!b || (b.state !== "route" && b.state !== "head") || !active || active.dir !== tr.dir) { if (mk) mk.remove(); return; }
       if (!mk) { const l = lines[tr.code]; mk = tr.markers[i] = busMarker(l.color, l.texto, b.ll); }
       placeBus(mk, b, est, tr.at);
+      if (b.state === "head") setBusLabel(mk, t("bus_head"));
     });
     tr.markers.slice((tr.ests || []).length).forEach((mk) => mk.remove());
+    drawFleet();
+  }
+  const setBusLabel = (mk, txt) => { const el = mk.getElement(); if (el) el.querySelector(".bus-eta").textContent = txt; };
+
+  // ---------- Todos los buses en vivo de la línea (46) ----------
+  // La API solo da, por parada, los buses que van hacia ella. Para ver los de toda la línea (también
+  // los que ya pasaron la parada de origen, o la línea abierta sin parada) se consultan unas pocas
+  // paradas repartidas por el recorrido del sentido que se ve (una cada FLEET_SPACING m, la última
+  // incluida, como mucho FLEET_MAX) y cada bus se coloca desde la más cercana. Un mismo bus sale en
+  // varias paradas: se juntan los del mismo letrero a menos de FLEET_SAME m (sin identificador de
+  // vehículo en la API, no hay otra forma). Sin minutos en la etiqueta (no van hacia una parada
+  // elegida); los que vienen hacia la parada de origen los dibuja drawBus() con sus minutos.
+  const FLEET_SPACING = 2500, FLEET_MAX = 6, FLEET_SAME = 350;
+  let fleet = null;   // { code, dir, probes: [{ id, loc }], cands, markers, timer, tick }
+  function stopFleet() {
+    if (!fleet) return;
+    clearTimeout(fleet.timer);
+    clearInterval(fleet.tick);
+    fleet.markers.forEach((mk) => mk.remove());
+    fleet = null;
+  }
+  function startFleet() {
+    stopFleet();
+    if (!BUS || !active) return;
+    const d = lines[active.code].sentidos[active.dir];
+    const llOf = (id) => (byId.get(id) || {}).ll || [0, 0];
+    const sh = BUS.prepare(BUS.decode(d.trazado));
+    const along = BUS.stopsAlong(sh, d.paradas.map(llOf)).map((r) => r.along);
+    const ids = [];
+    const gap = Math.max(FLEET_SPACING, sh.length / FLEET_MAX);   // líneas largas: más separadas
+    let next = Infinity;
+    for (let k = d.paradas.length - 1; k > 0 && ids.length < FLEET_MAX; k--) {
+      if (along[k] <= next) { ids.push(d.paradas[k]); next = along[k] - gap; }
+    }
+    const probes = [...new Set(ids)].map((id) => ({ id, loc: BUS.locateStop(d, id, llOf) })).filter((p) => p.loc);
+    fleet = { code: active.code, dir: active.dir, probes, cands: [], markers: [] };
+    fetchFleet();
+    fleet.tick = setInterval(drawFleet, 1000);
+  }
+  async function fetchFleet() {
+    const fl = fleet;
+    if (!fl) return;
+    clearTimeout(fl.timer);
+    if (!document.hidden) {
+      const res = await Promise.all(fl.probes.map((p) => getLive(p.id)));
+      if (fleet !== fl) return;
+      const l = lines[fl.code], d = l.sentidos[fl.dir];
+      const v = active && active.code === fl.code && active.variant;
+      const cands = [];
+      res.forEach((e, i) => {
+        if (!e || !e.list) return;
+        const p = fl.probes[i];
+        const both = l.sentidos.filter((x) => x.paradas.includes(p.id) || (x.otras || []).includes(p.id)).length > 1;
+        e.list.forEach((est) => {
+          if (normLine(est.linea) !== fl.code || !isFinite(Number(est.minutos)) || !isFinite(Number(est.metros))) return;
+          if (v ? norm(String(est.ruta || "")) !== norm(v.ruta) : both && !goesTo(d, est.ruta)) return;
+          // Letrero de un solo ramal: su posición, sobre ese ramal (si la parada está en él).
+          let loc = p.loc;
+          const only = branchesOf(d, est.ruta);
+          if (only && only.length === 1 && only[0] >= 0 && d.ramales && d.ramales[only[0]]) {
+            const bsh = BUS.prepare(BUS.decode(d.ramales[only[0]]));
+            const pr = BUS.project(bsh, byId.get(p.id).ll);
+            if (pr.off >= 60) return;
+            loc = { shape: bsh, along: pr.along, off: pr.off, branch: only[0] };
+          }
+          cands.push({ loc, est, at: e.at, ruta: norm(String(est.ruta || "")), metros: Number(est.metros) });
+        });
+      });
+      cands.sort((a, b) => a.metros - b.metros);   // primero, el visto desde la parada más cercana
+      fl.cands = cands;
+      drawFleet();
+    }
+    fl.timer = setTimeout(fetchFleet, REFRESH_MS);
+  }
+  function drawFleet() {
+    const fl = fleet;
+    if (!fl) return;
+    const shown = active && active.code === fl.code && active.dir === fl.dir;
+    // Ya dibujados por drawBus() (los que van hacia la parada de origen, con sus minutos).
+    const kept = [];
+    if (shown && track && track.dir === fl.dir) (track.ests || []).forEach((est, i) => {
+      const b = busNow(i);
+      if (b && (b.state === "route" || b.state === "head")) kept.push({ ll: b.ll, ruta: norm(String(est.ruta || "")) });
+    });
+    const out = [];
+    if (shown) fl.cands.forEach((c) => {
+      const b = busState(c);
+      if (!b || (b.state !== "route" && b.state !== "head")) return;
+      if ([...kept, ...out].some((k) => k.ruta === c.ruta && haversine(k.ll, b.ll) < FLEET_SAME)) return;
+      out.push({ ll: b.ll, ruta: c.ruta, b, c });
+    });
+    const l = lines[fl.code];
+    out.forEach((o, i) => {
+      const mk = fl.markers[i] || (fl.markers[i] = busMarker(l.color, l.texto, o.b.ll));
+      placeBus(mk, o.b, o.c.est, o.c.at);
+      setBusLabel(mk, o.b.state === "head" ? t("bus_head") : "");
+    });
+    fl.markers.slice(out.length).forEach((mk) => mk.remove());
   }
 
   // Próximo paso según el horario por la parada del seguimiento, de esa línea y sentido (y, en una
@@ -1038,7 +1142,7 @@
         main = esc(t(tr.state === "error" ? "card_sched_err" : "card_sched"));
         sub = `<span class="eta sched"><b>${esc(hhmm(at))}</b></span>`;
       } else main = esc(t(tr.state === "error" ? "times_error" : "bus_none"));
-    } else if (b && b.state === "depot") {
+    } else if (b && (b.state === "depot" || b.state === "head")) {
       const m = Math.max(0, Math.round(Number(tr.est.minutos) - (Date.now() - tr.at) / 60000));
       main = `${esc(t("bus_depot"))}`;
       sub = `<span class="eta">${etaNum(m)}</span>`;
@@ -1296,7 +1400,7 @@
   // ---------- Horarios de una parada (12 y 13) ----------
   // Los publicados por Vitrasa (data/viajes.json): por línea y sentido, primer y último paso,
   // frecuencia aproximada y todas las horas. Pestañas: laborable, sábado y domingo/festivo.
-  let sched = null;   // { id, day }
+  let sched = null;   // { id, day, line: null | código }
   const HOLI = (d) => PLAN.isHoliday(d);
   // Tipo de día de hoy: "w" laborable, "6" sábado, "0" domingo o festivo.
   const todayType = (d = new Date()) => (HOLI(d) || d.getDay() === 0 ? "0" : d.getDay() === 6 ? "6" : "w");
@@ -1312,15 +1416,15 @@
     const m = Math.max(1, Math.round(g[g.length >> 1] / 60));
     return m < 60 ? t("every_min", { n: m }) : m % 60 ? t("every_h", { h: Math.floor(m / 60), m: m % 60 }) : t("every_h0", { h: m / 60 });
   }
-  function showSched(id) {
+  function showSched(id, line = null) {
     const s = byId.get(id);
     leaveStop();
     clearLine();
     showView("sched");
-    if (!sched || sched.id !== id) sched = { id, day: todayType() };
-    document.title = `${t("sched_title")} · ${s.name} · ProximoVitrasa`;
+    if (!sched || sched.id !== id || sched.line !== line) sched = { id, day: sched && sched.id === id ? sched.day : todayType(), line };
+    document.title = `${t("sched_title")}${line ? ` · ${line}` : ""} · ${s.name} · ProximoVitrasa`;
     $("#sched-name").textContent = s.name;
-    $("#sched-meta").textContent = t("stop_n", { id });
+    $("#sched-meta").textContent = line ? `${t("line_n", { code: line })} · ${t("stop_n", { id })}` : t("stop_n", { id });
     if (!isDesktop()) panel.dataset.state = "full";
     selRing.setLatLng(s.ll).addTo(map);
     renderSched();
@@ -1340,7 +1444,7 @@
       if (si != null) for (const [n, k] of plan.at[si]) { const pt = plan.pats[n]; if (k < pt.p.length - 1) all.set(`${pt.l}|${pt.s}`, { line: pt.l, dir: pt.s, times: [] }); }
       passes.forEach((p) => all.get(`${p.line}|${p.dir}`).times.push(p.t));
       const order = Object.keys(lines || {});
-      const groups = [...all.values()].sort((a, b) => (!a.times.length - !b.times.length) || order.indexOf(a.line) - order.indexOf(b.line) || a.dir - b.dir);
+      const groups = [...all.values()].filter((g) => !sched.line || g.line === sched.line).sort((a, b) => (!a.times.length - !b.times.length) || order.indexOf(a.line) - order.indexOf(b.line) || a.dir - b.dir);
       const date = new Date(`${plan.fecha}T12:00:00`).toLocaleDateString(lang, { day: "numeric", month: "short", year: "numeric" });
       const nowS = (Date.now() - dayBase(new Date())) / 1000;
       const isToday = sched.day === todayType();
@@ -1369,6 +1473,13 @@
     renderSched();
   });
   $("#sched-open").addEventListener("click", () => { if (current) navigate(`horario/${current.id}`); });
+  // Horarios de la línea abierta: en la parada desde la que se abrió o, si no, desde la cabecera
+  // del sentido que se ve.
+  $("#line-sched").addEventListener("click", () => {
+    if (!active) return;
+    const stop = active.from || lines[active.code].sentidos[active.dir].paradas[0];
+    if (stop) navigate(`horario/${stop}/${encodeURIComponent(active.code)}`);
+  });
   $("#sched-back").addEventListener("click", goBack);
 
 
@@ -1741,7 +1852,8 @@
     if (ctx === "place" && place) return { url: `${base}#${placeToken(place)}`, text: place.label };
     if (ctx === "sched" && sched) {
       const s = byId.get(sched.id);
-      return { url: `${base}#horario/${sched.id}`, text: `${t("sched_title")} · ${s.name} · ${t("stop_n", { id: sched.id })}` };
+      return { url: `${base}#horario/${sched.id}${sched.line ? `/${encodeURIComponent(sched.line)}` : ""}`,
+        text: `${t("sched_title")}${sched.line ? ` · ${t("line_n", { code: sched.line })}` : ""} · ${s.name} · ${t("stop_n", { id: sched.id })}` };
     }
     if (ctx === "trip") {
       const a = shareEnd(trip.a), b = shareEnd(trip.b);
@@ -3130,6 +3242,7 @@
         active.fromDir = active.dir;
         startTrack();
       }
+      startFleet();
       drawBus();
       renderBusCard();
     }
@@ -3212,6 +3325,7 @@
     if (document.hidden) return;
     if (current) loadArrivals(false);
     if (track) fetchTrack();
+    if (fleet) fetchFleet();
     if (tripOpen() && lastTrip && lastTrip.plan && lastTrip.cands.length) { planSearch(); refreshLive(tripSeq); }
   });
 
@@ -3247,7 +3361,7 @@
     } else if (active) showLine(active.code, active.from, active.variant ? active.variant.ruta : null);
     else if (place) { document.title = "ProximoVitrasa"; showPlace(); }
     else if (!$("#info").hidden) showInfo();
-    else if (!$("#sched").hidden && sched) showSched(sched.id);
+    else if (!$("#sched").hidden && sched) showSched(sched.id, sched.line);
     else if (tripOpen()) {
       renderTripFields();
       renderWhen();

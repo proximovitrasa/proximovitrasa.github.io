@@ -611,3 +611,14 @@ button.badge:hover { filter: brightness(1.08); }
 .fav-trip .chain { margin-top: 4px; }
 .fav-trip .chain .badge { height: 24px; min-width: 32px; font-size: 15px; }
 .fav-trip .chain .what { font-size: 15px; margin-left: 0; }
+
+/* Horarios junto al nombre de la línea (35): botón con texto, bien visible. */
+.sched-pill {
+  display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; margin-top: 6px;
+  border: 1px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--focus);
+  font: 600 14px/1 inherit; white-space: nowrap; cursor: pointer;
+}
+.sched-pill svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+.sched-pill:hover { border-color: var(--focus); }
+#sched-open svg { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+.line-name-wrap { display: flex; flex-direction: column; align-items: flex-start; min-width: 0; }
