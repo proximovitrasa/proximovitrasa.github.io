@@ -106,21 +106,43 @@
       return ks.every((k) => openAt(vv.horarios, vvEls[k], d));
     };
 
+    // ---------- Horario en vivo ----------
+    // Retraso (o adelanto) de cada viaje del día visto en la API: "patrón|salida" (salida en segundos
+    // desde 1970) → { d: segundos, at: cuándo se vio }. Lo alimenta observe() con cada consulta de la
+    // API de la web (paradas abiertas, cercanas, favoritas, línea completa, Cómo llegar) y lo usan
+    // todas las búsquedas: un viaje visto se mueve entero esos segundos (también en las paradas que le
+    // quedan), aunque según el horario ya tendría que haber pasado; el resto, el horario publicado.
+    const LIVE_KEEP = 10 * 60 * 1000;   // un retraso visto vale 10 min
+    const liveDelay = new Map();
+    const tripKey = (n, base, dep) => `${n}|${Math.round(base.getTime() / 1000 + dep)}`;
+
     // Viajes de cada recorrido para una búsqueda: los de ayer (los que pasan de medianoche), hoy y
-    // mañana, con la salida en segundos desde la medianoche de hoy.
-    function tripsFor(date) {
+    // mañana, con la salida en segundos desde la medianoche de hoy. Con "live", movidos con los
+    // retrasos vistos (horario en vivo); sin él, el horario publicado tal cual.
+    function tripsFor(date, live = true) {
       const day = dayBase(date);
       const days = [-1, 0, 1].map((o) => ({ o: o * 86400, bit: dayBit(new Date(day.getTime() + o * 86400000 + 3600000 * 12)) }));
       const cache = new Map();
+      const fresh = Date.now() - LIVE_KEEP;
+      const useLive = live && liveDelay.size > 0;
       return (pt) => {
         let r = cache.get(pt.n);
         if (r) return r;
         const list = [];
         for (const { o, bit } of days) {
-          for (let k = 0; k < pt.dep.length; k++) if (pt.mask[k] & bit) list.push([pt.dep[k] + o, pt.dur[k]]);
+          for (let k = 0; k < pt.dep.length; k++) {
+            if (!(pt.mask[k] & bit)) continue;
+            let dep = pt.dep[k] + o;
+            if (useLive) {
+              const x = liveDelay.get(tripKey(pt.n, day, dep));
+              if (x && x.at >= fresh) dep += x.d;
+            }
+            list.push([dep, pt.dur[k], pt.dep[k] + o]);
+          }
         }
         list.sort((a, b) => a[0] - b[0]);
-        r = { dep: list.map((x) => x[0]), dur: list.map((x) => x[1]) };
+        // sched: la salida publicada (la de dep si el viaje no se ha visto en vivo).
+        r = { dep: list.map((x) => x[0]), dur: list.map((x) => x[1]), sched: list.map((x) => x[2]) };
         cache.set(pt.n, r);
         return r;
       };
@@ -570,10 +592,11 @@
     }
     // Próximos pasos por la parada s a partir de "time" (Date), como mucho "horizon" segundos
     // después (y "back" segundos antes); "at" en segundos desde la medianoche del día de "time".
+    // Siempre el horario publicado (no el horario en vivo). "trip": salida del viaje (para observe()).
     function upcoming(s, time = new Date(), horizon = 3 * 3600, back = 60) {
       const base = dayBase(time);
       const now = (time - base) / 1000;
-      const trips = tripsFor(time);
+      const trips = tripsFor(time, false);
       const out = [];
       for (const [n, k] of at[s]) {
         const pt = pats[n];
@@ -581,10 +604,62 @@
         const tr = trips(pt);
         for (let q = 0; q < tr.dep.length; q++) {
           const a = tr.dep[q] + pt.t[k] * tr.dur[q];
-          if (a >= now - back && a <= now + horizon) out.push({ pat: n, line: pt.l, dir: pt.s, f: pt.f, at: a });
+          if (a >= now - back && a <= now + horizon) out.push({ pat: n, line: pt.l, dir: pt.s, f: pt.f, at: a, trip: tr.dep[q] });
         }
       }
       return out.sort((a, b) => a.at - b.at);
+    }
+
+    // Retraso de un bus en vivo frente a su paso programado: el paso más cercano, solo si no hay
+    // duda (pasos de esa línea y sentido separados al menos 15 min y el bus claramente más cerca de
+    // uno de ellos; igual que "N min tarde" en las llegadas). Devuelve el índice del paso o -1.
+    function matchPass(passes, expected, used) {
+      let i = -1, best = Infinity;
+      passes.forEach((p, k) => { const d = Math.abs(expected - p.at); if (d < best) { best = d; i = k; } });
+      if (i < 0 || used.has(i)) return -1;
+      const gap = Math.min(i > 0 ? passes[i].at - passes[i - 1].at : Infinity, i < passes.length - 1 ? passes[i + 1].at - passes[i].at : Infinity);
+      if (gap < 15 * 60 || Math.abs(expected - passes[i].at) > Math.min(gap / 2 - 120, 15 * 60)) return -1;
+      used.add(i);
+      return i;
+    }
+    // Apunta en el horario en vivo los buses que da la API en la parada s (índice). buses: lista de
+    // { line, dir (sentido o null si no se sabe), ruta, minutos }; atMs: cuándo respondió la API.
+    // Cada bus se empareja con su viaje del horario (misma línea, sentido y letrero) y se guarda su
+    // retraso. Los que no se emparejan sin duda no cambian nada (se usa el horario y, al enseñar las
+    // opciones, retime() con los buses en vivo de la parada de subida).
+    function observe(s, buses, atMs = Date.now()) {
+      const old = Date.now() - LIVE_KEEP;
+      for (const [k, x] of liveDelay) if (x.at < old) liveDelay.delete(k);
+      if (s == null || !buses || !buses.length) return 0;
+      const when = new Date(atMs);
+      const base = dayBase(when);
+      const nowS = (atMs - base.getTime()) / 1000;
+      const passes = upcoming(s, when, 3 * 3600, 30 * 60);
+      const groups = new Map();
+      for (const b of buses) {
+        const m = Number(b.minutos);
+        if (!isFinite(m)) continue;
+        const r = normTxt(b.ruta);
+        const key = `${b.line}|${b.dir}|${r}`;
+        if (!groups.has(key)) groups.set(key, { line: b.line, dir: b.dir, r, mins: [] });
+        groups.get(key).mins.push(m);
+      }
+      let n = 0;
+      for (const g of groups.values()) {
+        const all = passes.filter((p) => p.line === g.line && (g.dir == null || p.dir === g.dir));
+        if (g.dir == null && new Set(all.map((p) => p.dir)).size > 1) continue;   // sentido dudoso
+        const same = all.filter((p) => { const h = pats[p.pat].h; return h && h.some((x) => normTxt(x) === g.r); });
+        const ps = same.length ? same : all;
+        const used = new Set();
+        for (const m of g.mins.sort((a, b) => a - b)) {
+          const exp = nowS + m * 60;
+          const i = matchPass(ps, exp, used);
+          if (i < 0) continue;
+          liveDelay.set(tripKey(ps[i].pat, base, ps[i].trip), { d: exp - ps[i].at, at: atMs });
+          n++;
+        }
+      }
+      return n;
     }
 
     // ¿Lleva a la parada de bajada un bus en vivo con este letrero, que pasa por la de subida a la
@@ -616,7 +691,7 @@
       return ok.every(Boolean) ? "yes" : ok.some(Boolean) ? "mixed" : "no";
     }
 
-    return { ids, index, pats, at, transfers, search, retime, choose, stopPasses, upcoming, liveReaches, fecha: data.fecha, WALK };
+    return { ids, index, pats, at, transfers, search, retime, choose, stopPasses, upcoming, liveReaches, observe, liveDelay, fecha: data.fecha, WALK };
   }
 
   let pending = null;

@@ -1342,7 +1342,24 @@
     let text;
     try { text = new TextDecoder("utf-8", { fatal: true }).decode(buf); }
     catch { text = new TextDecoder("windows-1252").decode(buf); }
-    return JSON.parse(text);
+    const data = JSON.parse(text);
+    feedLive(id, data.estimaciones, Date.now());
+    return data;
+  }
+
+  // Horario en vivo: cada respuesta de la API (de cualquier parte de la web) apunta en el
+  // planificador el retraso de los buses que se pueden emparejar con su viaje del horario. Cómo
+  // llegar busca sobre ese horario (ver PV_PLAN.observe).
+  function feedLive(id, list, atMs) {
+    if (!Array.isArray(list) || !list.length) return;
+    PLAN.load().then((pl) => {
+      const i = pl.index.get(id);
+      if (i == null) return;
+      pl.observe(i, list.map((b) => {
+        const line = normLine(b.linea);
+        return { line, dir: lines ? liveDir(id, line, b.ruta) : null, ruta: b.ruta, minutos: b.minutos };
+      }), atMs);
+    }).catch(() => {});
   }
 
   async function loadArrivals(first) {
@@ -2410,6 +2427,7 @@
   // con los tiempos en vivo de las paradas de subida. Cada 30 s se vuelve a calcular todo.
   const PLAN = window.PV_PLAN;
   const MAX_WALK_STOP = 1000;        // metros a pie como máximo hasta la parada de subida o desde la de bajada
+  const ORIGIN_LIVE = 6;                // paradas más cercanas a A que se piden en vivo (horario en vivo)
   const FULL_EVERY = 4;                 // cada 4 vueltas (2 min) se piden todas las paradas de los candidatos
   const LIVE_MAX_AGE = 180000;          // un dato en vivo de más de 3 min no se usa en Cómo llegar
   const liveCache = new Map();       // parada → { at, list | null } (null: sin respuesta)
@@ -2612,9 +2630,24 @@
     lt.liveRound = (lt.liveRound || 0) + 1;
     const full = lt.liveRound === 1 || lt.liveRound % FULL_EVERY === 1;
     const keys = new Set([...(lt.opts || []).map((j) => j.key), trip.sel]);
-    const ids = new Set();
-    lt.cands.forEach((j) => { if (full || keys.has(j.key)) j.legs.forEach((l) => l.type === "bus" && ids.add(lt.plan.ids[l.board])); });
+    const boards = () => {
+      const ids = new Set();
+      lt.cands.forEach((j) => { if (full || keys.has(j.key)) j.legs.forEach((l) => l.type === "bus" && ids.add(lt.plan.ids[l.board])); });
+      return ids;
+    };
+    // Horario en vivo: también las paradas más cercanas a A (un bus retrasado que ya "tendría que
+    // haber pasado" no está entre los candidatos del horario y solo así se ve).
+    const ids = boards();
+    if (!lt.arriveBy) {
+      [...lt.origins].sort((a, b) => a[1] - b[1]).slice(0, ORIGIN_LIVE).forEach(([i]) => ids.add(lt.plan.ids[i]));
+    }
     await Promise.all([...ids].map(getLive));
+    if (seq !== tripSeq || lastTrip !== lt) return;
+    // Con los retrasos vistos, se vuelve a buscar sobre el horario en vivo y se piden las paradas de
+    // subida nuevas (las ya pedidas salen de la caché).
+    planSearch();
+    const more = [...boards()].filter((id) => !ids.has(id));
+    if (more.length) await Promise.all(more.map(getLive));
     if (seq !== tripSeq || lastTrip !== lt) return;
     const now = new Date();
     const re = lt.cands.map((j) => lt.plan.retime(j, (leg) => liveFor(lt.plan, leg), now, lt.start));
@@ -2631,8 +2664,7 @@
     tripTimer = setTimeout(() => {
       if (seq !== tripSeq || lastTrip !== lt) return;
       if (document.hidden) return;             // al volver a la pestaña se actualiza (visibilitychange)
-      planSearch();
-      refreshLive(seq);
+      refreshLive(seq);                        // vuelve a buscar con los datos en vivo nuevos
     }, REFRESH_MS);
   }
 
