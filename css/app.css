@@ -1366,3 +1366,6 @@ body:has(.panel:not([data-screen="home"])) .install, body:has(.panel[data-state=
 }
 /* "previsto" encima de los minutos (la clase .sched de Cómo llegar no debe ponerlo en línea) */
 .arrivals .eta.sched, .near-dep-list .eta.sched, #line-bus .eta.sched { display: block; }
+/* El autobús de lado, sin el trazo general de los iconos (salía oscuro con líneas de colores claros) */
+.bus-dot svg, .bus-dot svg .bw, .bus-dot svg .bc { stroke: none; }
+.bus-dot svg .bs { stroke: var(--lc); stroke-width: 1.4; }
