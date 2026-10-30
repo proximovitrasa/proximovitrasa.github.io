@@ -672,11 +672,55 @@
   }
   function renderRecent() { fillList(recentItems(), ""); }
 
-  function renderLines() {
-    if (!lines) { fillList([], t("loading_lines")); return; }
-    const items = Object.keys(lines).map((code) => lineItem(code));
-    fillList(items, items.length ? "" : t("lines_error"));
+  // Líneas como en el mockup (rediseño): buscador en la cabecera roja, filtros Todas / Cerca de
+  // ti / Nocturnas y cada línea con sus dos destinos.
+  let linesFilter = "all";
+  const NEAR_LINES_M = 600;
+  function renderLinesHead() {
+    const box = $("#screen-extra");
+    if (box.dataset.kind === "lines") return;   // no se rehace mientras se escribe
+    box.dataset.kind = "lines";
+    box.className = "screen-extra lines-head";
+    box.innerHTML = `<label class="lines-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
+      <input id="lines-q" type="search" autocomplete="off" spellcheck="false" placeholder="${esc(t("lines_ph"))}" aria-label="${esc(t("lines_ph"))}"></label>`;
   }
+  function renderLines() {
+    renderLinesHead();
+    if (!lines) { fillList([], t("loading_lines")); return; }
+    const all = Object.keys(lines).sort((a, b) => (parseInt(a.replace(/^\D+/, ""), 10) || 0) - (parseInt(b.replace(/^\D+/, ""), 10) || 0) || a.localeCompare(b));
+    const q = norm(($("#lines-q") || {}).value || "").trim();
+    let codes = all;
+    if (linesFilter === "night") codes = codes.filter((c) => /^N\d/i.test(c));
+    if (linesFilter === "near" && me) {
+      const near = new Set();
+      stops.forEach((s) => { if (haversine(me, s.ll) <= NEAR_LINES_M) s.lines.forEach((c) => near.add(c)); });
+      codes = codes.filter((c) => near.has(c));
+    }
+    if (q) codes = codes.filter((c) => norm(c).startsWith(q) || lines[c].sentidos.some((d) => norm(d.destino).includes(q)));
+    const chips = document.createElement("li");
+    chips.className = "line-filters";
+    chips.innerHTML = [["all", `${t("lines_all")} · ${all.length}`], ["near", t("lines_near")], ["night", t("lines_night")]]
+      .map(([k, txt]) => `<button type="button" data-lfilter="${k}" aria-pressed="${linesFilter === k}">${esc(txt)}</button>`).join("");
+    const items = codes.map((code) => {
+      const li = document.createElement("li");
+      const [d0, d1] = lines[code].sentidos;
+      li.innerHTML = `<button type="button" data-line="${esc(code)}" class="line-row2">
+        <span class="badge"${lineStyle(code)}>${esc(code)}</span>
+        <span class="dests"><span class="name">${esc(d0 ? d0.destino : lines[code].nombre)}</span>${d1 ? `<span class="sub">${esc(d1.destino)}</span>` : ""}</span>
+        ${CHEV_R}</button>`;
+      return li;
+    });
+    fillList([chips, ...items], items.length ? "" : t(linesFilter === "near" && !me ? "geo_needed" : "lines_none"));
+  }
+  $("#screen-extra").addEventListener("input", (e) => { if (e.target.id === "lines-q") renderLines(); });
+  $("#list").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-lfilter]");
+    if (!b) return;
+    e.stopPropagation();
+    linesFilter = b.dataset.lfilter;
+    if (linesFilter === "near" && !me) { getPosition(() => renderLines()); }
+    renderLines();
+  });
 
   const TABS = ["near", "fav", "lines"];
   function render() {
@@ -819,6 +863,7 @@
     if (id !== "home") {
       panel.dataset.screen = id === "info" ? "info" : "";
       $("#screen-head").hidden = id !== "info";
+      $("#screen-extra").hidden = true;
       if (id === "info") $("#screen-title").textContent = t("nav_more");
     }
     updateTabbar();
@@ -845,6 +890,8 @@
     mode = which;
     panel.dataset.screen = own ? which : "";
     $("#screen-head").hidden = !own;
+    $("#screen-extra").hidden = !own;
+    if (!own || which !== "lines") { $("#screen-extra").replaceChildren(); delete $("#screen-extra").dataset.kind; }
     $("#screen-title").textContent = own ? t(which === "fav" ? "tab_fav" : "tab_lines") : "";
     if (!isDesktop()) panel.dataset.state = own ? "full" : (panel.dataset.state === "full" ? "peek" : panel.dataset.state || "peek");
     document.title = own ? `${$("#screen-title").textContent} · ProximoVitrasa` : "ProximoVitrasa";
@@ -1702,35 +1749,44 @@
   let favTimer = null;
   let favPicking = null;          // "home" | "work" mientras se elige con el buscador del propio botón
   const favOpenLines = new Set(); // paradas con el selector de líneas abierto
+  // Favoritas como en el mockup (rediseño): casa y trabajo en tarjetas sobre la cabecera roja y,
+  // en la hoja, Paradas (tarjeta con los tiempos de sus líneas), Trayectos y Sitios.
+  const HW_ICON = {
+    home: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z"/></svg>',
+    work: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M3 13h18"/></svg>',
+  };
+  const CHEV_R = '<svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>';
+  function renderHw() {
+    const box = $("#screen-extra");
+    box.className = "screen-extra hw-row";
+    box.dataset.kind = "fav";
+    box.innerHTML = ["home", "work"].map((k) => {
+      const p = favs[k];
+      return `<div class="hw-card"><button type="button" class="hw-go" ${p ? `data-hwgo="${k}"` : `data-pick="${k}"`}>
+          <span class="hw-ico">${HW_ICON[k]}</span>
+          <span class="hw-txt"><b>${esc(t(p ? `go_${k}` : `set_${k}`))}</b><small>${esc(p ? p.label : t("set_hint"))}</small></span></button>
+        ${p ? `<button type="button" class="hw-edit" data-pick="${k}" aria-label="${esc(t(`change_${k}`))}" title="${esc(t(`change_${k}`))}">${EDIT_SVG}</button>` : ""}</div>`;
+    }).join("");
+  }
   function renderFav() {
     clearTimeout(favTimer);
+    renderHw();
     const items = [];
-    // Ir a casa / al trabajo; sin elegir, el botón abre un buscador para escribir la dirección.
-    const hw = document.createElement("li");
-    hw.className = "fav-hw";
-    hw.innerHTML = ["home", "work"].map((k) => {
-      const p = favs[k];
-      return p ? `<div class="hw"><button type="button" class="hw-go" data-go="${k}"><b>${esc(t(`go_${k}`))}</b><small>${esc(p.label)}</small></button>
-          <button type="button" class="icon-btn hw-edit" data-pick="${k}" aria-label="${esc(t(`change_${k}`))}" title="${esc(t(`change_${k}`))}">${EDIT_SVG}</button></div>`
-        : `<div class="hw"><button type="button" class="hw-go unset" data-pick="${k}"><b>${esc(t(`set_${k}`))}</b><small>${esc(t("set_hint"))}</small></button></div>`;
-    }).join("");
-    items.push(hw);
+    const head = (k) => { const li = document.createElement("li"); li.className = "sec-head"; li.textContent = t(k); return li; };
     if (favPicking) items.push(pickerItem());
-    // Paradas: con los tiempos en vivo de sus líneas (todas o las elegidas).
-    favs.stops.forEach((f) => {
+    // Paradas: tarjeta con los tiempos en vivo de sus líneas (todas o las elegidas).
+    const st = favs.stops.filter((f) => byId.has(f.id));
+    if (st.length) items.push(head("fav_stops"));
+    st.forEach((f) => {
       const s = byId.get(f.id);
-      if (!s) return;
-      const li = stopItem(s, { dist: me ? haversine(me, s.ll) : null, noLines: true });
-      li.classList.add("fav-stop");
-      const live = document.createElement("div");
-      live.className = "fav-live";
-      live.dataset.live = f.id;
-      live.textContent = "…";
-      const tools = document.createElement("div");
-      tools.className = "fav-tools";
       const n = f.lines ? f.lines.length : 0;
-      tools.innerHTML = `<button type="button" data-flines="${esc(f.id)}" aria-expanded="${favOpenLines.has(f.id)}">${esc(n === 1 ? t("fav_lines_1") : n ? t("fav_lines_n", { n }) : t("fav_lines_all"))}</button>`;
-      li.append(live, tools);
+      const li = document.createElement("li");
+      li.className = "fav-card";
+      li.innerHTML = `<div class="fc-top"><button type="button" class="fc-open" data-id="${esc(s.id)}">
+          <span class="name">${esc(s.name)}</span>
+          <span class="sub">${esc(t("stop_n", { id: s.id }))} · ${esc(n ? t(n === 1 ? "fav_sel_1" : "fav_sel_n", { n }) : t("fav_sel_all"))}</span></button>
+        <button type="button" class="pill" data-flines="${esc(f.id)}" aria-expanded="${favOpenLines.has(f.id)}">${esc(t("tab_lines"))}</button></div>
+        <div class="fav-live" data-live="${esc(f.id)}">…</div>`;
       if (favOpenLines.has(f.id)) {
         const pick = document.createElement("div");
         pick.className = "fav-linepick lines";
@@ -1739,28 +1795,25 @@
       }
       items.push(li);
     });
-    // Direcciones y sitios.
-    favs.places.forEach((p, i) => {
-      const li = document.createElement("li");
-      li.className = "fav-place";
-      li.innerHTML = `<button type="button" data-fplace="${i}">
-        <span class="name">${esc(p.label)}</span>
-        <span class="sub">${esc(p.site ? t(`site_${p.site}`) : t("fav_address"))}</span>
-        ${me ? `<span class="dist">${fmtDist(haversine(me, p.ll))}</span>` : ""}
-      </button>
-      <button type="button" class="fav-go" data-ftrip="${i}">${esc(t("trip_here"))}</button>`;
-      items.push(li);
-    });
     // Trayectos guardados (37): A → B con sus líneas; tocar abre Cómo llegar con esa opción.
+    if (favs.trips.length) items.push(head("fav_trips"));
     favs.trips.forEach((f, i) => {
       const li = document.createElement("li");
-      li.className = "fav-trip";
+      li.className = "fav-row";
       const how = f.key === "walk" ? `<span class="what">${esc(t("on_foot"))}</span>` : f.lines.map(badge).join(CHEV);
       li.innerHTML = `<button type="button" data-ftripfav="${i}">
         <span class="name">${esc(f.al || t("my_location"))} → ${esc(f.bl || t("my_location"))}</span>
-        <span class="sub chain">${how}</span>
-      </button>
-      <button type="button" class="icon-btn fav fav-trip-del" aria-pressed="true" data-ftripdel="${i}" aria-label="${esc(t("trip_unfav"))}" title="${esc(t("trip_unfav"))}">${STAR_SVG}</button>`;
+        <span class="sub chain">${how}</span>${CHEV_R}</button>`;
+      items.push(li);
+    });
+    // Sitios y direcciones.
+    if (favs.places.length) items.push(head("fav_places"));
+    favs.places.forEach((p, i) => {
+      const li = document.createElement("li");
+      li.className = "fav-row";
+      li.innerHTML = `<button type="button" data-fplace="${i}">
+        <span class="name">${esc(p.label)}</span>
+        <span class="sub">${esc(p.site ? t(`site_${p.site}`) : t("fav_address"))}</span>${CHEV_R}</button>`;
       items.push(li);
     });
     fillList(items, favs.stops.length || favs.places.length || favs.trips.length ? "" : t("no_favs"));
@@ -1785,7 +1838,7 @@
       const rows = [...by].map(([code, ms]) => [code, ms.sort((a, b) => a - b).filter((m) => m >= 0).slice(0, 2)]).filter(([, ms]) => ms.length)
         .sort((a, b) => a[1][0] - b[1][0]);
       box.innerHTML = rows.length ? rows.map(([code, ms]) =>
-        `<span class="fl"><i${lineStyle(code)}>${esc(code)}</i>${ms.map((m) => (m <= 0 ? esc(t("arriving")) : m < 60 ? `${m}` : esc(hMin(m).replace(` ${t("min")}`, "")))).join(", ")}${ms.some((m) => m > 0 && (m < 60 || m % 60)) ? ` ${esc(t("min"))}` : ""}</span>`).join("")
+        `<span class="fl"><i${lineStyle(code)}>${esc(code)}</i><b>${ms[0] <= 0 ? esc(t("arriving")) : esc(hMin(ms[0]))}</b></span>`).join("")
         : `<span class="fl-none">${esc(t(f.lines ? "fav_none_lines" : "bus_none"))}</span>`;
     }));
     favTimer = setTimeout(() => { if (!document.hidden) refreshFavLive(); }, REFRESH_MS);
@@ -1887,6 +1940,12 @@
     if (e.target.id !== "fav-pick-q") return;
     if (e.key === "Enter") { e.preventDefault(); pickFirst(); }
     if (e.key === "Escape") { favPicking = null; renderFav(); }
+  });
+  $("#screen-extra").addEventListener("click", (e) => {
+    const b = e.target.closest("button");
+    if (!b || mode !== "fav") return;
+    if (b.dataset.pick) { favPicking = favPicking === b.dataset.pick ? null : b.dataset.pick; renderFav(); return; }
+    if (b.dataset.hwgo) goTo(favs[b.dataset.hwgo]);
   });
   $("#list").addEventListener("click", (e) => {
     const b = e.target.closest("button");
@@ -2076,14 +2135,21 @@
   // Sobre esta web: autoría y código fuente (AGPL-3.0: quien use la web tiene que poder conseguir
   // el código; TERMINOS-ADICIONALES.md pide además esta mención visible en las copias).
   const REPO = "https://github.com/proximovitrasa/proximovitrasa.github.io";
+  // Más como en el mockup (rediseño): el servicio de Vitrasa en lista, los servicios especiales en
+  // etiquetas y el recuadro "Sobre ProximoVitrasa" (mención de autoría que pide la licencia).
+  const WARN_SVG = '<svg class="warn-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18v.5"/></svg>';
+  const ARROW_SVG = '<svg class="ext" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8"/></svg>';
+  const SHORT = { l_uni: "sp_uni", l_football: "sp_football" };
   function renderInfo() {
-    $("#info-list").innerHTML = INFO_LINKS.map(([grp, links]) =>
-      `<li class="group-head">${esc(t(grp))}</li>` + links.map(([k, path]) =>
-        `<li><a class="info-link" href="${VITRASA}${path}" target="_blank" rel="noopener"><span class="name">${esc(t(k))}</span>${EXT_SVG}</a></li>`).join("")).join("") +
-      `<li class="group-head">${esc(t("info_grp_about"))}</li>
-       <li class="about-line">${esc(t("about_line"))}</li>
-       <li><a class="info-link" href="${REPO}" target="_blank" rel="noopener"><span class="name">${esc(t("about_code"))}</span>${EXT_SVG}</a></li>
-       <li><a class="info-link" href="${REPO}/blob/main/TERMINOS-ADICIONALES.md" target="_blank" rel="noopener"><span class="name">${esc(t("about_license"))}</span>${EXT_SVG}</a></li>`;
+    const [[, main], [, extra]] = INFO_LINKS;
+    $("#info-list").innerHTML =
+      `<li class="sec-head">${esc(t("more_service"))}</li>` +
+      main.map(([k, path]) => `<li><a class="info-link" href="${VITRASA}${path}" target="_blank" rel="noopener"><span class="name">${k === "l_alerts" ? WARN_SVG : ""}${esc(t(k))}</span>${ARROW_SVG}</a></li>`).join("") +
+      `<li class="sec-head">${esc(t("info_grp_services"))}</li>
+       <li class="sp-chips">${extra.map(([k, path]) => `<a href="${VITRASA}${path}" target="_blank" rel="noopener">${esc(t(SHORT[k] || k))}</a>`).join("")}</li>
+       <li class="about-box"><b>${esc(t("about_title"))}</b><p>${esc(t("about_short"))}</p>
+         <span><a href="${REPO}" target="_blank" rel="noopener">${esc(t("about_code_s"))}</a><a href="${REPO}/blob/main/TERMINOS-ADICIONALES.md" target="_blank" rel="noopener">${esc(t("about_terms_s"))}</a></span></li>`;
+    $("#more-install").hidden = !(onPhone() && !standalone() && (installEvt || manualSteps()));
   }
   function showInfo() {
     leaveStop();
@@ -3608,7 +3674,7 @@
     document.querySelectorAll("[data-i18n-aria]").forEach((el) => el.setAttribute("aria-label", t(el.dataset.i18nAria)));
     document.querySelectorAll("[data-i18n-title]").forEach((el) => (el.title = t(el.dataset.i18nTitle)));
     $("#lang-btn .flag").innerHTML = flagSvg(lang);
-    $("#lang-code").textContent = lang.toUpperCase();
+    $("#lang-code").textContent = (I18N.langs.find((l) => l.code === lang) || {}).name || lang.toUpperCase();
     $("#lang-menu").innerHTML = I18N.langs.map((l) =>
       `<li role="option" aria-selected="${l.code === lang}"><button type="button" data-lang="${l.code}" lang="${l.code}">
         <svg class="flag" viewBox="0 0 30 20" aria-hidden="true">${l.flag}</svg><span>${esc(l.name)}</span></button></li>`).join("");
@@ -3691,6 +3757,7 @@
       $("#ios-install").hidden = false;
     }
   });
+  $("#more-install").addEventListener("click", () => $("#install-btn").click());
   $("#install-close").addEventListener("click", () => {
     try { localStorage.setItem(INSTALL_KEY, "1"); } catch { /* sin almacenamiento */ }
     $("#install").hidden = true;

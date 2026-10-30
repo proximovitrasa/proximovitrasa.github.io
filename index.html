@@ -58,6 +58,8 @@
 
     <!-- Cabecera roja de las pantallas propias (Favoritas, Líneas): rediseño, fase 1 -->
     <header id="screen-head" class="screen-head" hidden><h2 id="screen-title"></h2></header>
+    <!-- Sobre la cabecera roja: casa y trabajo (Favoritas) o el buscador de líneas (Líneas) -->
+    <div id="screen-extra" class="screen-extra" hidden></div>
 
     <div class="search-row">
       <div class="search">
@@ -233,16 +235,20 @@
           <p class="stop-meta" data-i18n="info_note"></p>
         </div>
       </div>
+      <!-- Más (rediseño): idioma e instalar la app en dos tarjetas -->
       <div class="more-tools">
-        <span class="more-label" data-i18n="language"></span>
-          <div class="lang">
-        <button id="lang-btn" class="lang-btn" type="button" aria-haspopup="listbox" aria-expanded="false" data-i18n-aria="language">
-          <svg class="flag" viewBox="0 0 30 20" aria-hidden="true"></svg>
-          <span id="lang-code"></span>
-          <svg class="caret" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10l5 5 5-5"/></svg>
+        <div class="lang">
+          <button id="lang-btn" class="more-tile" type="button" aria-haspopup="listbox" aria-expanded="false" data-i18n-aria="language">
+            <span class="hw-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3.2 3 14.8 0 18M12 3c-3 3.2-3 14.8 0 18"/></svg></span>
+            <span class="hw-txt"><b data-i18n="language"></b><small id="lang-code"></small></span>
+            <svg class="flag" viewBox="0 0 30 20" aria-hidden="true" hidden></svg>
+          </button>
+          <ul id="lang-menu" class="lang-menu" role="listbox" hidden data-i18n-aria="language"></ul>
+        </div>
+        <button id="more-install" class="more-tile" type="button" hidden>
+          <span class="hw-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="2" width="10" height="20" rx="2.5"/><path d="M12 7v7M9 11l3 3 3-3"/></svg></span>
+          <span class="hw-txt"><b data-i18n="more_install"></b><small data-i18n="more_install_sub"></small></span>
         </button>
-        <ul id="lang-menu" class="lang-menu" role="listbox" hidden data-i18n-aria="language"></ul>
-      </div>
       </div>
       <ul id="info-list" class="stops info-list"></ul>
     </section>
