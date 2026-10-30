@@ -2463,6 +2463,7 @@
     trip.picking = null;
     const same = tripOpen() && lastTrip && lastTrip.hash === location.hash;
     showView("trip");
+    $("#trip").classList.remove("when-open");
     document.title = `${t("trip_title")} · ${APP_NAME}`;
     if (!isDesktop() && panel.dataset.state !== "full") panel.dataset.state = baseState();
     closeSugg();
@@ -2543,8 +2544,23 @@
   const targetEnd = () => trip.picking || trip.editing || (!trip.a ? "a" : "b");
   function tripPickStop(s) { setEnd(targetEnd(), stopEnd(s)); }
 
+  // Cómo llegar: "trip" (rojo, a pantalla completa: elegir y opciones) o "tripd" (pasos de una
+  // opción, con el mapa arriba). "ready": ya hay origen y destino.
+  function syncTripScreen() {
+    if (panel.dataset.view !== "trip") return;
+    $("#trip").classList.toggle("ready", !!(trip.a && trip.b));
+    const scr = trip.sel && lastTrip ? "tripd" : "trip";
+    // Al abrir los pasos en el móvil, la hoja baja para dejar ver el mapa con el recorrido.
+    if (scr === "tripd" && panel.dataset.screen !== "tripd" && !isDesktop()) panel.dataset.state = "stop";
+    panel.dataset.screen = scr;
+    const on = !!(trip.sel && tripFavFor(trip.sel));
+    $("#tf-star").setAttribute("aria-pressed", on);
+    $("#tf-star").setAttribute("aria-label", t(on ? "trip_unfav" : "trip_fav"));
+    $("#tf-star").title = t(on ? "trip_unfav" : "trip_fav");
+  }
   function renderTripFields() {
     updateTripShare();
+    syncTripScreen();
     ["a", "b"].forEach((w) => {
       const inp = $(`#trip-${w}`);
       if (document.activeElement !== inp) inp.value = endLabel(trip[w]);
@@ -2561,10 +2577,21 @@
     });
   }
 
+  // Mi ubicación y Elegir en el mapa, con su icono y una línea que explica qué hacen (mockup 12).
+  const TILE_ME = '<svg class="ln me" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="3" fill="currentColor" stroke="none"/><path d="M12 1.5v3M12 19.5v3M1.5 12h3M19.5 12h3"/></svg>';
+  const TILE_MAP = '<svg class="ln" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2z"/><path d="M9 4v14M15 6v14"/></svg>';
+  const TILE_CLOCK = '<svg class="ln" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>';
   function specialItem(kind, icon, label) {
-    const li = document.createElement("li");
-    li.innerHTML = `<button type="button" class="special" data-trip="${kind}">${icon}<span class="name">${esc(label)}</span></button>`;
-    return li;
+    return resRow(`data-trip="${kind}"`, kind === "me" ? TILE_ME : TILE_MAP, esc(label), esc(t(kind === "me" ? "my_location_sub" : "pick_map_sub")));
+  }
+  // Recientes en Desde / Hasta: con un reloj y lo que son (parada, sitio o dirección).
+  function tripRecentRows() {
+    const rows = [];
+    recents.forEach((r, k) => {
+      if (r.id) { const s = byId.get(r.id); if (s) rows.push(resRow(`data-id="${esc(s.id)}"`, TILE_CLOCK, esc(s.name), esc(t("stop_n", { id: s.id })))); return; }
+      rows.push(resRow(`data-recent="${k}"`, TILE_CLOCK, esc(r.label), esc(r.site ? t(`site_${r.site}`) : t("fav_address"))));
+    });
+    return rows.length ? [secHead(t("recents")), ...rows] : [];
   }
 
   // Una calle propuesta. num: número escrito; "" toda la calle; null falta el número (al tocarla
@@ -2601,34 +2628,33 @@
     const items = [];
     if (typed && !dirData) ensureDir().then(() => { if (trip.editing === which) openSugg(which); }).catch(() => {});
     if (typed) {
+      // Como en el mockup (12): "Resultados" (paradas, sitios y direcciones), luego Mi ubicación y
+      // Elegir en el mapa, y las buscadas recientemente.
       const tokens = norm(typed).split(" ").filter(Boolean);
       const addr = [];
       if (dirData) {
         const p = dirData.parse(typed);
         const found = dirData.matchStreets(p.street, p.num ? 4 : 6);
-        found.forEach((st) => addr.push(addrItem(st, p.num, tokens)));
+        found.forEach((st) => addr.push(addrItem(st, p.num, tokens, true)));
         // Con número a medio escribir: otros portales conocidos de la primera calle ("1" → 10, 12…).
-        if (p.num && found[0]) dirData.numbersStarting(found[0], p.num).forEach((n) => addr.push(addrItem(found[0], n, tokens)));
+        if (p.num && found[0]) dirData.numbersStarting(found[0], p.num).forEach((n) => addr.push(addrItem(found[0], n, tokens, true)));
       }
-      const res = matchStops(typed).slice(0, addr.length ? 25 : 40);
       if (!sitesData && /\p{L}.*\p{L}.*\p{L}/u.test(typed)) ensureSites().then(() => { if (trip.editing === which) openSugg(which); }).catch(() => {});
       const sites = /\p{L}.*\p{L}.*\p{L}/u.test(typed) ? matchSites(typed) : [];
-      if (sites.length) items.push(groupHead(t("res_sites")), ...sites.map((s) => siteItem(s, tokens)));
-      if (addr.length) items.push(groupHead(t("res_addr")), ...addr);
-      if (res.length) {
-        items.push(groupHead(t("res_stops")));
-        res.forEach((s) => items.push(stopItem(s, { nameHtml: highlight(s.name, tokens), noLines: true, dist: me ? haversine(me, s.ll) : null })));
-      }
+      const res = matchStops(typed).slice(0, addr.length || sites.length ? 5 : 40);
+      items.push(secHead(t("results")));
+      res.forEach((s) => items.push(resStop(s, highlight(s.name, tokens))));
+      sites.forEach((x) => items.push(siteItem(x, tokens)));
+      items.push(...addr);
       if (!addr.length && !res.length && !sites.length) {
         const li = document.createElement("li");
-        li.className = "group-head";
+        li.className = "note-li";
         li.textContent = t("trip_no_stops", { q: typed });
         items.push(li);
       }
     }
-    // Con texto escrito, primero lo encontrado (que se vea encima del teclado del móvil) y después
-    // "Mi ubicación" y "Elegir en el mapa"; sin texto, solo esas dos.
-    $("#trip-sugg").replaceChildren(...(typed ? [...items, ...special] : [...special, ...recentItems({ noLines: true })]));
+    special[0].classList.add("gap");
+    $("#trip-sugg").replaceChildren(...items, ...special, ...tripRecentRows());
     $("#trip-sugg").hidden = false;
     $("#trip-result").hidden = true;
     $("#trip").classList.add("editing");   // mientras se escribe, sin las filas de hora y preferencias
@@ -2783,6 +2809,7 @@
   try { tripPref = ["fast", "transfers", "walk"].includes(localStorage.getItem(PREF_KEY)) ? localStorage.getItem(PREF_KEY) : "fast"; } catch { /* sin almacenamiento */ }
   function renderPref() {
     document.querySelectorAll("#trip-pref [data-pref]").forEach((b) => b.setAttribute("aria-checked", b.dataset.pref === tripPref));
+    $("#trip-pref-chip-text").textContent = t(`pref_${tripPref}`);
   }
   $("#trip-pref").addEventListener("click", (e) => {
     const b = e.target.closest("[data-pref]");
@@ -2921,6 +2948,14 @@
   const nextDay = (sec) => sec >= 86400 && new Date(lastTrip.base + sec * 1000).getDate() !== new Date().getDate();
   const atTime = (sec) => t(nextDay(sec) ? "tomorrow_at" : "at_time", { time: clock(sec) });
   const arriveAt = (sec) => t(nextDay(sec) ? "arrive_tomorrow" : "arrive_at", { time: clock(sec) });
+  const arriveShort = (sec) => (nextDay(sec) ? arriveAt(sec) : t("arrive_short", { time: clock(sec) }));
+  // Cuándo pasa el bus (mockups 1 y 2): en vivo, en verde con un punto; según horario, en naranja con un reloj.
+  const CLOCK_SVG = '<svg class="ck" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>';
+  function statusHtml(leg) {
+    const m = Math.round((leg.dep - nowSec()) / 60);
+    if (leg.live) return `<span class="live">${esc(m <= 0 ? t("arriving") : m < 60 ? t("in_min", { n: m }) : atTime(leg.dep))}</span>`;
+    return `<span class="sched">${CLOCK_SVG}${esc(m <= 0 ? t("arriving") : m < 60 ? t("sched_in", { n: m }) : nextDay(leg.dep) ? atTime(leg.dep) : t("sched_at", { time: clock(leg.dep) }))}</span>`;
+  }
   const SHORT_TRANSFER_MIN = 3;
   function chain(j) {
     const parts = [];
@@ -2997,9 +3032,10 @@
     const notes = (lt.approx || []).map((label) => `<p class="trip-note">${esc(t("approx_note", { label }))}</p>`).join("");
     if (trip.sel) {
       const j = trip.sel === "walk" ? null : lt.opts.find((o) => o.key === trip.sel);
-      if (trip.sel === "walk" || j) { box.innerHTML = renderSteps(j) + notes; return; }
+      if (trip.sel === "walk" || j) { box.innerHTML = renderSteps(j) + notes; syncTripScreen(); return; }
       trip.sel = null;
     }
+    syncTripScreen();
     const shown = shownKey();
     const cur = (k) => (k === shown ? ' aria-current="true"' : "");
     const arr = !!lt.arriveBy;
@@ -3012,20 +3048,20 @@
       return `<li class="opt-li"><button type="button" class="opt" data-opt="${esc(j.key)}"${cur(j.key)}>
         <span class="chain">${chain(j)}</span>
         <span class="eta">${durHtml(total)}</span>
-        <span class="when">${leave}${whenHtml(first)} · ${esc(stopName(first.board))}${late}${first.doubtful ? ` <span class="warn">${esc(t("no_live"))}</span>` : ""}${isTight(j) ? ` <span class="warn">${esc(t("tight_transfer"))}</span>` : ""}</span>
-        <span class="arr">${esc(arriveAt(j.arr))}</span>
-      </button>${starBtn(j.key)}</li>`;
+        <span class="when">${leave}${statusHtml(first)}${late}${first.doubtful ? ` <span class="warn">${esc(t("no_live"))}</span>` : ""}${isTight(j) ? ` <span class="warn">${esc(t("tight_transfer"))}</span>` : ""}</span>
+        <span class="arr">${esc(arriveShort(j.arr))}</span>
+      </button></li>`;
     });
     // Ir andando: primero si llega antes que cualquier bus; si no, al final.
     if (lt.walk) {
       const T = arr ? (lt.arriveBy - lt.base) / 1000 : null;
       const walkDep = arr ? T - walkMinTotal * 60 : startSec();
       const w = `<li class="opt-li"><button type="button" class="opt walk" data-opt="walk"${cur("walk")}>
-        <span class="chain">${walkChip(lt.walk.eq)}<span class="what">${esc(t("on_foot"))}</span></span>
+        <span class="chain">${ICON_WALK}<span class="what">${esc(t("on_foot"))}</span></span>
         <span class="eta">${durHtml(walkMinTotal)}</span>
         <span class="when">${arr ? `${esc(t("leave_time", { time: clock(Math.max(walkDep, nowSec())) }))} · ` : ""}${esc(fmtDist(lt.walk.dist))}</span>
-        <span class="arr">${esc(arriveAt(walkDep + walkMinTotal * 60))}</span>
-      </button>${starBtn("walk")}</li>`;
+        <span class="arr">${esc(arriveShort(walkDep + walkMinTotal * 60))}</span>
+      </button></li>`;
       if (walkOnTop()) items.unshift(w); else items.push(w);
     }
     let head = "";
@@ -3035,34 +3071,40 @@
     if (!items.length) head = `<div class="state"><strong>${esc(t("trip_none"))}</strong></div>`;
     const date = lt.plan ? new Date(`${lt.plan.fecha}T12:00:00`).toLocaleDateString(lang, { day: "numeric", month: "short", year: "numeric" }) : "";
     // Origen de los tiempos, encima de las opciones.
-    const src = lt.opts.length ? `<p class="trip-note">${lt.live ? "" : `${esc(t("live_checking"))} `}${esc(t("plan_note", { date }))}</p>` : "";
+    const src = lt.opts.length ? `<p class="trip-note src" title="${esc(t("plan_note", { date }))}">${lt.live ? "" : `${esc(t("live_checking"))} `}${esc(t("src_note"))}</p>` : "";
     box.innerHTML = `${head}${src}<ul class="trip-opts">${items.join("")}</ul>${notes}`;
   }
 
+  // Pasos de una opción como en el mockup (2): resumen arriba y una línea de tiempo con la hora de
+  // cada punto (salida, subida, bajada y llegada); los tramos en bus, con las paradas desplegables.
+  const ptRow = (cls, name, sec) => `<li class="step pt ${cls}"><span class="ico"><i></i></span><span class="txt"><b>${esc(name)}</b></span>${sec != null ? `<span class="tm">${esc(clock(sec))}</span>` : ""}</li>`;
   function renderSteps(j) {
     const lt = lastTrip;
     const back = `<button type="button" class="opts-back" data-opt-back="1"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>${esc(t("all_options"))}</button>`;
+    const acts = `<span class="desk-acts"><button type="button" class="icon-btn" data-tfshare="1" aria-label="${esc(t("share"))}" title="${esc(t("share"))}"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg></button>${starBtn(trip.sel)}</span>`;
     if (!j) {
       // A pie: como antes de existir el planificador.
       const date = new Date(`${lt.fecha}T12:00:00`).toLocaleDateString(lang, { day: "numeric", month: "short", year: "numeric" });
       const osm = `https://www.openstreetmap.org/directions?engine=fossgis_osrm_foot&route=${fmtLL(trip.a.ll)}%3B${fmtLL(trip.b.ll)}`;
       const r = lt.walk.r, segs = (r.segs || []).map((x) => ({ ...x }));
       if (segs.length) { segs[0].real += r.offFrom; segs[0].eq += r.offFrom; const z = segs[segs.length - 1]; z.real += r.offTo; z.eq += r.offTo; }
-      const vvSt = segs.some((x) => x.used) ? walkPieceSteps(segs, (d) => t("step_walk_dest", { dist: fmtDist(d) })) : "";
+      const wm = walkMin(lt.walk.eq);
+      const T = lt.arriveBy ? (lt.arriveBy - lt.base) / 1000 : null;
+      const dep = T != null ? Math.max(T - wm * 60, nowSec()) : startSec();
+      const vvSt = segs.some((x) => x.used) ? walkPieceSteps(segs, (d) => t("step_walk_dest", { dist: fmtDist(d) }))
+        : `<li class="step walk"><span class="ico">${ICON_WALK}</span><span class="txt">${esc(t("walk_short", { dist: fmtDist(lt.walk.dist) }))}<small>${esc(hMin(wm))}</small></span></li>`;
       const shut = shutItem(walkRoute(trip.a.ll, trip.b.ll).shut);
-      return `${back}<div class="trip-card"><span class="mode">${ICON_WALK}</span>
-          <span class="what">${esc(t("on_foot"))}<small>${fmtDist(lt.walk.dist)}</small></span>
-          <span class="eta">${durHtml(walkMin(lt.walk.eq))}</span></div>
-        ${vvSt || shut ? `<ol class="steps">${vvSt}${shut}</ol>` : ""}
+      return `${back}<div class="opt-head"><span class="chain">${ICON_WALK}<span class="what">${esc(t("on_foot"))}</span></span><span class="opt-time"><span class="eta">${durHtml(wm)}</span></span>${acts}</div>
+        <ol class="steps">${ptRow("a", endLabel(trip.a), dep)}${vvSt}${shut}${ptRow("b", endLabel(trip.b), dep + wm * 60)}</ol>
         <p class="trip-note">${esc(t("trip_source", { date }))} <a href="${osm}" target="_blank" rel="noopener">${esc(t("trip_compare"))}</a></p>`;
     }
-    const steps = [];
+    const steps = [ptRow("a", endLabel(trip.a), leaveSec(j))];
     const legs = j.legs;
     legs.forEach((l, k) => {
       if (l.type === "walk") {
         const next = legs[k + 1];
         const real = walkReal(j, k);
-        const textFor = (d) => (k === 0 ? t("step_walk_to", { dist: fmtDist(d), place: stopName(next.board) })
+        const textFor = (d) => (k === 0 ? t("walk_short", { dist: fmtDist(d) })
           : l.transfer ? (d < 30 && real < 30 ? t("step_change_same") : t("step_change", { dist: fmtDist(d), place: stopName(next.board) }))
           : t("step_walk_dest", { dist: fmtDist(d) }));
         const text = textFor(real);
@@ -3080,28 +3122,32 @@
         const segs = walkSegs(j, k);
         if (segs.some((x) => x.used)) steps.push(walkPieceSteps(segs, textFor, tight, !!l.transfer));
         else steps.push(`<li class="step walk"><span class="ico">${ICON_WALK}</span>
-          <span class="txt">${esc(text)}<small>${esc(t("walk", { n: walkMin(l.m) }))}</small>${tight}</span></li>`);
+          <span class="txt">${esc(text)}<small>${esc(hMin(walkMin(l.m)))}</small>${tight}</span></li>`);
         if (l.m >= 8) steps.push(shutItem(walkRoute(...walkEnds(j, k)).shut));
       } else {
         const ln = lines[l.line];
         const dest = ln && ln.sentidos[l.dir] ? ln.sentidos[l.dir].destino : "";
         const rideMin = Math.max(1, Math.round((l.arr - l.dep) / 60));
         const where = l.live ? ` <span class="bus-pos" data-bus="${esc(busKey(l))}"></span>` : "";
-        steps.push(`<li class="step bus" style="--lc:${ln ? ln.color : "var(--ink)"}"><span class="ico">${badge(l.line)}</span>
-          <span class="txt">${esc(t("step_board", { stop: stopName(l.board), id: lastTrip.plan.ids[l.board] }))}
+        const lc = `style="--lc:${ln ? ln.color : "var(--ink)"}"`;
+        const pat = lastTrip.plan.pats[l.pat];
+        const mids = pat ? pat.p.slice(l.from + 1, l.to).map((i) => `<li>${esc(stopName(i))}</li>`).join("") : "";
+        steps.push(`<li class="step bus" ${lc}><span class="ico">${badge(l.line)}</span>
+          <span class="txt"><b>${esc(stopName(l.board))}</b> <span class="gid">· ${esc(t("stop_lc", { id: lastTrip.plan.ids[l.board] }))}</span>
             <small class="dest">${esc(t("towards", { dest }))}</small>
-            <small>${whenHtml(l)}${where}${l.doubtful ? ` · <span class="warn">${esc(t("no_live"))}</span>` : ""}</small>
-            <small>${esc(t(l.stops === 1 ? "stops_1" : "stops_n", { n: l.stops, min: rideMin }))}</small>
-            <b class="alight">${esc(t("step_alight", { stop: stopName(l.alight) }))}</b></span></li>`);
+            <small class="st">${statusHtml(l)}${where}${l.doubtful ? ` · <span class="warn">${esc(t("no_live"))}</span>` : ""}</small></span>
+          <span class="tm">${esc(clock(l.dep))}</span></li>`);
+        steps.push(`<li class="step ride" ${lc}><span class="ico"><i></i></span><span class="txt">
+          ${mids ? `<button type="button" class="ride-btn" aria-expanded="false">` : `<span class="ride-btn">`}${esc(t(l.stops === 1 ? "stops_1" : "stops_n", { n: l.stops, min: rideMin }))}${mids ? `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button><ol class="ride-stops" hidden>${mids}</ol>` : "</span>"}</span></li>`);
+        steps.push(`<li class="step alight" ${lc}><span class="ico"><i></i></span><span class="txt"><b>${esc(t("step_alight", { stop: stopName(l.alight) }))}</b></span><span class="tm">${esc(clock(l.arr))}</span></li>`);
       }
     });
-    steps.push(`<li class="step end"><span class="ico"><span class="pin pin-b">B</span></span>
-      <span class="txt">${esc(t(nextDay(j.arr) ? "step_arrive_tomorrow" : "step_arrive", { time: clock(j.arr) }))}</span></li>`);
+    steps.push(ptRow("b", endLabel(trip.b), j.arr));
     const total = tripMin(j);
     const lt0 = leaveText(j, !!lt.arriveBy);
     const leave = lt0 ? `<span class="leave">${esc(lt0)}</span>` : "";
     const late = lt.arriveBy && j.late ? `<p class="trip-note"><span class="warn">${esc(t("arrive_late_live"))}</span></p>` : "";
-    return `${back}<div class="opt-head"><span class="chain">${chain(j)}</span><span class="opt-time">${leave}<span class="eta">${durHtml(total)}</span></span></div>${late}
+    return `${back}<div class="opt-head"><span class="chain">${chain(j)}</span><span class="opt-time">${leave}<span class="eta">${durHtml(total)}</span></span>${acts}</div>${late}
       <ol class="steps">${steps.join("")}</ol>`;
   }
 
@@ -3161,7 +3207,7 @@
     const lift = g.t === "ascensor" || g.t === "inclinado";
     const n = Math.max(1, Math.round(g.m / 75));
     return `<li class="step vv"><span class="ico">${lift ? ICON_VV : ICON_RAMP}</span>
-      <span class="txt">${esc(g.name)}<small>${esc(t("vv_ride", { type: t(`vv_${g.t}`), dir: t(g.up ? "vv_up" : "vv_down"), n }))}</small></span></li>`;
+      <span class="txt"><b>${esc(g.name)}</b><small>${esc(t("vv_ride", { type: t(`vv_${g.t}`), dir: t(g.up ? "vv_up" : "vv_down"), n }))}</small></span></li>`;
   }
   // Pasos de un tramo a pie que usa Vigo Vertical, en el orden del camino (segs de PV_PEATON.route):
   // "Anda X hasta <elemento>", el elemento, … y el último trozo con lastText(metros). Los tramos
@@ -3189,7 +3235,7 @@
       if (p.real < 30 && !(isLast && (keepLast || extra))) return "";
       const text = isLast ? lastText(p.real) : t("step_walk_to", { dist: fmtDist(p.real), place: ps[i + 1].name });
       return `<li class="step walk"><span class="ico">${ICON_WALK}</span>
-        <span class="txt">${esc(text)}${p.real >= 30 ? `<small>${esc(t("walk", { n: walkMin(p.eq) }))}</small>` : ""}${isLast ? extra : ""}</span></li>`;
+        <span class="txt">${esc(text)}${p.real >= 30 ? `<small>${esc(hMin(walkMin(p.eq)))}</small>` : ""}${isLast ? extra : ""}</span></li>`;
     }).join("");
   }
   // Trazado de un tramo en bus. Muchos recorridos mezclan el trazado principal de la línea y algún
@@ -3354,6 +3400,14 @@
     const star = e.target.closest("button[data-star]");
     if (star && lastTrip) { e.stopPropagation(); toggleTripFav(star.dataset.star); return; }
     if (e.target.closest("[data-opt-back]")) { goBack(); return; }
+    const rb = e.target.closest("button.ride-btn");
+    if (rb) {
+      const open = rb.getAttribute("aria-expanded") !== "true";
+      rb.setAttribute("aria-expanded", open);
+      rb.nextElementSibling.hidden = !open;
+      return;
+    }
+    if (e.target.closest("[data-tfshare]")) { $('[data-share="trip"]').click(); return; }
     const b = e.target.closest("button[data-opt]");
     if (!b || !lastTrip) return;
     trip.sel = b.dataset.opt;
@@ -3541,14 +3595,15 @@
     const inp = $("#when-at");
     const later = !!trip.when;
     $("#when-now").setAttribute("aria-pressed", !later);
-    inp.closest(".when-pick").classList.toggle("on", later);
-    $("#when-mode").value = trip.whenMode === "arr" ? "arr" : "dep";
-    $("#when-mode-text").textContent = t(trip.whenMode === "arr" ? "arrive_by" : "leave_at");
-    $("#when-text").textContent = later ? whenLabel(trip.when) : t("when_pick");
+    $("#when-dep").setAttribute("aria-pressed", later && trip.whenMode !== "arr");
+    $("#when-arr").setAttribute("aria-pressed", later && trip.whenMode === "arr");
+    $("#when-text").textContent = whenLabel(later ? trip.when : new Date());
     if (later) inp.value = localISO(trip.when);
     else if (document.activeElement !== inp) inp.value = "";
+    // Cabecera de las opciones (mockup 1): "Salir: ahora" / "Llegar: hoy, 18:30".
+    const chip = esc(t(later && trip.whenMode === "arr" ? "chip_arrive" : "chip_leave", { when: "\u0000" }));
+    $("#trip-when-chip-text").innerHTML = chip.replace("\u0000", `<b>${esc(later ? whenLabel(trip.when) : t("now_lc"))}</b>`);
   }
-  // "hoy, 13:00", "mañana, 8:30" o "vie 23 oct, 9:00", en el idioma de la web.
   function whenLabel(d) {
     const time = d.toLocaleTimeString(lang, { hour: "2-digit", minute: "2-digit" });
     const today = new Date(); today.setHours(0, 0, 0, 0);
@@ -3559,13 +3614,31 @@
   }
   // En el ordenador, tocar la hora abre el calendario del navegador (en el móvil ya lo hace el toque).
   $("#when-at").addEventListener("click", (e) => { try { e.target.showPicker(); } catch { /* no lo admite */ } });
-  $("#when-mode").addEventListener("change", (e) => {
-    trip.whenMode = e.target.value;
+  // Salir a las / Llegar a las: si aún no hay hora, se abre el selector para elegirla.
+  ["dep", "arr"].forEach((m) => $(`#when-${m}`).addEventListener("click", () => {
+    trip.whenMode = m;
     renderWhen();
-    if (!trip.when) { $("#when-at").focus(); return; }   // falta elegir la hora
+    if (!trip.when) {
+      const i = $("#when-at");
+      i.focus();
+      try { i.showPicker(); } catch { /* no lo admite */ }
+      return;
+    }
     trip.sel = null;
     tripReplace();
     computeTrip(false);
+  }));
+  // Cabecera de las opciones: la hora abre la fila de hora; la preferencia pasa a la siguiente.
+  $("#trip-when-chip").addEventListener("click", () => {
+    const open = !$("#trip").classList.contains("when-open");
+    $("#trip").classList.toggle("when-open", open);
+    $("#trip-when-chip").setAttribute("aria-expanded", open);
+  });
+  $("#trip-pref-chip").addEventListener("click", () => {
+    const order = ["fast", "transfers", "walk"];
+    const next = order[(order.indexOf(tripPref) + 1) % order.length];
+    const b = document.querySelector(`#trip-pref [data-pref="${next}"]`);
+    if (b) b.click();
   });
   $("#when-now").addEventListener("click", () => {
     if (!trip.when) return;
@@ -3711,6 +3784,9 @@
   TABS.forEach((tab) => $(`#tab-${tab}`).addEventListener("click", () => { $("#q").value = ""; setTab(tab); }));
   $("#locate").addEventListener("click", locate);
   $("#map-back").addEventListener("click", goBack);
+  $("#map-full").addEventListener("click", () => setPanel(panel.dataset.state === "min" ? baseState() : "min"));
+  $("#tf-share").addEventListener("click", () => $('[data-share="trip"]').click());
+  $("#tf-star").addEventListener("click", () => { if (lastTrip && trip.sel) { toggleTripFav(trip.sel); syncTripScreen(); } });
   $("#fab-fav").addEventListener("click", () => navigate("favoritas"));
   // Ir a casa: el viaje hasta casa; si aún no está elegida, Favoritas para elegirla.
   $("#fab-home").addEventListener("click", () => { if (favs.home) goTo(favs.home); else navigate("favoritas"); });
