@@ -1,0 +1,35 @@
+name: Descargar costa y agua (temporal)
+on:
+  push:
+    branches: [datos-costa]
+permissions:
+  contents: write
+jobs:
+  bajar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Overpass
+        run: |
+          BBOX='42.135,-8.835,42.290,-8.610'
+          mkdir -p fuentes
+          descargar () {
+            for U in https://overpass-api.de/api/interpreter https://overpass.kumi.systems/api/interpreter https://overpass.private.coffee/api/interpreter; do
+              echo "Probando $U"
+              if curl -sS -f --max-time 600 -A "proximovitrasa (github.com/proximovitrasa/proximovitrasa.github.io)" --data-urlencode "data=$1" "$U" -o "$2" \
+                 && python3 -c "import json,sys; d=json.load(open('$2')); assert d['elements']; print(len(d['elements']), 'elementos')"; then
+                return 0
+              fi
+              sleep 30
+            done
+            return 1
+          }
+          descargar "[out:json][timeout:300];(way[natural=coastline]($BBOX);wr[natural=water]($BBOX);wr[natural=bay]($BBOX);way[waterway=riverbank]($BBOX);wr[man_made~'^(pier|breakwater|groyne)\$']($BBOX);wr[landuse=harbour]($BBOX);wr[\"seamark:type\"=harbour]($BBOX););out geom;" fuentes/costa.json
+          gzip -9 fuentes/costa.json
+      - name: Guardar
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898333+github-actions[bot]@users.noreply.github.com"
+          git add fuentes
+          git commit -m "Costa y agua de OSM (Overpass) para revisar la red peatonal"
+          git push
