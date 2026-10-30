@@ -816,3 +816,12 @@ button.badge:hover { filter: brightness(1.08); }
 #info-list .about-box span { display: flex; gap: 16px; margin-top: 6px; }
 #info-list .about-box a { font-size: 13px; font-weight: 600; color: var(--brand); text-decoration: none; }
 @media (prefers-color-scheme: dark) { #info-list .about-box a { color: #FF6B74; } }
+/* Trayectos favoritos: la estrella a la vista para quitarlos */
+.stops .fav-trip-row { display: flex; align-items: center; border-bottom: 1px solid var(--line); }
+.stops .fav-trip-row:last-child { border-bottom: 0; }
+.stops .fav-trip-row > button[data-ftripfav] { flex: 1; min-width: 0; display: block; border-bottom: 0; }
+.stops .fav-trip-row > .fav-trip-del { flex: none; width: 44px; height: 44px; margin-right: -12px; padding: 0; border: 0; display: grid; place-items: center; color: #E0A800; }
+.stops .fav-trip-row > .fav-trip-del svg { width: 22px; height: 22px; fill: currentColor; stroke: currentColor; stroke-width: 1.5; }
+/* Acerca de */
+.about-card p { margin: 0 0 12px; font-size: 15px; line-height: 1.45; color: var(--soft); }
+.about-card .ios-ok { margin-top: 4px; }

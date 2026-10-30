@@ -1801,9 +1801,11 @@
       const li = document.createElement("li");
       li.className = "fav-row";
       const how = f.key === "walk" ? `<span class="what">${esc(t("on_foot"))}</span>` : f.lines.map(badge).join(CHEV);
+      li.classList.add("fav-trip-row");
       li.innerHTML = `<button type="button" data-ftripfav="${i}">
         <span class="name">${esc(f.al || t("my_location"))} → ${esc(f.bl || t("my_location"))}</span>
-        <span class="sub chain">${how}</span>${CHEV_R}</button>`;
+        <span class="sub chain">${how}</span></button>
+        <button type="button" class="fav-trip-del" aria-pressed="true" data-ftripdel="${i}" aria-label="${esc(t("trip_unfav"))}" title="${esc(t("trip_unfav"))}">${STAR_SVG}</button>`;
       items.push(li);
     });
     // Sitios y direcciones.
@@ -2149,7 +2151,9 @@
        <li class="sp-chips">${extra.map(([k, path]) => `<a href="${VITRASA}${path}" target="_blank" rel="noopener">${esc(t(SHORT[k] || k))}</a>`).join("")}</li>
        <li class="about-box"><b>${esc(t("about_title"))}</b><p>${esc(t("about_short"))}</p>
          <span><a href="${REPO}" target="_blank" rel="noopener">${esc(t("about_code_s"))}</a><a href="${REPO}/blob/main/TERMINOS-ADICIONALES.md" target="_blank" rel="noopener">${esc(t("about_terms_s"))}</a></span></li>`;
-    $("#more-install").hidden = !(onPhone() && !standalone() && (installEvt || manualSteps()));
+    const canInstall = onPhone() && !standalone() && (installEvt || manualSteps());
+    $("#more-install").hidden = !canInstall;
+    $("#more-about").hidden = !!canInstall;
   }
   function showInfo() {
     leaveStop();
@@ -3758,6 +3762,10 @@
     }
   });
   $("#more-install").addEventListener("click", () => $("#install-btn").click());
+  // Acerca de: qué es la web, de dónde salen los datos y quién la hace (cuando no hay que instalarla).
+  $("#more-about").addEventListener("click", () => { $("#about-dialog").hidden = false; $("#about-ok").focus(); });
+  $("#about-ok").addEventListener("click", () => { $("#about-dialog").hidden = true; $("#more-about").focus(); });
+  $("#about-dialog").addEventListener("click", (e) => { if (e.target.id === "about-dialog") e.currentTarget.hidden = true; });
   $("#install-close").addEventListener("click", () => {
     try { localStorage.setItem(INSTALL_KEY, "1"); } catch { /* sin almacenamiento */ }
     $("#install").hidden = true;
