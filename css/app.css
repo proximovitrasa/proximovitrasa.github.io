@@ -1198,7 +1198,13 @@ body:has(.panel:not([data-screen="home"])) .install, body:has(.panel[data-state=
 #tf-star { color: #FFD25A; }
 #tf-star svg { fill: none; stroke-width: 1.8; }
 #tf-star[aria-pressed="true"] svg { fill: currentColor; }
-.trip-opts .opt-li .opt { padding-right: 2px; }
+/* Estrella de cada opción, a la derecha (como antes del rediseño, a petición del usuario) */
+.trip-opts .opt-li .opt { padding-right: 44px; }
+.trip-opts .opt-star { right: -6px; color: var(--granite); }
+.trip-opts .opt-star svg { fill: none; stroke: currentColor; stroke-width: 2; stroke-linejoin: round; }
+.trip-opts .opt-star[aria-pressed="true"] { color: #E0A800; }
+.trip-opts .opt-star[aria-pressed="true"] svg { fill: currentColor; }
+.live-tag { color: var(--live); font-weight: 600; font-size: 13px; white-space: nowrap; }
 .desk-acts .opt-star { position: static; transform: none; width: 40px; height: 40px; color: var(--soft); }
 .desk-acts .icon-btn svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .desk-acts .opt-star[aria-pressed="true"] { color: #E0A800; }

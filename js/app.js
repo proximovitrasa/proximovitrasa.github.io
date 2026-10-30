@@ -2953,7 +2953,7 @@
   const CLOCK_SVG = '<svg class="ck" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>';
   function statusHtml(leg) {
     const m = Math.round((leg.dep - nowSec()) / 60);
-    if (leg.live) return `<span class="live">${esc(m <= 0 ? t("arriving") : m < 60 ? t("in_min", { n: m }) : atTime(leg.dep))}</span>`;
+    if (leg.live) return `<span class="live">${esc(m <= 0 ? t("arriving") : m < 60 ? t("in_min", { n: m }) : atTime(leg.dep))}</span><span class="live-tag"> · ${esc(t("live_tag"))}</span>`;
     return `<span class="sched">${CLOCK_SVG}${esc(m <= 0 ? t("arriving") : m < 60 ? t("sched_in", { n: m }) : nextDay(leg.dep) ? atTime(leg.dep) : t("sched_at", { time: clock(leg.dep) }))}</span>`;
   }
   const SHORT_TRANSFER_MIN = 3;
@@ -3050,7 +3050,7 @@
         <span class="eta">${durHtml(total)}</span>
         <span class="when">${leave}${statusHtml(first)}${late}${first.doubtful ? `<span class="warn nl"> · ${esc(t("no_live"))}</span>` : ""}${isTight(j) ? ` <span class="warn">${esc(t("tight_transfer"))}</span>` : ""}</span>
         <span class="arr">${esc(arriveShort(j.arr))}</span>
-      </button></li>`;
+      </button>${starBtn(j.key)}</li>`;
     });
     // Ir andando: primero si llega antes que cualquier bus; si no, al final.
     if (lt.walk) {
@@ -3061,7 +3061,7 @@
         <span class="eta">${durHtml(walkMinTotal)}</span>
         <span class="when">${arr ? `${esc(t("leave_time", { time: clock(Math.max(walkDep, nowSec())) }))} · ` : ""}${esc(fmtDist(lt.walk.dist))}</span>
         <span class="arr">${esc(arriveShort(walkDep + walkMinTotal * 60))}</span>
-      </button></li>`;
+      </button>${starBtn("walk")}</li>`;
       if (walkOnTop()) items.unshift(w); else items.push(w);
     }
     let head = "";
