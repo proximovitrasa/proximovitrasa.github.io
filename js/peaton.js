@@ -323,9 +323,18 @@
       // Reconstruir la geometría, la distancia real y el tiempo (eq).
       let coords, real, eq, mech = 0;
       const parts = [];   // elementos de Vigo Vertical usados, en orden: { el, up }
+      // Trozos del camino en orden, para los pasos: { walk: true, real, eq } andando y
+      // { el, up, used, real, eq } por cada elemento de Vigo Vertical que se usa (con la cinta o el
+      // ascensor; si está parado y se sube andando, cuenta como andar).
+      const segs = [];
+      const addWalk = (r, t) => {
+        const last = segs[segs.length - 1];
+        if (last && last.walk) { last.real += r; last.eq += t; } else segs.push({ walk: true, real: r, eq: t });
+      };
       if (bestNode === -2) {
         real = Math.abs(s.da - g.da);
         eq = sameT(s, g);
+        addWalk(real, eq);
         // Origen y destino en el mismo tramo.
         const lo = s.da <= g.da ? s : g, hi = lo === s ? g : s;
         const mid = [];
@@ -333,13 +342,14 @@
         coords = [lo.ll, ...mid, hi.ll];
         if (lo !== s) coords.reverse();
       } else {
-        const chain = [];
+        const chain = [], path = [];
         let u = bestNode;
         real = 0; eq = 0;
         while (prevE[u] !== -1) {
           const e = prevE[u];
           const v = ea[e] === u ? eb[e] : ea[e];   // de v se llegó a u
           chain.push(edgeCoords(e, ea[e] === v));
+          path.push([e, v]);
           real += elen[e];
           eq += tOf(e, v);
           if (etype[e] === 3) {
@@ -350,9 +360,23 @@
           u = v;
         }
         chain.reverse();
+        path.reverse();
         const sd = seeds.get(u), gd = goals.get(bestNode);
         real += sd.real + gd.real;
         eq += sd.t + gd.t;
+        addWalk(sd.real, sd.t);
+        for (const [e, v] of path) {
+          const t0 = tOf(e, v);
+          if (etype[e] !== 3) { addWalk(elen[e], t0); continue; }
+          const el = vEls[VE.indexOf(e)], up = ea[e] === v, m = emech[2 * e + (up ? 0 : 1)];
+          if (!(m > 0)) { addWalk(elen[e], t0); continue; }
+          // El tramo del elemento incluye lo que se anda hasta él (wa abajo, wb arriba).
+          const w1 = up ? el.wa : el.wb, w2 = up ? el.wb : el.wa, wt = Math.max(0, t0 - m), ws = w1 + w2 || 1;
+          addWalk(w1, wt * w1 / ws);
+          segs.push({ el, up, used: true, real: el.L || 0, eq: m });
+          addWalk(w2, wt * w2 / ws);
+        }
+        addWalk(gd.real, gd.t);
         coords = sd.coords.slice();
         for (const c of chain) coords.push(...c.slice(1));
         coords.push(...gd.coords.slice(1));
@@ -362,6 +386,7 @@
         eq,                      // lo mismo en tiempo: metros equivalentes en llano (cuestas incluidas)
         mech,                    // parte de eq en rampa, escalera mecánica o ascensor (no cuenta como andar)
         parts,                   // elementos de Vigo Vertical por los que pasa
+        segs,                    // trozos en orden: andando y por cada elemento usado (para los pasos)
         coords,
         from: s.ll, to: g.ll,
         offFrom: s.off, offTo: g.off,   // metros desde el punto pedido hasta la calle más cercana

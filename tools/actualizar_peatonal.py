@@ -34,6 +34,7 @@ import datetime
 import gzip
 import json
 import math
+import re
 import os
 import sys
 from collections import defaultdict
@@ -74,6 +75,26 @@ def tipo_via(tags):
     return 0
 
 
+AUTOVIA = re.compile(r"^(A|AP|AG|VG|CG|AC)-")
+ACERA = {"both", "left", "right", "yes"}
+
+
+def troncal_urbana(tags):
+    """Carreteras nacionales que cruzan barrios (N-552 Avenida de Redondela, N-550 Avenida Domingo
+    Bueno…): OSM las marca "trunk" sin decir si se puede andar. Sin ellas, entre dos puntos a 200 m
+    a un lado y otro de la avenida salían rodeos de varios kilómetros. Se andan si tienen acera o
+    nombre de calle, y nunca si son autovía (por la referencia) o vía para automóviles."""
+    if tags.get("motorroad") == "yes" or AUTOVIA.match(tags.get("ref", "")):
+        return False
+    aceras = {tags.get(k) for k in ("sidewalk", "sidewalk:both", "sidewalk:left", "sidewalk:right")}
+    if "no" in aceras and not (aceras & ACERA):
+        return False
+    if aceras & ACERA:
+        return True
+    nombre = tags.get("name", "")
+    return bool(nombre) and not nombre.startswith(("Viaduto", "Túnel", "Ponte"))
+
+
 def transitable(tags):
     h = tags.get("highway")
     if not h or h in ("construction", "proposed", "abandoned", "razed", "platform_edge"):
@@ -83,6 +104,8 @@ def transitable(tags):
     foot = tags.get("foot", "")
     if foot in NO_PIE:
         return False
+    if h in ("trunk", "trunk_link") and foot not in SI_PIE:
+        return troncal_urbana(tags)
     if h in SOLO_CON_PERMISO:
         return foot in SI_PIE
     if h not in PERMITIDAS:
@@ -95,6 +118,56 @@ def transitable(tags):
 def elevada(tags):
     """Puentes y túneles: no van por el terreno."""
     return tags.get("bridge", "no") != "no" or tags.get("tunnel", "no") not in ("no", "building_passage")
+
+
+# ---------- Huecos de OSM ----------
+# A veces dos vías que en la realidad se tocan no comparten nodo en OSM (p. ej. la plaza y las
+# escaleras de Pi y Margall interior, a 1 m de la acera de Pi y Margall pero sin unir): la ruta da
+# entonces un rodeo enorme. Se une cada extremo suelto de una vía (y cada nodo de una plaza) con el
+# nodo más cercano de otra vía si está a menos de UNIR_M metros y los dos van por el suelo (sin
+# puentes ni túneles, misma capa).
+UNIR_M = 3.0
+
+
+def huecos(usadas, coord):
+    vias_de = defaultdict(list)
+    for i, w in enumerate(usadas):
+        for n in w["nodes"]:
+            if n in coord:
+                vias_de[n].append(i)
+    def suelo(i):
+        t = usadas[i].get("tags", {})
+        return not elevada(t) and t.get("layer", "0") in ("0", "")
+    celda = lambda p: (int(p[0] / 0.0001), int(p[1] / 0.0001))
+    rejilla = defaultdict(list)
+    for n in sorted(vias_de):
+        rejilla[celda(coord[n])].append(n)
+    cand = set()
+    for i, w in enumerate(usadas):
+        ns = [n for n in w["nodes"] if n in coord]
+        if not ns or not suelo(i):
+            continue
+        area = w.get("tags", {}).get("area") == "yes" or (len(ns) > 3 and ns[0] == ns[-1] and w["tags"].get("highway") in ("pedestrian", "footway"))
+        for n in (ns if area else (ns[0], ns[-1])):
+            if len(vias_de[n]) == 1:      # no toca ninguna otra vía
+                cand.add(n)
+    out, hechos = [], set()
+    for n in sorted(cand):
+        p, propias = coord[n], set(vias_de[n])
+        cy, cx = celda(p)
+        mejor = None
+        for y in (cy - 1, cy, cy + 1):
+            for x in (cx - 1, cx, cx + 1):
+                for m in rejilla.get((y, x), ()):
+                    if m == n or propias & set(vias_de[m]) or not any(suelo(i) for i in vias_de[m]):
+                        continue
+                    d = dist(p, coord[m])
+                    if d < UNIR_M and (mejor is None or (d, m) < mejor):
+                        mejor = (d, m)
+        if mejor and (min(n, mejor[1]), max(n, mejor[1])) not in hechos:
+            hechos.add((min(n, mejor[1]), max(n, mejor[1])))
+            out.append({"type": "way", "id": -len(out) - 1, "nodes": [n, mejor[1]], "tags": {"highway": "footway", "union": "hueco"}})
+    return out
 
 
 # ---------- Geometría ----------
@@ -233,6 +306,9 @@ def main():
             vias.append(e)
     usadas = [w for w in vias if transitable(w.get("tags", {}))]
     print(f"Vías en la descarga: {len(vias)}; transitables a pie: {len(usadas)}")
+    uniones = huecos(usadas, coord)
+    usadas += uniones
+    print(f"Huecos de OSM unidos (< {UNIR_M} m): {len(uniones)}")
 
     # Cruces: extremos de cada vía y nodos compartidos por varias vías.
     uso = defaultdict(int)

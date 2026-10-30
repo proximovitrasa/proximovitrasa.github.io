@@ -162,6 +162,13 @@ def main():
             z0, z1 = R.altura(*p0), R.altura(*p1)
             if z0 > z1:
                 p0, p1, z0, z1 = p1, p0, z1, z0
+            # Con poco desnivel el relieve no basta para saber hacia dónde sube (p. ej. la escalera
+            # de Pizarro, en un paso entre edificios): "invertir" en elementos.json le da la vuelta y
+            # "desnivel" fija los metros que sube.
+            if info.get("invertir"):
+                p0, p1, z0, z1 = p1, p0, z0, z1
+            if info.get("desnivel"):
+                z1 = z0 + info["desnivel"]
             L = sum(dist(a, b) for a, b in zip(el["pts"], el["pts"][1:]))
             ga, gb = red.enganchar(p0), red.enganchar(p1)
             o.update(ka=r5(p0), kb=r5(p1), dz=round(z1 - z0, 1), L=round(L, 1))

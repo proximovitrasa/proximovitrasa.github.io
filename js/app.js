@@ -274,7 +274,7 @@
   function stopMarker(s) {
     if (!s.marker) {
       s.marker = L.marker(s.ll, { icon: iconFor(s, map.getZoom()), keyboard: false, alt: s.name })
-        .on("click", () => { if (tripOpen()) tripPickStop(s); else navigate(s.id, { replace: !!current }); });
+        .on("click", () => stopClick(s));
       if (canHover) s.marker.bindTooltip(() => `${esc(s.name)} (${esc(s.id)})`, { direction: "top", offset: [0, -6] });
       s.look = { icon: s.marker.options.icon.key, op: 1, z: 0 };
     }
@@ -291,16 +291,114 @@
   }
   function syncStops() {
     if (!stops.length) return;
-    const b = map.getBounds().pad(STOP_MARGIN);
+    // Alejado (zoom 14 o menos) caben cientos de paradas: van dibujadas en un lienzo (53). Con un
+    // marcador por parada, alejar el mapa creaba y cambiaba más de mil elementos de golpe (tirones
+    // de hasta medio segundo en un móvil). Las de cerca siguen siendo marcadores (se pueden tocar,
+    // con su globo de ayuda en el ordenador).
+    const low = map.getZoom() < STOP_DOM_ZOOM;
     const next = new Set();
-    for (const s of stops) if (b.contains(s.ll)) next.add(s);
+    if (!low) {
+      const b = map.getBounds().pad(STOP_MARGIN);
+      for (const s of stops) if (b.contains(s.ll)) next.add(s);
+    }
     shownStops.forEach((s) => { if (!next.has(s)) s.marker.remove(); });
     next.forEach((s) => { styleStop(s); if (!shownStops.has(s)) s.marker.addTo(map); });
     shownStops = next;
+    drawStopsLow();
   }
   // Volver a pintar todas las paradas visibles (al abrir o cerrar una línea, por ejemplo).
-  const restyleStops = () => shownStops.forEach(styleStop);
-  const refreshIcon = (s) => { if (shownStops.has(s)) styleStop(s); };
+  const restyleStops = () => { shownStops.forEach(styleStop); drawStopsLow(); };
+  const refreshIcon = (s) => { if (shownStops.has(s)) styleStop(s); else drawStopsLow(); };
+
+  // ---------- Paradas en un lienzo, con el mapa alejado ----------
+  const STOP_DOM_ZOOM = 15;
+  const STOP_CANVAS_PAD = 0.25;
+  map.createPane("stopsLow").style.zIndex = 590;   // donde irían los marcadores (600), justo debajo
+  map.getPane("stopsLow").style.pointerEvents = "none";
+  const stopCanvas = L.DomUtil.create("canvas", "stop-canvas", map.getPane("stopsLow"));
+  const stopImgs = new Map();   // clave del icono → imagen ya cargada
+  let stopHits = [];            // { x, y, r, s } en coordenadas del contenedor
+  const stopsLowHidden = () => tripRouteOn || !!active;   // con una línea alejada se ocultan (LINE_STOPS_ZOOM)
+  // Cada icono se pasa una sola vez a un mapa de bits: dibujar el SVG directamente obliga a
+  // calcular su sombra en cada parada y cada vez.
+  function stopImg(icon) {
+    let e = stopImgs.get(icon.key);
+    if (!e) {
+      e = { bmp: null };
+      const im = new Image();
+      im.onload = () => {
+        const w = icon.options.iconSize[0], dpr = Math.min(2, window.devicePixelRatio || 1);
+        const c = document.createElement("canvas");
+        c.width = c.height = Math.ceil(w * dpr);
+        c.getContext("2d").drawImage(im, 0, 0, c.width, c.height);
+        e.bmp = c;
+        drawStopsLow();
+      };
+      im.src = icon.options.iconUrl;
+      stopImgs.set(icon.key, e);
+    }
+    return e.bmp;
+  }
+  function drawStopsLow() {
+    const ctx = stopCanvas.getContext("2d");
+    // El lienzo sobresale un cuarto de pantalla por cada lado, para que al arrastrar no se vean
+    // huecos hasta que se suelta el mapa.
+    const size = map.getSize(), dpr = Math.min(2, window.devicePixelRatio || 1);
+    const mx = Math.round(size.x * STOP_CANVAS_PAD), my = Math.round(size.y * STOP_CANVAS_PAD);
+    const W = size.x + 2 * mx, Hh = size.y + 2 * my;
+    if (stopCanvas.width !== W * dpr || stopCanvas.height !== Hh * dpr) {
+      stopCanvas.width = W * dpr; stopCanvas.height = Hh * dpr;
+      stopCanvas.style.width = `${W}px`; stopCanvas.style.height = `${Hh}px`;
+    }
+    L.DomUtil.setPosition(stopCanvas, map.containerPointToLayerPoint([-mx, -my]));
+    stopCanvas.style.display = "";
+    ctx.setTransform(dpr, 0, 0, dpr, mx * dpr, my * dpr);   // dibujo en coordenadas del contenedor
+    ctx.clearRect(-mx, -my, W, Hh);
+    stopHits = [];
+    const z = map.getZoom();
+    if (!stops.length || z >= STOP_DOM_ZOOM || stopsLowHidden()) return;
+    const b = map.getBounds().pad(STOP_CANVAS_PAD + 0.05);
+    const later = [];   // favoritas encima
+    for (const s of stops) {
+      if (!b.contains(s.ll)) continue;
+      const icon = iconFor(s, z);
+      (favStop(s.id) ? later : stopHits).push({ s, icon });
+    }
+    const all = stopHits.concat(later);
+    stopHits = [];
+    for (const { s, icon } of all) {
+      const p = map.latLngToContainerPoint(s.ll), w = icon.options.iconSize[0];
+      const im = stopImg(icon);
+      if (im) ctx.drawImage(im, p.x - w / 2, p.y - w / 2, w, w);
+      stopHits.push({ x: p.x, y: p.y, r: sizeFor(z) / 2 + 4, s });
+    }
+  }
+  map.on("zoomstart", () => { stopCanvas.style.display = "none"; });
+  // Parada dibujada bajo un punto del mapa (la de encima si se solapan).
+  function stopAt(cp) {
+    for (let i = stopHits.length - 1; i >= 0; i--) {
+      const h = stopHits[i];
+      if (Math.abs(cp.x - h.x) <= h.r && Math.abs(cp.y - h.y) <= h.r) return h.s;
+    }
+    return null;
+  }
+  const stopClick = (s) => { if (tripOpen()) tripPickStop(s); else navigate(s.id, { replace: !!current }); };
+  // Va antes que los demás toques del mapa: si se toca una parada dibujada, se abre y nada más.
+  map.on("click", (e) => {
+    if (map.getZoom() >= STOP_DOM_ZOOM || !stopHits.length) return;
+    const s = stopAt(e.containerPoint);
+    if (!s) return;
+    e.originalEvent._stopHit = true;
+    stopClick(s);
+  });
+  if (canHover) {
+    map.on("mousemove", (e) => {
+      if (map.getZoom() >= STOP_DOM_ZOOM) return;
+      const s = stopAt(e.containerPoint);
+      map.getContainer().classList.toggle("on-stop", !!s);
+      map.getContainer().title = s ? `${s.name} (${s.id})` : "";
+    });
+  }
   const lineGroup = L.layerGroup().addTo(map);
 
   const selRing = L.circleMarker(VIGO, { renderer, radius: 22, weight: 3, color: RED, fill: false, interactive: false });
@@ -313,6 +411,7 @@
     // dibujado, solo se ven las paradas de ese viaje (las dibuja drawTrip con el color de su línea).
     map.getContainer().classList.toggle("hide-stops", !!active && map.getZoom() < LINE_STOPS_ZOOM);
     map.getContainer().classList.toggle("trip-stops", tripRouteOn);
+    drawStopsLow();
     drawNums();   // los números de portal se ocultan con una línea o un viaje dibujados
   }
 
@@ -2060,7 +2159,7 @@
   let heldAt = 0;
   const justHeld = () => Date.now() - heldAt < 700;
   map.on("click", (e) => {
-    if (tripOpen() || justHeld()) return;   // en "Cómo llegar" lo atiende su propio manejador
+    if (tripOpen() || justHeld() || e.originalEvent._stopHit) return;   // en "Cómo llegar" lo atiende su propio manejador
     const pt = numAt(e.containerPoint);
     if (pt) openPlace({ ll: pt.ll, label: `${pt.s.name}, ${pt.n}`, approx: false }, { replace: panel.dataset.view === "place" });
   });
@@ -2382,11 +2481,12 @@
     catch { if (seq === tripSeq) box.innerHTML = `<div class="state"><strong>${esc(t("trip_net_error"))}</strong></div>`; return; }
     try { [plan] = await Promise.all([PLAN.load(), linesReady]); } catch { plan = null; }
     if (seq !== tripSeq) return;
-    setVerticalTime(net, arriveMode() ? new Date(trip.when.getTime() - 15 * 60000) : tripStart());
+    const vvWhen = arriveMode() ? new Date(trip.when.getTime() - 15 * 60000) : tripStart();
+    setVerticalTime(net, vvWhen);
     walkCache.clear();
     const r = net.route(trip.a.ll, trip.b.ll);
     lastTrip = {
-      hash: location.hash, net, plan, planError: !plan, fecha: net.fecha,
+      hash: location.hash, net, plan, planError: !plan, fecha: net.fecha, vvWhen,
       walk: r ? { dist: r.dist + r.offFrom + r.offTo, eq: r.eq + r.offFrom + r.offTo, r } : null,
       approx: [trip.a, trip.b].filter((p) => p.kind === "addr" && p.approx).map((p) => p.label),
       cands: [], opts: [], live: false,
@@ -2418,11 +2518,18 @@
   }
   $("#trip-pref").addEventListener("click", (e) => {
     const b = e.target.closest("[data-pref]");
-    if (!b || b.dataset.pref === tripPref) return;
+    if (!b) return;
+    // Con una opción abierta, los botones vuelven a la lista (52): antes la opción abierta se
+    // quedaba en el historial y la búsqueda nueva la volvía a abrir, y parecía que no hacían nada.
+    const open = !!(history.state && history.state.opt);
+    if (b.dataset.pref === tripPref) {
+      if (open && lastTrip) { tripReplace(); renderTripResult(); drawTrip(true); }
+      return;
+    }
     tripPref = b.dataset.pref;
     try { localStorage.setItem(PREF_KEY, tripPref); } catch { /* sin almacenamiento */ }
     renderPref();
-    trip.sel = null;
+    tripReplace();
     computeTrip(false);
   });
   renderPref();
@@ -2657,11 +2764,14 @@
       // A pie: como antes de existir el planificador.
       const date = new Date(`${lt.fecha}T12:00:00`).toLocaleDateString(lang, { day: "numeric", month: "short", year: "numeric" });
       const osm = `https://www.openstreetmap.org/directions?engine=fossgis_osrm_foot&route=${fmtLL(trip.a.ll)}%3B${fmtLL(trip.b.ll)}`;
-      const vvs = (lt.walk.r.parts || []).filter((p) => p.used);
+      const r = lt.walk.r, segs = (r.segs || []).map((x) => ({ ...x }));
+      if (segs.length) { segs[0].real += r.offFrom; segs[0].eq += r.offFrom; const z = segs[segs.length - 1]; z.real += r.offTo; z.eq += r.offTo; }
+      const vvSt = segs.some((x) => x.used) ? walkPieceSteps(segs, (d) => t("step_walk_dest", { dist: fmtDist(d) })) : "";
+      const shut = shutItem(walkRoute(trip.a.ll, trip.b.ll).shut);
       return `${back}<div class="trip-card"><span class="mode">${ICON_WALK}</span>
           <span class="what">${esc(t("on_foot"))}<small>${fmtDist(lt.walk.dist)}</small></span>
           <span class="eta">${durHtml(walkMin(lt.walk.eq))}</span></div>
-        ${vvs.length ? `<ol class="steps">${vvSteps(vvs)}</ol>` : ""}
+        ${vvSt || shut ? `<ol class="steps">${vvSt}${shut}</ol>` : ""}
         <p class="trip-note">${esc(t("trip_source", { date }))} <a href="${osm}" target="_blank" rel="noopener">${esc(t("trip_compare"))}</a></p>`;
     }
     const steps = [];
@@ -2670,10 +2780,10 @@
       if (l.type === "walk") {
         const next = legs[k + 1];
         const real = walkReal(j, k);
-        let text;
-        if (k === 0) text = t("step_walk_to", { dist: fmtDist(real), place: stopName(next.board) });
-        else if (l.transfer) text = real < 30 ? t("step_change_same") : t("step_change", { dist: fmtDist(real), place: stopName(next.board) });
-        else text = t("step_walk_dest", { dist: fmtDist(real) });
+        const textFor = (d) => (k === 0 ? t("step_walk_to", { dist: fmtDist(d), place: stopName(next.board) })
+          : l.transfer ? (d < 30 && real < 30 ? t("step_change_same") : t("step_change", { dist: fmtDist(d), place: stopName(next.board) }))
+          : t("step_walk_dest", { dist: fmtDist(d) }));
+        const text = textFor(real);
         if (real < 30 && !l.transfer) return;
         // Transbordo: siempre la espera prevista en la parada hasta que pase el siguiente bus
         // (con aviso si es menos de 5 min).
@@ -2683,10 +2793,13 @@
           tight = n < TIGHT_MIN ? `<small class="warn">${esc(n < 1 ? t("tight_step_0") : t("tight_step", { n }))}</small>`
             : `<small class="wait">${esc(t("wait_step", { dur: hMin(n) }))}</small>`;
         }
-        steps.push(`<li class="step walk"><span class="ico">${ICON_WALK}</span>
+        // Con rampas o ascensores, el tramo se cuenta en orden: andando hasta el primero, el
+        // elemento, andando hasta el siguiente… y el último trozo con el texto de siempre (49–51).
+        const segs = walkSegs(j, k);
+        if (segs.some((x) => x.used)) steps.push(walkPieceSteps(segs, textFor, tight, !!l.transfer));
+        else steps.push(`<li class="step walk"><span class="ico">${ICON_WALK}</span>
           <span class="txt">${esc(text)}<small>${esc(t("walk", { n: walkMin(l.m) }))}</small>${tight}</span></li>`);
-        const vvs = walkVV(j, k);
-        if (vvs.length) steps.push(vvSteps(vvs));
+        if (l.m >= 8) steps.push(shutItem(walkRoute(...walkEnds(j, k)).shut));
       } else {
         const ln = lines[l.line];
         const dest = ln && ln.sentidos[l.dir] ? ln.sentidos[l.dir].destino : "";
@@ -2715,12 +2828,33 @@
     const k = `${fmtLL(from)}|${fmtLL(to)}`;
     if (!walkCache.has(k)) {
       const r = lastTrip.net.route(from, to);
-      walkCache.set(k, r ? { pts: [from, ...r.coords, to], dist: r.dist + r.offFrom + r.offTo, parts: r.parts || [] } : { pts: [from, to], dist: null, parts: [] });
+      let segs = [];
+      if (r) {
+        // Lo que se anda desde el punto pedido hasta la calle, en el primer y el último trozo.
+        segs = (r.segs || []).map((x) => ({ ...x }));
+        if (segs.length) { segs[0].real += r.offFrom; segs[0].eq += r.offFrom; const z = segs[segs.length - 1]; z.real += r.offTo; z.eq += r.offTo; }
+      }
+      walkCache.set(k, r ? { pts: [from, ...r.coords, to], dist: r.dist + r.offFrom + r.offTo, parts: r.parts || [], segs, shut: shutOn(from, to, r) } : { pts: [from, to], dist: null, parts: [], segs: [], shut: [] });
       if (walkCache.size > 200) walkCache.delete(walkCache.keys().next().value);
     }
     return walkCache.get(k);
   }
   const walkPath = (from, to) => walkRoute(from, to).pts;
+  // Rampas, escaleras o ascensores que acortarían este camino pero están parados a la hora del
+  // viaje (p. ej. un ascensor de noche): se avisa en los pasos para que no parezca un fallo (54).
+  function shutOn(from, to, r) {
+    const net = lastTrip.net, when = lastTrip.vvWhen;
+    if (!net.vertical || !net.vertical.length || !when) return [];
+    const closed = new Set(net.vertical.filter((el) => !PLAN.openAt(net.horarios, el, when)));
+    if (!closed.size) return [];
+    net.setVertical(() => true);
+    const alt = net.route(from, to);
+    setVerticalTime(net, when);
+    if (!alt || alt.eq > r.eq - 40) return [];
+    return [...new Set(alt.parts.filter((p) => p.used && closed.has(p.el)).map((p) => p.el.n))];
+  }
+  const shutItem = (names) => names.map((n) => `<li class="step vv shut"><span class="ico">${ICON_VV}</span>
+    <span class="txt"><small>${esc(t("vv_closed", { name: n }))}</small></span></li>`).join("");
   // Extremos del tramo a pie k de una opción, y sus metros reales (l.m es el tiempo: metros
   // equivalentes con las cuestas).
   function walkEnds(j, k) {
@@ -2736,22 +2870,44 @@
     return Math.max(0, w.dist - w.parts.filter((p) => p.used).reduce((a, p) => a + (p.el.L || 0), 0));
   }
   const walkVV = (j, k) => (j.legs[k].m < 8 ? [] : walkRoute(...walkEnds(j, k)).parts.filter((p) => p.used));
+  const walkSegs = (j, k) => (j.legs[k].m < 8 ? [] : walkRoute(...walkEnds(j, k)).segs);
   // Pasos de Vigo Vertical (como un modo de transporte más): los tramos seguidos de un mismo
   // elemento (p. ej. las 5 rampas de Gran Vía) van en un solo paso.
   const ICON_VV = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2.5"/><path d="M12 6.5l2.6 3h-5.2zM12 17.5l2.6-3h-5.2z"/></svg>';
   const ICON_RAMP = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 19h4l10-10h4"/><path d="M14 5h5v5"/></svg>';
-  function vvSteps(parts) {
-    const groups = [];
-    for (const p of parts) {
-      const last = groups[groups.length - 1];
-      if (last && last.name === p.el.n && last.up === p.up) { last.m += p.el.m; continue; }
-      groups.push({ name: p.el.n, t: p.el.t, up: p.up, m: p.el.m });
+  function vvItem(g) {
+    const lift = g.t === "ascensor" || g.t === "inclinado";
+    const n = Math.max(1, Math.round(g.m / 75));
+    return `<li class="step vv"><span class="ico">${lift ? ICON_VV : ICON_RAMP}</span>
+      <span class="txt">${esc(g.name)}<small>${esc(t("vv_ride", { type: t(`vv_${g.t}`), dir: t(g.up ? "vv_up" : "vv_down"), n }))}</small></span></li>`;
+  }
+  // Pasos de un tramo a pie que usa Vigo Vertical, en el orden del camino (segs de PV_PEATON.route):
+  // "Anda X hasta <elemento>", el elemento, … y el último trozo con lastText(metros). Los tramos
+  // seguidos de un mismo elemento (p. ej. las rampas de Gran Vía), con menos de VV_JOIN_M andando
+  // entre ellos, van en un solo paso. Los trozos a pie de menos de 30 m no se cuentan.
+  const VV_JOIN_M = 60;
+  function walkPieceSteps(segs, lastText, extra = "", keepLast = false) {
+    const ps = [];
+    for (const x of segs) {
+      const last = ps[ps.length - 1], prev = ps[ps.length - 2];
+      if (x.walk || !x.used) {
+        if (last && last.walk) { last.real += x.real; last.eq += x.eq; } else ps.push({ walk: true, real: x.real, eq: x.eq });
+        continue;
+      }
+      if (last && !last.walk && last.name === x.el.n && last.up === x.up) { last.m += x.eq; continue; }
+      if (last && last.walk && last.real < VV_JOIN_M && prev && !prev.walk && prev.name === x.el.n && prev.up === x.up) {
+        ps.pop(); prev.m += last.eq + x.eq; continue;
+      }
+      ps.push({ name: x.el.n, t: x.el.t, up: x.up, m: x.eq });
     }
-    return groups.map((g) => {
-      const lift = g.t === "ascensor" || g.t === "inclinado";
-      const n = Math.max(1, Math.round(g.m / 75));
-      return `<li class="step vv"><span class="ico">${lift ? ICON_VV : ICON_RAMP}</span>
-        <span class="txt">${esc(g.name)}<small>${esc(t("vv_ride", { type: t(`vv_${g.t}`), dir: t(g.up ? "vv_up" : "vv_down"), n }))}</small></span></li>`;
+    if (!ps.length || !ps[ps.length - 1].walk) ps.push({ walk: true, real: 0, eq: 0 });
+    return ps.map((p, i) => {
+      if (!p.walk) return vvItem(p);
+      const isLast = i === ps.length - 1;
+      if (p.real < 30 && !(isLast && (keepLast || extra))) return "";
+      const text = isLast ? lastText(p.real) : t("step_walk_to", { dist: fmtDist(p.real), place: ps[i + 1].name });
+      return `<li class="step walk"><span class="ico">${ICON_WALK}</span>
+        <span class="txt">${esc(text)}${p.real >= 30 ? `<small>${esc(t("walk", { n: walkMin(p.eq) }))}</small>` : ""}${isLast ? extra : ""}</span></li>`;
     }).join("");
   }
   // Trazado de un tramo en bus. Muchos recorridos mezclan el trazado principal de la línea y algún
@@ -2926,7 +3082,7 @@
   });
 
   map.on("click", (e) => {
-    if (!tripOpen() || justHeld()) return;
+    if (!tripOpen() || justHeld() || e.originalEvent._stopHit) return;
     // Si se toca un número de portal, se elige esa dirección; si no, el punto del mapa.
     const pt = numAt(e.containerPoint);
     if (pt) setEnd(targetEnd(), { kind: "addr", ll: pt.ll, label: `${pt.s.name}, ${pt.n}` });
