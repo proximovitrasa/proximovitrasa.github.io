@@ -1324,3 +1324,5 @@ body:has(.panel:not([data-screen="home"])) .install, body:has(.panel[data-state=
   .panel[data-screen="sched"] { padding: 12px 20px 0; }
   .sched-sheet { border-radius: 22px 22px 18px 18px; }
 }
+/* Casa y trabajo: "27 min · A en 4 min" */
+.hw-txt small .hb { font: normal 700 12px/1.2 var(--cond); padding: 0 5px; border-radius: 4px; background: var(--lc, var(--chip)); color: var(--lt, var(--ink)); }

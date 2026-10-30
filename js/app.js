@@ -1905,13 +1905,58 @@
       const p = favs[k];
       return `<div class="hw-card"><button type="button" class="hw-go" ${p ? `data-hwgo="${k}"` : `data-pick="${k}"`}>
           <span class="hw-ico">${HW_ICON[k]}</span>
-          <span class="hw-txt"><b>${esc(t(p ? `go_${k}` : `set_${k}`))}</b><small>${esc(p ? p.label : t("set_hint"))}</small></span></button>
+          <span class="hw-txt"><b>${esc(t(p ? `go_${k}` : `set_${k}`))}</b><small data-hweta="${k}">${p && hwEtaCache[k] && hwEtaCache[k].html ? hwEtaCache[k].html : esc(p ? p.label : t("set_hint"))}</small></span></button>
         ${p ? `<button type="button" class="hw-edit" data-pick="${k}" aria-label="${esc(t(`change_${k}`))}" title="${esc(t(`change_${k}`))}">${EDIT_SVG}</button>` : ""}</div>`;
     }).join("");
+  }
+  // Casa y trabajo (64, mockup 6): debajo, cuánto se tarda ahora desde tu ubicación con la mejor
+  // opción ("27 min · A en 4 min", según horario) o andando si es más rápido. Sin tu ubicación, la dirección.
+  const hwEtaCache = {};
+  async function hwEta(k) {
+    const p = favs[k];
+    if (!p || !me || farFromVigo(me)) return;
+    const key = `${fmtLL(me)}>${fmtLL(p.ll)}`;
+    const c = hwEtaCache[k];
+    if (c && c.key === key && Date.now() - c.at < 60000) return;
+    hwEtaCache[k] = { key, at: Date.now(), html: c && c.key === key ? c.html : "" };
+    try {
+      const [net, plan] = await Promise.all([window.PV_PEATON.load(), PLAN.load(), linesReady]);
+      if (tripOpen()) return;   // no tocar la red mientras se calcula un viaje
+      const start = new Date();
+      setVerticalTime(net, start);
+      const r = net.route(me, p.ll);
+      const walkEq = r ? r.eq + r.offFrom + r.offTo : Infinity;
+      const origins = stopsAround(net, plan, me), dests = stopsAround(net, plan, p.ll, undefined, true);
+      const cands = plan.search({ origins, dests, walk: walkEq, maxTransfers: 2, prefer: "fast", originsMech: origins.mech, destsMech: dests.mech, time: start });
+      const opts = plan.choose(cands, start, walkEq);
+      const nowS = (Date.now() - dayBase(start).getTime()) / 1000;
+      const j = opts[0];
+      const busMin = j ? (j.arr - Math.max(j.dep, nowS)) / 60 : Infinity;
+      const walkM = walkEq < Infinity ? walkMin(walkEq) : Infinity;
+      let html;
+      if (walkM <= busMin && walkM < Infinity) html = `${esc(hMin(walkM))} ${esc(t("on_foot_lc"))}`;
+      else if (j) {
+        const first = j.legs.find((l) => l.type === "bus");
+        const wait = Math.max(0, Math.round((first.dep - nowS) / 60));
+        html = `${esc(hMin(Math.max(1, Math.round(busMin))))} · <i class="hb"${lineStyle(first.line)}>${esc(first.line)}</i> + ${esc(hMin(wait))}`;   // como en el mockup: "27 min · A + 4 min" (sale en 4 min)
+      } else return;
+      hwEtaCache[k].html = html;
+      const el = document.querySelector(`[data-hweta="${k}"]`);
+      if (el) el.innerHTML = html;
+    } catch { /* sin red o sin horarios: se queda la dirección */ }
+  }
+  function refreshHwEta() {
+    if (mode !== "fav") return;
+    const go = () => ["home", "work"].forEach((k) => hwEta(k));
+    if (me) go(); else if (navigator.permissions && navigator.permissions.query) {
+      // Solo si ya se dio permiso: no se pide la ubicación por abrir Favoritas.
+      navigator.permissions.query({ name: "geolocation" }).then((st) => { if (st.state === "granted") getPosition(() => { if (mode === "fav") renderHw(); go(); }); }).catch(() => {});
+    }
   }
   function renderFav() {
     clearTimeout(favTimer);
     renderHw();
+    refreshHwEta();
     const items = [];
     const head = (k) => { const li = document.createElement("li"); li.className = "sec-head"; li.textContent = t(k); return li; };
     if (favPicking) items.push(pickerItem());
