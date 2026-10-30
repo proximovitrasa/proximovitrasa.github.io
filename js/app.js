@@ -2257,7 +2257,38 @@
     updateStopVisibility();
   }
 
+  // Puntos en el agua (56): un punto tocado en el mar se unía con una línea recta a la calle más
+  // cercana (hasta a 600 m) y parecía que se andaba sobre el agua. Con el mapa de fondo vectorial se
+  // mira su capa de agua (lo de encima: un muelle o un paseo sobre el agua sí valen); sin él, se
+  // rechaza el punto si queda a más de FAR_STREET_M de cualquier calle.
+  const FAR_STREET_M = 150;
+  function waterAt(ll) {
+    if (!glReady || !glLayer) return null;
+    try {
+      const gl = glLayer.getMaplibreMap();
+      const top = gl.queryRenderedFeatures(gl.project([ll[1], ll[0]])).find((f) => f.layer && f.layer.type === "fill");
+      return !!top && top.sourceLayer === "water";
+    } catch { return null; }
+  }
+  // true si el punto vale como origen o destino; si no, avisa.
+  async function onLand(ll) {
+    const w = waterAt(ll);
+    if (w) { toast(t("in_water")); return false; }
+    if (w === null) {
+      try {
+        const net = await window.PV_PEATON.load();
+        const s = net.snap(ll[0], ll[1]);
+        if (!s || s.off > FAR_STREET_M) { toast(t("far_street")); return false; }
+      } catch { /* sin red peatonal: se acepta */ }
+    }
+    return true;
+  }
   function setEnd(which, p) {
+    if (p && p.kind === "map" && !p.checked) {
+      onLand(p.ll).then((ok) => { if (ok) setEnd(which, { ...p, checked: true }); });
+      return;
+    }
+    if (p) delete p.checked;
     trip[which] = p;
     trip.picking = null;
     $("#toast").hidden = true;   // el aviso de "toca el mapa" ya no hace falta
@@ -3106,6 +3137,7 @@
   }
   function openHereMenu(latlng) {
     const ll = [latlng.lat, latlng.lng];
+    if (waterAt(ll)) { toast(t("in_water")); return; }
     const fill = () => {
       herePoint = nearestAddr(ll) || { kind: "map", ll };
       herePoint.at = ll;
@@ -3127,6 +3159,10 @@
     if (!p) return;
     if (p.kind !== "addr") delete p.label;
     if (tripOpen()) { setEnd(which, p); return; }
+    if (p.kind === "map") { onLand(p.ll).then((ok) => { if (ok) startHere(which, p); }); return; }
+    startHere(which, p);
+  }
+  function startHere(which, p) {
     // Fuera de Cómo llegar: un viaje nuevo (con "Mi ubicación" como origen si se elige el destino).
     trip.a = trip.b = null;
     trip.sel = null;

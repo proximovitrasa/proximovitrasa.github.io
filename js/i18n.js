@@ -15,7 +15,7 @@ window.PV_I18N = {
 
   dict: {
     es: {
-      vv_closed: "{name}: cerrado a esta hora", vv_rampa: "Rampa mecánica", vv_escalera: "Escalera mecánica", vv_ascensor: "Ascensor", vv_inclinado: "Ascensor inclinado", vv_up: "sube", vv_down: "baja", vv_ride: "{type} · {dir} · {n} min",
+      vv_closed: "{name}: cerrado a esta hora", in_water: "Ese punto está en el agua. Elige uno en tierra.", far_street: "Ese punto está lejos de cualquier calle. Elige otro.", vv_rampa: "Rampa mecánica", vv_escalera: "Escalera mecánica", vv_ascensor: "Ascensor", vv_inclinado: "Ascensor inclinado", vv_up: "sube", vv_down: "baja", vv_ride: "{type} · {dir} · {n} min",
       bus_title: "Próximo bus a {stop}", bus_head: "Cabecera", bus_depot: "Aún no ha salido de cabecera", bus_none: "Ningún bus de esta línea en camino ahora",
       bus_estimated: "Posición estimada", bus_see: "Ver el bus en el mapa",
       some_trips: "Solo en algunos viajes",
@@ -89,7 +89,7 @@ window.PV_I18N = {
       leave_now: "Salir ahora", leave_at: "Salir a las", leave_label: "Hora de salida",
     },
     gl: {
-      vv_closed: "{name}: pechado a esta hora", vv_rampa: "Rampla mecánica", vv_escalera: "Escaleira mecánica", vv_ascensor: "Ascensor", vv_inclinado: "Ascensor inclinado", vv_up: "sube", vv_down: "baixa", vv_ride: "{type} · {dir} · {n} min",
+      vv_closed: "{name}: pechado a esta hora", in_water: "Ese punto está na auga. Escolle un en terra.", far_street: "Ese punto está lonxe de calquera rúa. Escolle outro.", vv_rampa: "Rampla mecánica", vv_escalera: "Escaleira mecánica", vv_ascensor: "Ascensor", vv_inclinado: "Ascensor inclinado", vv_up: "sube", vv_down: "baixa", vv_ride: "{type} · {dir} · {n} min",
       bus_title: "Próximo bus a {stop}", bus_head: "Cabeceira", bus_depot: "Aínda non saíu da cabeceira", bus_none: "Ningún bus desta liña en camiño agora",
       bus_estimated: "Posición estimada", bus_see: "Ver o bus no mapa",
       some_trips: "Só nalgunhas viaxes",
@@ -163,7 +163,7 @@ window.PV_I18N = {
       leave_now: "Saír agora", leave_at: "Saír ás", leave_label: "Hora de saída",
     },
     pt: {
-      vv_closed: "{name}: fechado a esta hora", vv_rampa: "Rampa rolante", vv_escalera: "Escada rolante", vv_ascensor: "Elevador", vv_inclinado: "Elevador inclinado", vv_up: "sobe", vv_down: "desce", vv_ride: "{type} · {dir} · {n} min",
+      vv_closed: "{name}: fechado a esta hora", in_water: "Esse ponto está na água. Escolha um em terra.", far_street: "Esse ponto está longe de qualquer rua. Escolha outro.", vv_rampa: "Rampa rolante", vv_escalera: "Escada rolante", vv_ascensor: "Elevador", vv_inclinado: "Elevador inclinado", vv_up: "sobe", vv_down: "desce", vv_ride: "{type} · {dir} · {n} min",
       bus_title: "Próximo autocarro para {stop}", bus_head: "Terminal", bus_depot: "Ainda não saiu do terminal", bus_none: "Nenhum autocarro desta linha a caminho agora",
       bus_estimated: "Posição estimada", bus_see: "Ver o autocarro no mapa",
       some_trips: "Só em algumas viagens",
@@ -237,7 +237,7 @@ window.PV_I18N = {
       leave_now: "Sair agora", leave_at: "Sair às", leave_label: "Hora de partida",
     },
     eu: {
-      vv_closed: "{name}: itxita dago ordu honetan", vv_rampa: "Arrapala mekanikoa", vv_escalera: "Eskailera mekanikoa", vv_ascensor: "Igogailua", vv_inclinado: "Igogailu inklinatua", vv_up: "gora", vv_down: "behera", vv_ride: "{type} · {dir} · {n} min",
+      vv_closed: "{name}: itxita dago ordu honetan", in_water: "Puntu hori uretan dago. Aukeratu bat lehorrean.", far_street: "Puntu hori kale guztietatik urrun dago. Aukeratu beste bat.", vv_rampa: "Arrapala mekanikoa", vv_escalera: "Eskailera mekanikoa", vv_ascensor: "Igogailua", vv_inclinado: "Igogailu inklinatua", vv_up: "gora", vv_down: "behera", vv_ride: "{type} · {dir} · {n} min",
       bus_title: "Hurrengo autobusa: {stop}", bus_head: "Lehen geltokia", bus_depot: "Oraindik ez da lehen geltokitik irten", bus_none: "Ez dago linea honetako autobusik bidean orain",
       bus_estimated: "Gutxi gorabeherako kokapena", bus_see: "Ikusi autobusa mapan",
       some_trips: "Bidaia batzuetan bakarrik",
@@ -311,7 +311,7 @@ window.PV_I18N = {
       leave_now: "Irten orain", leave_at: "Irteera-ordua:", leave_label: "Irteera-ordua",
     },
     ca: {
-      vv_closed: "{name}: tancat a aquesta hora", vv_rampa: "Rampa mecànica", vv_escalera: "Escala mecànica", vv_ascensor: "Ascensor", vv_inclinado: "Ascensor inclinat", vv_up: "puja", vv_down: "baixa", vv_ride: "{type} · {dir} · {n} min",
+      vv_closed: "{name}: tancat a aquesta hora", in_water: "Aquest punt és a l'aigua. Tria'n un a terra.", far_street: "Aquest punt és lluny de qualsevol carrer. Tria'n un altre.", vv_rampa: "Rampa mecànica", vv_escalera: "Escala mecànica", vv_ascensor: "Ascensor", vv_inclinado: "Ascensor inclinat", vv_up: "puja", vv_down: "baixa", vv_ride: "{type} · {dir} · {n} min",
       bus_title: "Proper bus a {stop}", bus_head: "Capçalera", bus_depot: "Encara no ha sortit de capçalera", bus_none: "Cap bus d'aquesta línia de camí ara",
       bus_estimated: "Posició estimada", bus_see: "Mostra el bus al mapa",
       some_trips: "Només en alguns viatges",
@@ -385,7 +385,7 @@ window.PV_I18N = {
       leave_now: "Sortir ara", leave_at: "Sortir a les", leave_label: "Hora de sortida",
     },
     en: {
-      vv_closed: "{name}: closed at this time", vv_rampa: "Moving walkway", vv_escalera: "Escalator", vv_ascensor: "Lift", vv_inclinado: "Inclined lift", vv_up: "up", vv_down: "down", vv_ride: "{type} · {dir} · {n} min",
+      vv_closed: "{name}: closed at this time", in_water: "That point is in the water. Pick one on land.", far_street: "That point is far from any street. Pick another one.", vv_rampa: "Moving walkway", vv_escalera: "Escalator", vv_ascensor: "Lift", vv_inclinado: "Inclined lift", vv_up: "up", vv_down: "down", vv_ride: "{type} · {dir} · {n} min",
       bus_title: "Next bus to {stop}", bus_head: "First stop", bus_depot: "Hasn't left the first stop yet", bus_none: "No bus on this line on its way right now",
       bus_estimated: "Estimated position", bus_see: "Show the bus on the map",
       some_trips: "Only on some trips",
@@ -459,7 +459,7 @@ window.PV_I18N = {
       leave_now: "Leave now", leave_at: "Leave at", leave_label: "Departure time",
     },
     fr: {
-      vv_closed: "{name} : fermé à cette heure", vv_rampa: "Trottoir roulant", vv_escalera: "Escalator", vv_ascensor: "Ascenseur", vv_inclinado: "Ascenseur incliné", vv_up: "montée", vv_down: "descente", vv_ride: "{type} · {dir} · {n} min",
+      vv_closed: "{name} : fermé à cette heure", in_water: "Ce point est dans l'eau. Choisissez-en un sur la terre ferme.", far_street: "Ce point est loin de toute rue. Choisissez-en un autre.", vv_rampa: "Trottoir roulant", vv_escalera: "Escalator", vv_ascensor: "Ascenseur", vv_inclinado: "Ascenseur incliné", vv_up: "montée", vv_down: "descente", vv_ride: "{type} · {dir} · {n} min",
       bus_title: "Prochain bus pour {stop}", bus_head: "Terminus", bus_depot: "N'a pas encore quitté le terminus", bus_none: "Aucun bus de cette ligne en route pour l'instant",
       bus_estimated: "Position estimée", bus_see: "Voir le bus sur la carte",
       some_trips: "Seulement sur certains trajets",
@@ -533,7 +533,7 @@ window.PV_I18N = {
       leave_now: "Partir maintenant", leave_at: "Partir à", leave_label: "Heure de départ",
     },
     de: {
-      vv_closed: "{name}: um diese Uhrzeit geschlossen", vv_rampa: "Rollsteig", vv_escalera: "Rolltreppe", vv_ascensor: "Aufzug", vv_inclinado: "Schrägaufzug", vv_up: "hoch", vv_down: "runter", vv_ride: "{type} · {dir} · {n} Min.",
+      vv_closed: "{name}: um diese Uhrzeit geschlossen", in_water: "Dieser Punkt liegt im Wasser. Wähle einen an Land.", far_street: "Dieser Punkt ist weit von jeder Straße entfernt. Wähle einen anderen.", vv_rampa: "Rollsteig", vv_escalera: "Rolltreppe", vv_ascensor: "Aufzug", vv_inclinado: "Schrägaufzug", vv_up: "hoch", vv_down: "runter", vv_ride: "{type} · {dir} · {n} Min.",
       bus_title: "Nächster Bus nach {stop}", bus_head: "Starthaltestelle", bus_depot: "Noch nicht an der Starthaltestelle abgefahren", bus_none: "Gerade kein Bus dieser Linie unterwegs",
       bus_estimated: "Geschätzte Position", bus_see: "Bus auf der Karte zeigen",
       some_trips: "Nur bei einigen Fahrten",
