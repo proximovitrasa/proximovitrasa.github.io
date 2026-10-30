@@ -1213,3 +1213,114 @@ body:has(.panel:not([data-screen="home"])) .install, body:has(.panel[data-state=
 /* "Previsto en 2 min · Sin buses en vivo" en una sola línea */
 .trip-opts .when .warn.nl { font-size: 13px; white-space: nowrap; }
 .trip-opts .when .sched + .warn.nl { margin-left: 0; }
+
+/* ==========================================================================
+   Rediseño (63), fase 4: línea (mockup 5) y horarios (mockup 9)
+   ========================================================================== */
+/* Línea: número grande, destino, "Desde <parada>" y Horarios */
+.panel[data-view="line"] { padding-left: 20px; padding-right: 20px; }
+.panel[data-view="line"] .grip { height: 24px; align-items: start; padding-top: 10px; }
+.panel[data-view="line"] .search-row { display: none; }
+.panel[data-view="line"] .view { margin-top: 0; }
+#line > .line-head { display: flex; align-items: center; gap: 12px; }
+#line-badge { flex: none; height: auto; min-width: 0; padding: 4px 14px; border-radius: 9px; font: 700 24px/1.2 var(--cond); }
+.line-txt { flex: 1; min-width: 0; }
+.line-txt h2 { margin: 0; font: 700 22px/1.05 var(--cond); }
+.line-txt .stop-meta { margin: 2px 0 0; font-size: 13px; color: var(--granite); }
+.line-txt .stop-meta:empty { display: none; }
+#line-sched { flex: none; display: flex; align-items: center; gap: 6px; min-height: 36px; margin: 0; padding: 0 12px; border: 0; border-radius: 999px; background: var(--chip); color: var(--soft); font-size: 14px; font-weight: 600; }
+#line-sched svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; }
+#line .line-head .share svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+#line-dirs { margin-top: 12px; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 6px; padding: 4px; border-radius: 12px; background: var(--chip); }
+#line-dirs[hidden] { display: none; }
+#line-dirs button { min-height: 36px; height: auto; padding: 4px 6px; border-radius: 9px; background: transparent; color: var(--soft); font-weight: 400; font-size: 13px; line-height: 1.15; box-shadow: none; }
+#line-dirs button[aria-selected="true"] { background: var(--brand); color: var(--brand-ink); font-weight: 600; box-shadow: none; }
+/* Próximo bus: fondo del color de la línea muy suave */
+#line-bus { display: flex; align-items: center; gap: 12px; margin-top: 12px; padding: 10px 12px; border: 0; border-radius: 14px; background: color-mix(in srgb, var(--lc) 8%, var(--surface)); }
+#line-bus[hidden] { display: none; }
+#line-bus .bus-dot { width: 36px; height: 36px; flex: none; }
+#line-bus .bus-dot svg { width: 24px; height: 24px; }
+#line-bus .what { flex: 1; font-size: 14px; }
+#line-bus .what small { font-size: 13px; font-weight: 600; }
+#line-bus .what .lv { color: var(--live); }
+#line-bus .what .lv::before { content: ""; display: inline-block; width: 7px; height: 7px; margin-right: 6px; border-radius: 50%; background: currentColor; vertical-align: 1px; }
+#line-bus .what .sc { color: var(--sched); }
+#line-bus .eta { font-family: var(--sans); color: var(--live); font-weight: 600; }
+#line-bus .eta b { font: 700 28px/1 var(--cond); color: var(--live); }
+#line-bus .eta span { font: 600 16px/1 var(--sans); color: var(--live); margin-left: 4px; }
+#line-bus .eta.sched b { color: var(--sched); font-size: 24px; }
+#line-bus .eta.now b { font-size: 22px; }
+#line-whole { margin: 10px 0 2px; padding: 0; color: var(--brand); font-size: 14px; font-weight: 600; }
+/* Paradas: raya del color de la línea con un círculo por parada; tu parada, roja */
+#line-stops { margin: 4px -20px 0; padding: 0 20px 16px; }
+#line-stops li::before, #line-stops li::after { display: none; }
+#line-stops .lrow button { display: grid; grid-template-columns: 24px minmax(0, 1fr) auto; column-gap: 12px; align-items: center; min-height: 44px; padding: 0; border: 0; border-top: 1px solid #F1ECE9; }
+@media (prefers-color-scheme: dark) { #line-stops .lrow button { border-top-color: var(--line); } }
+#line-stops .lrow.first button { border-top: 0; }
+#line-stops .lrow button:hover { background: none; }
+#line-stops .rail { position: relative; align-self: stretch; display: flex; align-items: center; justify-content: center; }
+#line-stops .rail::before { content: ""; position: absolute; top: 0; bottom: 0; width: 4px; background: var(--lc); }
+#line-stops .lrow.first .rail::before { top: 50%; }
+#line-stops .lrow.last .rail::before { bottom: 50%; }
+#line-stops .rail i { position: relative; width: 8px; height: 8px; border-radius: 50%; background: var(--surface); border: 3px solid var(--lc); }
+#line-stops .lrow.mine .rail i, #line-stops .lrow.last .rail i { width: 12px; height: 12px; }
+#line-stops .lrow.last .rail i { background: var(--lc); }
+#line-stops .name { font-size: 15px; font-weight: 400; line-height: 1.25; }
+#line-stops .lrow.mine .name { color: var(--brand); font-weight: 600; }
+#line-stops .lrow.last .name { font-weight: 600; }
+#line-stops .name small { color: var(--granite); font-size: 13px; font-weight: 400; }
+#line-stops .r { font-size: 13px; color: var(--granite); }
+#line-stops .branch-head { padding: 14px 0 6px; border: 0; }
+@media (prefers-color-scheme: dark) { #line-stops .lrow.mine .name { color: #FF6B74; } }
+
+/* Horarios: pantalla roja con "Horarios" y la parada; hoja con los días y una tarjeta por línea */
+.panel[data-screen="sched"] { background: var(--brand); }
+.panel[data-screen="sched"] .grip, .panel[data-screen="sched"] .search-row { display: none; }
+#sched { margin-top: 0; }
+#sched > .sched-head { display: flex; align-items: center; justify-content: space-between; height: 44px; color: var(--brand-ink); }
+.sched-head .icon-btn { width: 44px; height: 44px; color: inherit; background: none; }
+.sched-head #sched-back { margin-left: -10px; }
+.sched-head .share { margin-right: -10px; }
+.sched-head #sched-back svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+.sched-head .share svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+.sched-title { flex: 1; margin: 0; text-align: center; font: 700 22px/1 var(--cond); }
+.sched-sub { margin: 0; text-align: center; font-size: 14px; color: var(--brand-ink); opacity: .92; flex: none; }
+.sched-sheet { flex: 1; min-height: 0; display: flex; flex-direction: column; margin: 16px -20px 0; padding: 10px 20px 0; background: var(--surface); border-radius: 28px 28px 0 0; box-shadow: var(--sh-up); }
+.sched-sheet::before { content: ""; display: block; flex: none; width: 40px; height: 4px; margin: 0 auto 10px; border-radius: 2px; background: #DAD3CF; }
+@media (prefers-color-scheme: dark) { .sched-sheet::before { background: #4A4550; } }
+#sched-days.seg3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin-bottom: 12px; padding: 4px; border-radius: 12px; background: var(--chip); }
+#sched-days.seg3 button { height: auto; min-height: 36px; border-radius: 9px; background: transparent; color: var(--soft); font-weight: 400; font-size: 14px; box-shadow: none; }
+#sched-days.seg3 button[aria-selected="true"] { background: var(--brand); color: var(--brand-ink); font-weight: 600; }
+#sched-list { flex: 1; min-height: 0; overflow-y: auto; margin: 0 -20px; padding: 0 20px 16px; }
+.sched-card { border: 1px solid var(--line); border-radius: 16px; padding: 10px 12px; margin-bottom: 10px; }
+.sched-card .sc-head { display: flex; align-items: center; gap: 10px; cursor: pointer; list-style: none; }
+.sched-card .sc-head::-webkit-details-marker { display: none; }
+.sched-card .sc-head .badge { flex: none; height: auto; min-width: 0; padding: 1px 8px; border-radius: 6px; font: 700 17px/1.25 var(--cond); }
+.sched-card .what { flex: 1; min-width: 0; }
+.sched-card .what b { display: block; font-weight: 600; font-size: 15px; }
+.sched-card .what small { display: block; font-size: 13px; color: var(--soft); }
+.sched-card .chev { width: 14px; height: 14px; flex: none; fill: none; stroke: var(--granite); stroke-width: 2.6; transition: transform .15s; }
+.sched-card[open] .chev { transform: rotate(180deg); }
+.sched-card.off { opacity: .6; }
+.sched-times { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin-top: 10px; max-height: 146px; overflow-y: auto; overscroll-behavior: contain; position: relative; }
+.sched-times span { text-align: center; padding: 6px 0; border-radius: 8px; font-size: 14px; background: var(--chip); font-variant-numeric: tabular-nums; }
+.sched-times span.past { color: var(--granite); }
+.sched-times span.next { background: var(--brand-soft); color: #A8141F; font-weight: 600; }
+@media (prefers-color-scheme: dark) { .sched-times span.next { color: #FF8A92; } }
+.sched-hint { margin: 6px 0 0; font-size: 12px; color: var(--granite); }
+#sched-list > .note { font-size: 12px; }
+
+@media (max-width: 859.98px) {
+  /* Línea: el mapa arriba (272 px) con volver y compartir; la hoja debajo */
+  .panel[data-view="line"]:not([data-state="min"]):not([data-state="full"]) { height: calc(100dvh - var(--nav-h) - 272px); min-height: 300px; }
+  .panel[data-view="line"] ~ .map-back, .panel[data-view="line"] ~ .map-share { display: grid; }
+  .panel[data-view="line"] ~ .locate { display: none; }
+  #line > .line-head > #line-back, #line > .line-head > .share { display: none; }
+  /* Horarios: pantalla roja entera */
+  .panel[data-screen="sched"] { height: calc(100dvh - var(--nav-h)) !important; border-radius: 0; padding: calc(10px + env(safe-area-inset-top)) 20px 0; }
+  .panel[data-screen="sched"] ~ .locate, .panel[data-screen="sched"] ~ #map-fabs { display: none; }
+}
+@media (min-width: 860px) {
+  .panel[data-screen="sched"] { padding: 12px 20px 0; }
+  .sched-sheet { border-radius: 22px 22px 18px 18px; }
+}

@@ -925,6 +925,7 @@
     // #horario/<parada>[/<línea>]: horarios de una parada, de todas sus líneas o de una (35).
     if (h.startsWith("horario/")) {
       const [sid, ln] = h.slice(8).split("/").map(decodeURIComponent);
+      if (ln && !lines) { linesReady.then(() => { if (decodeURIComponent(location.hash.slice(1)) === h) route(); }); return; }
       if (byId.has(sid)) { showSched(sid, ln && lines && lines[ln] ? ln : null); return; }
     }
     if (h.startsWith("dir/") && showPlace(h.slice(4))) return;
@@ -1092,6 +1093,7 @@
     fitPoints([d.trazado, ...(d.ramales || [])].flatMap(decodePolyline), 16);
   }
 
+  let lineAllNext = false;   // "Ver la línea completa" desde una variante: la línea entera, sin recortar
   function showLine(code, from = null, variant = null) {
     leaveStop();
     const changed = !active || active.code !== code || active.from !== from || (active.variant ? active.variant.ruta : null) !== variant;
@@ -1111,8 +1113,7 @@
     badge.style.setProperty("--lc", l.color);
     badge.style.setProperty("--lt", l.texto);
     // Variante (un letrero): su destino como título y, en lugar de los sentidos, "ver toda la línea".
-    $("#line-name").textContent = v ? t("towards", { dest: titleCase(v.ruta) }) : l.nombre;
-    $("#line-whole").hidden = !v;
+    if (changed) { active.all = lineAllNext; lineAllNext = false; }
     // Desde una parada, solo los sentidos que pasan por ella (pestañas solo si pasan los dos).
     const dirs = l.sentidos.map((d, i) => i).filter((i) => !from || l.sentidos[i].paradas.includes(from) || (l.sentidos[i].otras || []).includes(from));
     $("#line-dirs").hidden = !!v || dirs.length < 2;
@@ -1420,7 +1421,7 @@
       // Sin bus en vivo: el próximo paso según el horario publicado.
       const at = nextScheduled(tr);
       if (at) {
-        main = esc(t(tr.state === "error" ? "card_sched_err" : "card_sched"));
+        main = `<span class="sc">${esc(t(tr.state === "error" ? "card_sched_err" : "card_sched"))}</span>`;
         sub = `<span class="eta sched"><b>${esc(hhmm(at))}</b></span>`;
       } else main = esc(t(tr.state === "error" ? "times_error" : "bus_none"));
     } else if (b && (b.state === "depot" || b.state === "head")) {
@@ -1429,12 +1430,12 @@
       sub = `<span class="eta">${etaNum(m)}</span>`;
     } else if (b) {
       const m = Math.round(Number(tr.est.minutos) - (Date.now() - tr.at) / 60000);
-      main = `${esc(fmtDist(b.left))} · ${esc(t("bus_estimated"))}`;
+      main = `<span class="lv">${esc(t("live_word"))} · ${esc(t("at_dist", { d: fmtDist(b.left) }))}</span>`;
       sub = m <= 0 ? `<span class="eta now"><b>${esc(t("arriving"))}</b></span>`
                    : `<span class="eta">${etaNum(m)}</span>`;
     } else main = esc(t("bus_none"));
     card.innerHTML = `<span class="bus-dot">${BUS_ICON}</span>
-      <span class="what"><b>${esc(t("bus_title", { stop: s ? s.name : tr.stop }))}</b><small>${main}</small></span>${sub}`;
+      <span class="what"><b>${esc(tr.stop === active.from ? t("bus_title_short") : t("bus_title", { stop: s ? s.name : tr.stop }))}</b><small>${main}</small></span>${sub}`;
     card.hidden = false;
   }
 
@@ -1455,19 +1456,59 @@
     else if (s) focusOn(s.ll, LINE_STOPS_ZOOM);
   });
 
+  // Minutos desde la parada "from" hasta las siguientes de la línea, con la duración típica (la
+  // mediana) de sus viajes en el horario publicado. null si no se sabe.
+  function lineMinutes(code, dir, from) {
+    if (!from) return null;
+    if (!stopPlan) { PLAN.load().then((pl) => { stopPlan = pl; if (active && active.code === code && !$("#line").hidden) renderLineStops(); }).catch(() => {}); return null; }
+    const si = stopPlan.index.get(from);
+    if (si == null) return null;
+    let best = null;
+    for (const [n, k] of stopPlan.at[si]) {
+      const pt = stopPlan.pats[n];
+      if (pt.l !== code || pt.s !== dir || !pt.dur.length) continue;
+      if (!best || pt.p.length - k > best.pt.p.length - best.k) best = { pt, k };
+    }
+    if (!best) return null;
+    const { pt, k } = best;
+    const ds = [...pt.dur].sort((x, y) => x - y), dur = ds[ds.length >> 1];
+    const m = new Map();
+    for (let j = k; j < pt.p.length; j++) m.set(stopPlan.ids[pt.p[j]], Math.round((pt.t[j] - pt.t[k]) * dur / 60));
+    return m;
+  }
+  // Paradas de la línea como en el mockup (5): abierta desde una parada, desde ella en adelante con
+  // los minutos hasta cada una ("Ver la línea completa" enseña también las de antes).
   function renderLineStops() {
     const l = lines[active.code];
     const dir = l.sentidos[active.dir];
     const v = active.variant && active.variant.main ? active.variant : null;
+    const from = active.from && byId.get(active.from);
+    $("#line-name").textContent = active.variant ? titleCase(active.variant.ruta) : from ? dir.destino : l.nombre;
+    $("#line-sub").textContent = from ? t("from_stop", { stop: from.name }) : "";
     const list = $("#line-stops");
     list.style.setProperty("--lc", l.color);
-    const item = (s) => stopItem(s, { dist: me ? haversine(me, s.ll) : null, noLines: true });
-    const items = (v ? v.main : dir.paradas).map((id) => byId.get(id)).filter(Boolean).map(item);
+    const ids = (v ? v.main : dir.paradas);
+    const k0 = active.from ? ids.indexOf(active.from) : -1;
+    const cut = k0 > 0 && !active.all;
+    $("#line-whole").hidden = !(active.variant || cut);
+    const shown = (cut ? ids.slice(k0) : ids).map((id) => byId.get(id)).filter(Boolean);
+    const mins = lineMinutes(active.code, active.dir, active.from);
+    const row = (s, i, n, branch) => {
+      const li = document.createElement("li");
+      const mine = s.id === active.from;
+      const m = mins && !mine ? mins.get(s.id) : null;
+      li.className = `lrow${i === 0 ? " first" : ""}${i === n - 1 ? " last" : ""}${mine ? " mine" : ""}${branch ? " branch" : ""}`;
+      li.innerHTML = `<button type="button" data-id="${esc(s.id)}"><span class="rail"><i></i></span>
+        <span class="name">${esc(s.name)}${mine ? ` <small>· ${esc(t("your_stop"))}</small>` : ""}</span>
+        <span class="r">${m != null ? esc(hMin(Math.max(1, m))) : esc(s.id)}</span></button>`;
+      return li;
+    };
+    const items = shown.map((s, i) => row(s, i, shown.length));
     const extra = (v ? v.extra : dir.otras || []).map((id) => byId.get(id)).filter(Boolean);
     if (extra.length) {
       const head = groupHead(t("some_trips"));
       head.classList.add("branch-head");
-      items.push(head, ...extra.map((s) => { const li = item(s); li.classList.add("branch"); return li; }));
+      items.push(head, ...extra.map((s, i) => row(s, i, extra.length, true)));
     }
     list.replaceChildren(...items);
     $("#line-stops").scrollTop = 0;
@@ -1724,8 +1765,8 @@
     showView("sched");
     if (!sched || sched.id !== id || sched.line !== line) sched = { id, day: sched && sched.id === id ? sched.day : todayType(), line };
     document.title = `${t("sched_title")}${line ? ` · ${line}` : ""} · ${s.name} · ${APP_NAME}`;
-    $("#sched-name").textContent = s.name;
-    $("#sched-meta").textContent = line ? `${t("line_n", { code: line })} · ${t("stop_n", { id })}` : t("stop_n", { id });
+    panel.dataset.screen = "sched";
+    $("#sched-meta").textContent = `${line ? `${t("line_n", { code: line })} · ` : ""}${s.name} · ${t("stop_lc", { id })}`;
     if (!isDesktop()) panel.dataset.state = "full";
     selRing.setLatLng(s.ll).addTo(map);
     renderSched();
@@ -1749,24 +1790,34 @@
       const date = new Date(`${plan.fecha}T12:00:00`).toLocaleDateString(lang, { day: "numeric", month: "short", year: "numeric" });
       const nowS = (Date.now() - dayBase(new Date())) / 1000;
       const isToday = sched.day === todayType();
+      // Como en el mockup (9): una tarjeta por línea y sentido (la primera abierta) con todas las
+      // horas del día en una cuadrícula; la próxima, resaltada.
+      let opened = false;
       const html = groups.map((g) => {
         const ln = lines && lines[g.line];
         const dest = ln && ln.sentidos[g.dir] ? ln.sentidos[g.dir].destino : "";
-        const head = `<span class="badge"${lineStyle(g.line)}>${esc(g.line)}</span>
-          <span class="what"><b>${esc(t("towards", { dest }))}</b>`;
-        if (!g.times.length) return `<div class="sched-line off"><summary>${head}<small>${esc(t("no_service"))}</small></span></summary></div>`;
+        const head = `<span class="badge"${lineStyle(g.line)}>${esc(g.line)}</span><span class="what"><b>${esc(dest)}</b>`;
+        if (!g.times.length) return `<div class="sched-card off"><div class="sc-head">${head}<small>${esc(t("no_service"))}</small></span></div></div>`;
         const ts = g.times;
         const meta = [t("first_last", { first: hhmm(ts[0]), last: hhmm(ts[ts.length - 1]) }), everyText(ts)].filter(Boolean).join(" · ");
-        const hours = new Map();
-        ts.forEach((x) => { const h = Math.floor(x / 3600); if (!hours.has(h)) hours.set(h, []); hours.get(h).push(x); });
-        const rows = [...hours].map(([h, xs]) => `<dt>${String(h % 24).padStart(2, "0")}</dt><dd>${xs.map((x) =>
-          `<span${isToday && x < nowS - 60 ? ' class="past"' : ""}>${String(Math.floor(x / 60) % 60).padStart(2, "0")}</span>`).join(" ")}</dd>`).join("");
-        return `<details class="sched-line"><summary>${head}<small>${esc(meta)}</small></span>${CHEV}</summary><dl class="sched-hours">${rows}</dl></details>`;
+        const nextI = isToday ? ts.findIndex((x) => x >= nowS - 60) : -1;
+        const cells = ts.map((x, i) => `<span class="${i === nextI ? "next" : isToday && x < nowS - 60 ? "past" : ""}">${hhmm(x)}</span>`).join("");
+        const open = sched.line || !opened;
+        opened = true;
+        return `<details class="sched-card"${open ? " open" : ""}><summary class="sc-head">${head}<small>${esc(meta)}</small></span><svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></summary>
+          <div class="sched-times">${cells}</div>${isToday && nextI >= 0 ? `<p class="sched-hint">${esc(t("sched_hint"))}</p>` : ""}</details>`;
       }).join("");
       box.innerHTML = (html || `<div class="state"><strong>${esc(t("sched_none"))}</strong></div>`) +
         `<p class="note">${esc(t("sched_note", { date }))}</p>`;
+      box.querySelectorAll("details.sched-card[open]").forEach(scrollToNext);
     }).catch(() => { if (sched && sched.id === want) box.innerHTML = `<div class="state"><strong>${esc(t("sched_error"))}</strong></div>`; });
   }
+  // Cuadrícula de horas: que se vea la próxima (con una fila de antes).
+  function scrollToNext(d) {
+    const box = d.querySelector(".sched-times"), nx = box && box.querySelector(".next");
+    if (nx) box.scrollTop = Math.max(0, nx.offsetTop - box.offsetTop - 38);
+  }
+  $("#sched-list").addEventListener("toggle", (e) => { if (e.target.open) scrollToNext(e.target); }, true);
   $("#sched-days").addEventListener("click", (e) => {
     const b = e.target.closest("[data-day]");
     if (!b || !sched || b.dataset.day === sched.day) return;
@@ -3767,7 +3818,10 @@
   $("#line-back").addEventListener("click", goBack);
   // Desde una variante, la línea completa (con sus dos sentidos y todos sus ramales).
   $("#line-whole").addEventListener("click", () => {
-    if (active) navigate(`linea/${active.code}${active.from ? `/${active.from}` : ""}`);
+    if (!active) return;
+    if (active.variant) { lineAllNext = true; navigate(`linea/${active.code}${active.from ? `/${active.from}` : ""}`); return; }
+    active.all = true;
+    renderLineStops();
   });
   $("#fav").addEventListener("click", () => {
     if (!current) return;
@@ -3784,6 +3838,7 @@
   TABS.forEach((tab) => $(`#tab-${tab}`).addEventListener("click", () => { $("#q").value = ""; setTab(tab); }));
   $("#locate").addEventListener("click", locate);
   $("#map-back").addEventListener("click", goBack);
+  $("#map-share").addEventListener("click", () => $('[data-share="line"]').click());
   $("#map-full").addEventListener("click", () => setPanel(panel.dataset.state === "min" ? baseState() : "min"));
   $("#tf-share").addEventListener("click", () => $('[data-share="trip"]').click());
   $("#tf-star").addEventListener("click", () => { if (lastTrip && trip.sel) { toggleTripFav(trip.sel); syncTripScreen(); } });

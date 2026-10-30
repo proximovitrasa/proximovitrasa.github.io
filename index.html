@@ -115,29 +115,27 @@
 
     <!-- Línea: recorrido iluminado en el mapa y paradas en orden -->
     <section id="line" class="view" hidden>
-      <div class="stop-head">
+      <!-- Como en el mockup (5): número, destino, "Desde <parada>" y Horarios -->
+      <div class="stop-head line-head">
         <button id="line-back" class="icon-btn" type="button" data-i18n-aria="back">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
         </button>
-        <div class="stop-title line-title">
-          <span id="line-badge" class="badge"></span>
-          <div class="line-name-wrap">
-            <h2 id="line-name"></h2>
-            <!-- Horarios de la línea (35): en la parada desde la que se abrió o, si no, desde su cabecera -->
-            <button id="line-sched" class="sched-pill" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg><span data-i18n="sched_btn"></span></button>
-          </div>
+        <span id="line-badge" class="badge"></span>
+        <div class="line-txt">
+          <h2 id="line-name"></h2>
+          <p id="line-sub" class="stop-meta"></p>
         </div>
-        <div class="head-actions">
+        <!-- Horarios de la línea (35): en la parada desde la que se abrió o, si no, desde su cabecera -->
+        <button id="line-sched" class="sched-pill" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span data-i18n="sched_btn"></span></button>
         <button class="icon-btn share" type="button" data-share="line" data-i18n-aria="share" data-i18n-title="share">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="18" cy="5.5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="18.5" r="2.5"/><path d="M8.2 10.8l7.6-4.1M8.2 13.2l7.6 4.1"/></svg>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>
         </button>
-        </div>
       </div>
       <div id="line-dirs" class="tabs dirs" role="tablist" data-i18n-aria="direction"></div>
-      <!-- Con una variante (un letrero) a la vista: volver a la línea completa -->
-      <button id="line-whole" class="line-whole" type="button" data-i18n="whole_line" hidden></button>
       <!-- Próximo bus hacia la parada desde la que se abrió la línea -->
       <button id="line-bus" class="bus-card" type="button" data-i18n-aria="bus_see" hidden></button>
+      <!-- "Ver la línea completa": la línea entera (sin recortar desde tu parada ni quedarse en un letrero) -->
+      <button id="line-whole" class="line-whole" type="button" data-i18n="whole_line" hidden></button>
       <ol id="line-stops" class="stops route-list"></ol>
     </section>
 
@@ -234,24 +232,25 @@
 
     <!-- Horarios de una parada: los publicados por Vitrasa, por tipo de día -->
     <section id="sched" class="view" hidden>
-      <div class="stop-head">
+      <!-- Como en el mockup (9): cabecera roja "Horarios" con la parada debajo -->
+      <div class="stop-head sched-head">
         <button id="sched-back" class="icon-btn" type="button" data-i18n-aria="back">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>
         </button>
-        <div class="stop-title">
-          <h2 id="sched-name"></h2>
-          <p class="stop-meta" id="sched-meta"></p>
-        </div>
+        <h2 class="sched-title" data-i18n="sched_title"></h2>
         <button class="icon-btn share" type="button" data-share="sched" data-i18n-aria="share" data-i18n-title="share">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="18" cy="5.5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="18.5" r="2.5"/><path d="M8.2 10.8l7.6-4.1M8.2 13.2l7.6 4.1"/></svg>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>
         </button>
       </div>
-      <div id="sched-days" class="tabs" role="tablist">
+      <p id="sched-meta" class="sched-sub"></p>
+      <div class="sched-sheet">
+      <div id="sched-days" class="tabs seg3" role="tablist">
         <button role="tab" type="button" data-day="w" data-i18n="day_week"></button>
         <button role="tab" type="button" data-day="6" data-i18n="day_sat"></button>
         <button role="tab" type="button" data-day="0" data-i18n="day_sun"></button>
       </div>
       <div id="sched-list" class="sched-list" aria-live="polite"></div>
+      </div>
     </section>
 
     <!-- Información útil: solo enlaces a las páginas oficiales de Vitrasa -->
@@ -341,6 +340,7 @@
     <button id="tf-share" type="button" data-i18n-aria="share" data-i18n-title="share"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg></button>
     <button id="tf-star" type="button" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2.8 5.8 6.2.9-4.5 4.4 1 6.2L12 17.4 6.5 20.3l1-6.2L3 9.7l6.2-.9z"/></svg></button>
   </div>
+  <button id="map-share" class="map-full map-share" type="button" data-i18n-aria="share" data-i18n-title="share"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg></button>
   <button id="map-back" class="map-back" type="button" data-i18n-aria="back" data-i18n-title="back"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></button>
   <button id="locate" class="locate" type="button" data-i18n-aria="locate">
     <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7"/><circle class="dot" cx="12" cy="12" r="3"/><path d="M12 1.5v3M12 19.5v3M1.5 12h3M19.5 12h3"/></svg>
