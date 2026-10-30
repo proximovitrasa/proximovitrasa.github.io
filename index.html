@@ -31,15 +31,18 @@
   <div id="map" data-i18n-aria="map"></div>
 
 
-  <!-- Instalar la web como app: arriba del todo, sobre el mapa; solo en el móvil y si aún no se usa como app -->
-  <div id="install" class="install" hidden>
-    <button id="install-btn" class="install-btn" type="button">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M5 19.5h14"/></svg>
-      <span data-i18n="install_app"></span>
-    </button>
-    <button id="install-close" class="install-close" type="button" data-i18n-aria="install_hide" data-i18n-title="install_hide">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
-    </button>
+  <!-- Instalar la web como app: aviso bajo el buscador del inicio, solo en el móvil y si aún no se usa como app;
+       "Más tarde" lo quita hasta la próxima visita y "No volver a mostrar", para siempre (sigue en Más) -->
+  <div id="install" class="install" hidden role="region" data-i18n-aria="install_app">
+    <div class="inst-top">
+      <span class="inst-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M5 19.5h14"/></svg></span>
+      <span class="inst-txt"><b data-i18n="install_app"></b><small data-i18n="install_sub"></small></span>
+    </div>
+    <div class="inst-btns">
+      <button id="install-later" class="inst-link" type="button" data-i18n="install_later"></button>
+      <button id="install-close" class="inst-link" type="button" data-i18n="install_hide"></button>
+      <button id="install-btn" class="install-btn" type="button" data-i18n="install_do"></button>
+    </div>
   </div>
 
   <!-- iPhone: no se puede instalar desde la web; se explica cómo hacerlo con Safari -->

@@ -834,8 +834,6 @@ button.badge:hover { filter: brightness(1.08); }
 /* ==========================================================================
    Rediseño (63), fase 2: inicio, buscador en uso, parada y dirección (mockups 3, 11, 4 y 10)
    ========================================================================== */
-/* Instalar la app: ahora en Más (la franja de arriba taparía el buscador) */
-.install { display: none !important; }
 
 /* Botones sobre el mapa: rojos, con sombra pequeña */
 .locate { background: var(--brand); color: var(--brand-ink); box-shadow: var(--sh-sm); }
@@ -1002,3 +1000,17 @@ button.badge:hover { filter: brightness(1.08); }
 .q-clear svg { position: static; transform: none; color: currentColor; }
 .search input { -webkit-appearance: none; appearance: none; }
 @media (min-width: 860px) { .panel[data-screen="home"] .view { margin-top: 16px; } }
+
+/* Aviso de instalar la app: tarjeta bajo el buscador del inicio, de lado a lado (16 px) */
+.install { top: calc(18px + 52px + 10px + env(safe-area-inset-top)); left: 16px; right: 16px; z-index: 1002; flex-direction: column; align-items: stretch; gap: 10px; padding: 12px; border-radius: 16px; background: var(--surface); color: var(--ink); box-shadow: var(--sh-md); }
+.install .inst-top { display: flex; align-items: center; gap: 10px; }
+.install .inst-ico { width: 40px; height: 40px; flex: none; display: grid; place-items: center; border-radius: 12px; background: var(--brand-soft); color: var(--brand); }
+.install .inst-ico svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.install .inst-txt { min-width: 0; }
+.install .inst-txt b { display: block; font-weight: 600; font-size: 15px; line-height: 1.25; }
+.install .inst-txt small { display: block; font-size: 13px; color: var(--granite); }
+.install .inst-btns { display: flex; align-items: center; justify-content: flex-end; gap: 4px; }
+.install .inst-link { width: auto; display: block; box-shadow: none; min-height: 36px; padding: 0 8px; border: 0; background: none; color: var(--granite); font-size: 14px; font-weight: 600; }
+.install .install-btn { flex: none; height: 36px; padding: 0 16px; margin-left: 4px; border-radius: 999px; background: var(--brand); color: var(--brand-ink); font: 600 14px/1 var(--sans); letter-spacing: 0; box-shadow: none; }
+/* Solo en el inicio con la hoja abajo (no en el buscador en uso ni en otras pantallas) */
+body:has(.panel:not([data-screen="home"])) .install, body:has(.panel[data-state="full"]) .install { display: none; }

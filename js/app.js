@@ -3858,8 +3858,10 @@
   const manualSteps = () => (IOS_INSTALL && isIOS) || isFirefoxAndroid;
   let installEvt = null;
   function installHidden() { try { return localStorage.getItem(INSTALL_KEY) === "1"; } catch { return false; } }
+  // "Más tarde": hasta que se vuelva a abrir la web (esta sesión del navegador).
+  function installLater() { try { return sessionStorage.getItem(INSTALL_KEY) === "1"; } catch { return false; } }
   function showInstall() {
-    const can = onPhone() && !standalone() && !installHidden() && (installEvt || manualSteps());
+    const can = onPhone() && !standalone() && !installHidden() && !installLater() && (installEvt || manualSteps());
     $("#install").hidden = !can;
   }
   addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); installEvt = e; showInstall(); });
@@ -3882,6 +3884,10 @@
   $("#more-about").addEventListener("click", () => { $("#about-dialog").hidden = false; $("#about-ok").focus(); });
   $("#about-ok").addEventListener("click", () => { $("#about-dialog").hidden = true; $("#more-about").focus(); });
   $("#about-dialog").addEventListener("click", (e) => { if (e.target.id === "about-dialog") e.currentTarget.hidden = true; });
+  $("#install-later").addEventListener("click", () => {
+    try { sessionStorage.setItem(INSTALL_KEY, "1"); } catch { /* sin almacenamiento */ }
+    $("#install").hidden = true;
+  });
   $("#install-close").addEventListener("click", () => {
     try { localStorage.setItem(INSTALL_KEY, "1"); } catch { /* sin almacenamiento */ }
     $("#install").hidden = true;
