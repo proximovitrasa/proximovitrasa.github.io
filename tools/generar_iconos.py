@@ -11,7 +11,7 @@ from pathlib import Path
 from playwright.sync_api import sync_playwright
 
 ICONS = Path(__file__).resolve().parent.parent / "icons"
-FONDO = "#242432"   # color del círculo del logo
+FONDO = "#D3202F"   # color del círculo del logo
 JOBS = [("icon-512.png", 512, None, 1.0), ("icon-192.png", 192, None, 1.0),
         ("icon-maskable-512.png", 512, FONDO, 0.90), ("apple-touch-icon.png", 180, FONDO, 1.0)]
 

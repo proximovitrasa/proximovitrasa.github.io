@@ -1,8 +1,8 @@
-# ProximoVitrasa: licencia y términos adicionales
+# Vigo Bus: licencia y términos adicionales
 
 Copyright © 2026 asergom (https://github.com/asergom)
 
-El código de ProximoVitrasa es software libre: puedes redistribuirlo y modificarlo según los
+El código de Vigo Bus es software libre: puedes redistribuirlo y modificarlo según los
 términos de la **GNU Affero General Public License, versión 3** (solo esa versión,
 `AGPL-3.0-only`), publicada por la Free Software Foundation, con los términos adicionales de
 abajo. El texto completo de la licencia está en el archivo [`LICENSE`](LICENSE).
@@ -19,13 +19,13 @@ la licencia para más detalles.
    mostrarla de forma visible en su interfaz de usuario, en la pantalla principal o en una
    pantalla de información o «Acerca de» a la que se llegue directamente desde ella:
 
-   > Basado en ProximoVitrasa, de asergom — https://github.com/proximovitrasa/proximovitrasa.github.io
+   > Basado en Vigo Bus, de asergom — https://github.com/proximovitrasa/proximovitrasa.github.io
 
    El texto debe ser legible y el enlace, funcional. Puede traducirse al idioma de la obra
-   siempre que se mantengan el nombre «ProximoVitrasa», el autor y el enlace.
+   siempre que se mantengan el nombre «Vigo Bus», el autor y el enlace.
 
 2. **Nombre y logotipo (sección 7, letra e).** Esta licencia no concede ningún derecho sobre el
-   nombre «ProximoVitrasa» ni sobre su logotipo (`icons/logo.svg`, `icons/favicon.svg` y los
+   nombre «Vigo Bus» ni sobre su logotipo (`icons/logo.svg`, `icons/favicon.svg` y los
    iconos `icons/*.png` que salen de él), que no se distribuyen con la AGPL-3.0 y cuyos derechos
    están reservados. Las obras derivadas que se ofrezcan a otras personas deben usar otro nombre
    y otro logotipo; la única mención permitida al nombre es la atribución del punto 1.
@@ -44,4 +44,4 @@ La AGPL-3.0 solo cubre el trabajo propio de este repositorio. Estas partes conse
 | `vendor/leaflet/` | Leaflet | BSD-2-Clause |
 | `vendor/maplibre/` | MapLibre GL JS (BSD-3-Clause, con partes de terceros: `LICENSE-maplibre-gl.txt`) y su complemento para Leaflet (ISC: `LICENSE-maplibre-gl-leaflet.txt`) | las suyas |
 
-«Vitrasa» es una marca de su titular. ProximoVitrasa es un proyecto independiente y no oficial.
+«Vitrasa» es una marca de su titular. Vigo Bus es un proyecto independiente y no oficial.

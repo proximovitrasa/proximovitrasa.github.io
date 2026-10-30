@@ -1,4 +1,4 @@
-# ProximoVitrasa
+# Vigo Bus
 
 Mapa de las paradas de Vitrasa en Vigo con los próximos buses de cada parada.
 
@@ -192,14 +192,14 @@ ODbL (https://opendatacommons.org/licenses/odbl/).
 
 ## Licencia
 
-ProximoVitrasa © 2026 [asergom](https://github.com/asergom). El código es software libre con la
+Vigo Bus © 2026 [asergom](https://github.com/asergom). El código es software libre con la
 licencia **GNU AGPL-3.0** (solo la versión 3, [`LICENSE`](LICENSE)) y estos
 [términos adicionales](TERMINOS-ADICIONALES.md):
 
 - Quien reutilice o modifique el código, también en una web o app, debe publicar su código con
-  la misma licencia y mostrar de forma visible **«Basado en ProximoVitrasa, de asergom»** con un
+  la misma licencia y mostrar de forma visible **«Basado en Vigo Bus, de asergom»** con un
   enlace a este repositorio.
-- El nombre «ProximoVitrasa» y el logo no forman parte de la licencia: las copias deben usar
+- El nombre «Vigo Bus» y el logo no forman parte de la licencia: las copias deben usar
   otro nombre y otro logo.
 - Los datos (OpenStreetMap, Concello de Vigo, Catastro), la letra Barlow y Leaflet mantienen sus
   propias licencias.
