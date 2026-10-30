@@ -690,6 +690,8 @@
   }
 
   function setTab(which) {
+    // Cada lista tiene ahora su sitio en la barra de secciones.
+    if (which === "fav" || which === "lines") { navigate(which === "fav" ? "favoritas" : "lineas"); return; }
     TABS.forEach((t) => $(`#tab-${t}`).setAttribute("aria-selected", t === which));
     mode = which;
     render();
@@ -749,6 +751,34 @@
     else history.pushState({ d: ((history.state && history.state.d) || 0) + 1 }, "", url);
     route();
   }
+  // ---------- Barra de secciones (rediseño, fase 1) ----------
+  // Buscar = inicio y todo lo que se abre desde él (parada, línea, dirección, horarios); Favoritas,
+  // Cómo llegar, Líneas y Más (información útil e idioma), cada una con su pantalla.
+  function tabbarSection() {
+    const v = panel.dataset.view;
+    if (v === "trip") return "ir";
+    if (v === "info") return "info";
+    if (v === "home" && mode === "fav") return "favoritas";
+    if (v === "home" && mode === "lines") return "lineas";
+    return "";
+  }
+  function updateTabbar() {
+    const cur = tabbarSection();
+    document.querySelectorAll("#tabbar [data-go]").forEach((a) => {
+      if (a.dataset.go === cur) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current");
+    });
+  }
+  $("#tabbar").addEventListener("click", (e) => {
+    const a = e.target.closest("[data-go]");
+    if (!a) return;
+    e.preventDefault();
+    const go = a.dataset.go;
+    if (go === tabbarSection() && go !== "") return;
+    if (go === "ir") { openTrip(); return; }
+    if (go === "") { $("#q").value = ""; navigate(""); return; }
+    navigate(go);
+  });
+
   function goBack() {
     if (history.state && history.state.d > 0) history.back();   // popstate llama a route()
     else navigate("", { replace: true });
@@ -758,6 +788,9 @@
     const h = decodeURIComponent(location.hash.slice(1));
     if (h === "ir" || h.startsWith("ir/")) { showTrip(h); return; }
     if (h === "info") { showInfo(); return; }
+    // Pantallas propias de la barra de secciones (rediseño, fase 1).
+    if (h === "favoritas") { showHome("fav"); return; }
+    if (h === "lineas") { showHome("lines"); return; }
     // #horario/<parada>[/<línea>]: horarios de una parada, de todas sus líneas o de una (35).
     if (h.startsWith("horario/")) {
       const [sid, ln] = h.slice(8).split("/").map(decodeURIComponent);
@@ -783,6 +816,12 @@
   function showView(id) {
     ["home", "line", "stop", "trip", "place", "info", "sched"].forEach((v) => ($(`#${v}`).hidden = v !== id));
     panel.dataset.view = id;
+    if (id !== "home") {
+      panel.dataset.screen = id === "info" ? "info" : "";
+      $("#screen-head").hidden = id !== "info";
+      if (id === "info") $("#screen-title").textContent = t("nav_more");
+    }
+    updateTabbar();
     if (id !== "trip") leaveTrip();
     if (id !== "place") leavePlace();
   }
@@ -795,12 +834,21 @@
     selRing.remove();
   }
 
-  function showHome() {
+  // Inicio (Buscar) y las pantallas propias de Favoritas y Líneas: la misma vista con otra lista.
+  function showHome(which = "near") {
     leaveStop();
     clearLine();
     showView("home");
-    if (!isDesktop() && panel.dataset.state !== "full") panel.dataset.state = "peek";
-    document.title = "ProximoVitrasa";
+    const own = which !== "near";
+    if (own) $("#q").value = "";
+    TABS.forEach((x) => $(`#tab-${x}`).setAttribute("aria-selected", x === which));
+    mode = which;
+    panel.dataset.screen = own ? which : "";
+    $("#screen-head").hidden = !own;
+    $("#screen-title").textContent = own ? t(which === "fav" ? "tab_fav" : "tab_lines") : "";
+    if (!isDesktop()) panel.dataset.state = own ? "full" : (panel.dataset.state === "full" ? "peek" : panel.dataset.state || "peek");
+    document.title = own ? `${$("#screen-title").textContent} · ProximoVitrasa` : "ProximoVitrasa";
+    updateTabbar();
     render();
   }
 
@@ -2045,7 +2093,6 @@
     renderInfo();
     if (!isDesktop()) panel.dataset.state = "full";
   }
-  $("#info-btn").addEventListener("click", () => { if (location.hash !== "#info") navigate("info"); });
   $("#info-back").addEventListener("click", goBack);
   $("#place-trip").addEventListener("click", () => { if (place) openTrip({ kind: "addr", ll: place.ll, label: place.label, approx: place.approx }); });
 

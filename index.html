@@ -56,22 +56,8 @@
   <aside id="panel" class="panel" data-state="peek" data-i18n-aria="panel">
     <button id="grip" class="grip" type="button" data-i18n-aria="grip"><span></span></button>
 
-    <header class="brand">
-      <span class="brand-mark" aria-hidden="true"></span>
-      <h1>ProximoVitrasa</h1>
-      <!-- Información útil: enlaces a la web oficial de Vitrasa (los avisos están dentro) -->
-      <button id="info-btn" class="head-btn" type="button" data-i18n-aria="head_info" data-i18n-title="head_info">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.6v.2"/></svg>
-      </button>
-      <div class="lang">
-        <button id="lang-btn" class="lang-btn" type="button" aria-haspopup="listbox" aria-expanded="false" data-i18n-aria="language">
-          <svg class="flag" viewBox="0 0 30 20" aria-hidden="true"></svg>
-          <span id="lang-code"></span>
-          <svg class="caret" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10l5 5 5-5"/></svg>
-        </button>
-        <ul id="lang-menu" class="lang-menu" role="listbox" hidden data-i18n-aria="language"></ul>
-      </div>
-    </header>
+    <!-- Cabecera roja de las pantallas propias (Favoritas, Líneas): rediseño, fase 1 -->
+    <header id="screen-head" class="screen-head" hidden><h2 id="screen-title"></h2></header>
 
     <div class="search-row">
       <div class="search">
@@ -247,6 +233,17 @@
           <p class="stop-meta" data-i18n="info_note"></p>
         </div>
       </div>
+      <div class="more-tools">
+        <span class="more-label" data-i18n="language"></span>
+          <div class="lang">
+        <button id="lang-btn" class="lang-btn" type="button" aria-haspopup="listbox" aria-expanded="false" data-i18n-aria="language">
+          <svg class="flag" viewBox="0 0 30 20" aria-hidden="true"></svg>
+          <span id="lang-code"></span>
+          <svg class="caret" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10l5 5 5-5"/></svg>
+        </button>
+        <ul id="lang-menu" class="lang-menu" role="listbox" hidden data-i18n-aria="language"></ul>
+      </div>
+      </div>
       <ul id="info-list" class="stops info-list"></ul>
     </section>
 
@@ -282,6 +279,14 @@
       </footer>
     </section>
   </aside>
+  <!-- Barra de secciones: abajo en el móvil, a la izquierda en el ordenador (rediseño, fase 1) -->
+  <nav id="tabbar" class="tabbar" data-i18n-aria="nav_label">
+    <a href="#" data-go="" data-i18n-title="nav_search"><span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg></span><span class="lbl" data-i18n="nav_search"></span></a>
+    <a href="#favoritas" data-go="favoritas" data-i18n-title="tab_fav"><span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2.8 5.8 6.2.9-4.5 4.4 1 6.2L12 17.4 6.5 20.3l1-6.2L3 9.7l6.2-.9z"/></svg></span><span class="lbl" data-i18n="tab_fav"></span></a>
+    <a href="#ir" data-go="ir" data-i18n-title="trip_btn"><span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.8 21.2 12 12 21.2 2.8 12z"/><path d="M9.5 14.5v-2.2a1.6 1.6 0 0 1 1.6-1.6h4.4M13.6 8.4l2.3 2.3-2.3 2.3"/></svg></span><span class="lbl" data-i18n="trip_btn"></span></a>
+    <a href="#lineas" data-go="lineas" data-i18n-title="tab_lines"><span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="14" height="15" rx="3"/><path d="M5 11h14M8 21v-3M16 21v-3"/></svg></span><span class="lbl" data-i18n="tab_lines"></span></a>
+    <a href="#info" data-go="info" data-i18n-title="nav_more"><span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.6v.2"/></svg></span><span class="lbl" data-i18n="nav_more"></span></a>
+  </nav>
   <button id="locate" class="locate" type="button" data-i18n-aria="locate">
     <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="7" fill="none"/></svg>
   </button>

@@ -7,18 +7,33 @@
 @font-face { font-family: "Barlow Condensed"; src: url(../fonts/BarlowCondensed-Bold.woff2) format("woff2"); font-weight: 700; font-display: swap; }
 
 /* ---------- Tokens ---------- */
+/* Rediseño (63, fase 1): colores y sombras del mockup "Rediseño ProximoVitrasa". Sombras ambientales
+   tintadas en tres niveles (criterio del usuario, 30/10): pequeña 4/8 px al 15 %, media 8/16 px al
+   20 %, grande 16/32 px al 25 % (en oscuro, 30–40 %). */
 :root {
-  --ink: #13222C;        /* azul ría, texto y distintivos de línea */
-  --paper: #F2F4F5;      /* fondo del panel */
-  --surface: #FFFFFF;
-  --granite: #5D6A73;    /* texto secundario */
-  --line: #D9DFE3;       /* separadores */
-  --bus: #D3202F;        /* rojo de parada: solo para paradas y "llegando" */
+  --ink: #1B1B1F;        /* texto */
+  --paper: #F4F1EF;      /* fondo detrás de las hojas y de los grupos */
+  --surface: #FFFFFF;    /* hojas y tarjetas */
+  --chip: #F4F1EF;       /* botones y etiquetas suaves */
+  --granite: #6B6670;    /* texto secundario */
+  --soft: #4A454E;       /* texto intermedio */
+  --line: #ECE7E4;       /* separadores */
+  --bus: #D3202F;        /* rojo de Vigo: marca, paradas, botones principales */
+  --brand: #D3202F;
+  --brand-ink: #FFFFFF;
+  --brand-soft: #FBE9EA;
   --badge-bg: #13222C;
   --badge-fg: #FFFFFF;
   --focus: #1C6FA8;
-  --live: #17834A;       /* tiempos en vivo */
-  --shadow: 0 10px 30px rgba(19, 34, 44, .18), 0 2px 6px rgba(19, 34, 44, .10);
+  --live: #15803D;       /* tiempos en vivo */
+  --sched: #B45309;      /* según horario (previsto) */
+  --sh-sm: 0 4px 8px rgba(94, 46, 50, .15);
+  --sh-md: 0 8px 16px rgba(94, 46, 50, .20);
+  --sh-lg: 0 16px 32px rgba(94, 46, 50, .25);
+  --sh-up: 0 -16px 32px rgba(94, 46, 50, .25);
+  --sh-nav: 0 -4px 8px rgba(94, 46, 50, .15);
+  --shadow: var(--sh-lg);
+  --nav-h: 0px;          /* alto de la barra inferior (móvil) */
 
   --sans: "Barlow", system-ui, -apple-system, "Segoe UI", sans-serif;
   --cond: "Barlow Condensed", "Arial Narrow", sans-serif;
@@ -26,17 +41,26 @@
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    --ink: #E8EDF0;
-    --paper: #142028;
-    --surface: #1B2A34;
-    --granite: #9AA8B1;
-    --line: #2A3B46;
-    --bus: #F0414E;
-    --badge-bg: #E8EDF0;
+    --ink: #F2EEEC;
+    --paper: #17161A;
+    --surface: #211F24;
+    --chip: #2C2930;
+    --granite: #A8A0A5;
+    --soft: #CFC8CC;
+    --line: #38343C;
+    --bus: #D3202F;
+    --brand: #D3202F;
+    --brand-soft: #3D1E23;
+    --badge-bg: #F2EEEC;
     --badge-fg: #13222C;
-    --focus: #7CC0EE;
-    --live: #5CCB8A;
-    --shadow: 0 10px 30px rgba(0, 0, 0, .45);
+    --focus: #5FB0EA;
+    --live: #4ADE80;
+    --sched: #F5A55B;
+    --sh-sm: 0 4px 8px rgba(0, 0, 0, .30);
+    --sh-md: 0 8px 16px rgba(0, 0, 0, .35);
+    --sh-lg: 0 16px 32px rgba(0, 0, 0, .40);
+    --sh-up: 0 -16px 32px rgba(0, 0, 0, .40);
+    --sh-nav: 0 -4px 8px rgba(0, 0, 0, .30);
     color-scheme: dark;
   }
 }
@@ -622,3 +646,73 @@ button.badge:hover { filter: brightness(1.08); }
 .sched-pill:hover { border-color: var(--focus); }
 #sched-open svg { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
 .line-name-wrap { display: flex; flex-direction: column; align-items: flex-start; min-width: 0; }
+
+/* ==========================================================================
+   Rediseño (63), fase 1: hoja blanca, barra de secciones y pantallas propias
+   ========================================================================== */
+.panel { background: var(--surface); border-radius: 28px 28px 0 0; box-shadow: var(--sh-up); }
+.panel .brand { display: none; }
+/* Las pestañas Cerca / Favoritas / Líneas pasan a la barra de secciones */
+#home > .tabs { display: none; }
+
+/* Barra de secciones (móvil: abajo) */
+.tabbar {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 1001;
+  display: grid; grid-template-columns: repeat(5, minmax(0, 1fr));
+  height: var(--nav-h); padding-bottom: env(safe-area-inset-bottom);
+  background: var(--surface); border-top: 1px solid var(--line); box-shadow: var(--sh-nav);
+}
+.tabbar a { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-width: 0;
+  color: var(--granite); text-decoration: none; font: 500 11px/1.1 var(--sans); }
+.tabbar .ico { display: grid; place-items: center; width: 48px; height: 30px; border-radius: 10px; }
+.tabbar svg { width: 22px; height: 22px; }
+.tabbar .lbl { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 0 2px; }
+.tabbar a[aria-current="page"] { color: var(--brand); font-weight: 600; }
+.tabbar a[aria-current="page"] .ico { background: var(--brand); color: var(--brand-ink); }
+.tabbar a:focus-visible { outline-offset: -3px; }
+
+@media (max-width: 859.98px) {
+  :root { --nav-h: calc(64px + env(safe-area-inset-bottom)); }
+  .panel { bottom: var(--nav-h); padding-bottom: 12px; }
+  .panel[data-state="full"] { height: calc(100dvh - 40px - var(--nav-h)); }
+  .locate { bottom: calc(46dvh + 14px + var(--nav-h)); }
+  .panel[data-state="stop"] ~ .locate { bottom: calc(64dvh + 14px + var(--nav-h)); }
+  .panel[data-state="min"] ~ .locate { bottom: calc(106px + var(--nav-h)); }
+  .toast { bottom: calc(24px + var(--nav-h)); }
+  /* Favoritas, Líneas y Más ocupan toda la pantalla hasta la barra, sin asa */
+  .panel[data-screen="fav"], .panel[data-screen="lines"], .panel[data-screen="info"] {
+    height: calc(100dvh - var(--nav-h)); border-radius: 0; padding-top: calc(8px + env(safe-area-inset-top)); padding-bottom: 0;
+  }
+  .panel[data-screen="fav"] .grip, .panel[data-screen="lines"] .grip, .panel[data-screen="info"] .grip { display: none; }
+  .panel[data-screen="fav"] ~ .locate, .panel[data-screen="lines"] ~ .locate, .panel[data-screen="info"] ~ .locate { display: none; }
+}
+
+/* Pantallas propias (Favoritas, Líneas, Más): cabecera roja y la hoja blanca encima */
+.screen-head { flex: none; display: flex; align-items: center; justify-content: center; height: 44px; margin: 0 0 6px; color: var(--brand-ink); }
+.screen-head[hidden] { display: none; }
+.screen-head h2 { margin: 0; font: 700 22px/1 var(--cond); letter-spacing: .01em; }
+.panel[data-screen="fav"], .panel[data-screen="lines"], .panel[data-screen="info"] { background: var(--brand); }
+.panel[data-screen="fav"] .grip span, .panel[data-screen="lines"] .grip span, .panel[data-screen="info"] .grip span { background: rgba(255, 255, 255, .45); }
+.panel[data-screen="fav"] .search-row, .panel[data-screen="lines"] .search-row, .panel[data-screen="info"] .search-row { display: none; }
+.panel[data-screen] .view { margin-top: 0; }
+.panel[data-screen="fav"] #home, .panel[data-screen="lines"] #home, .panel[data-screen="info"] #info {
+  margin: 0 -16px; padding: 14px 16px 0; background: var(--surface);
+  border-radius: 28px 28px 0 0; box-shadow: var(--sh-up);
+}
+.panel[data-screen="info"] #info > .stop-head { display: none; }
+.more-tools { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 4px 0 12px; border-bottom: 1px solid var(--line); flex: none; }
+.more-label { font-weight: 600; }
+.more-tools .lang { position: relative; }
+.more-tools .lang-menu { right: 0; left: auto; }
+
+/* Ordenador: la barra va a la izquierda, en vertical, y el panel a su lado */
+@media (min-width: 860px) {
+  .tabbar {
+    left: 16px; right: auto; top: 16px; bottom: 16px; width: 84px; height: auto; padding: 10px 0;
+    grid-template-columns: 1fr; grid-auto-rows: 76px; align-content: start;
+    border: 0; border-radius: 18px; box-shadow: var(--sh-md);
+  }
+  .panel, .panel[data-state="stop"], .panel[data-state="full"] { left: 112px; border-radius: 18px; box-shadow: var(--sh-lg); }
+  .panel[data-screen="fav"] #home, .panel[data-screen="lines"] #home, .panel[data-screen="info"] #info { margin: 0 -20px -14px; padding: 14px 20px 0; border-radius: 22px 22px 18px 18px; }
+  .leaflet-top.leaflet-left { left: 518px; }
+}
