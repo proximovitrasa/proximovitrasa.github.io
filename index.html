@@ -88,7 +88,10 @@
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5 21 21"/></svg>
         <input id="q" type="search" inputmode="search" autocomplete="off" spellcheck="false"
                data-i18n-ph="search_ph">
+        <!-- Borrar lo escrito (buscador en uso, mockup 11) -->
+        <button id="q-clear" class="q-clear" type="button" data-i18n-aria="clear" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
       </div>
+      <button id="q-cancel" class="q-cancel" type="button" data-i18n="cancel"></button>
       <!-- Cómo llegar: de un punto a otro -->
       <button id="go-trip" class="trip-btn" type="button" data-i18n-aria="trip_open">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.8 21.2 12 12 21.2 2.8 12z"/><path d="M9.5 14.5v-2.2a1.6 1.6 0 0 1 1.6-1.6h4.4M13.6 8.4l2.3 2.3-2.3 2.3"/></svg>
@@ -287,7 +290,6 @@
         <div class="stop-title">
           <h2 id="stop-name"></h2>
           <p class="stop-meta"><span id="stop-id"></span><span id="stop-dist"></span></p>
-          <p id="stop-lines" class="lines" data-i18n-aria="lines_here"></p>
         </div>
         <div class="head-actions">
         <button id="sched-open" class="icon-btn" type="button" data-i18n-aria="sched_btn" data-i18n-title="sched_btn"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg></button>
@@ -302,11 +304,15 @@
 
       <div id="arrivals" class="arrivals" aria-live="polite"></div>
 
+      <!-- Debajo de las llegadas (al bajar): actualización, líneas que paran y más opciones -->
       <footer class="stop-foot">
-        <span id="updated"></span>
-        <button id="refresh" type="button" data-i18n="refresh"></button>
-        <button id="trip-here" type="button" data-i18n="trip_here"></button>
-        <a id="infobus" target="_blank" rel="noopener" data-i18n="infobus"></a>
+        <p class="upd"><span id="updated"></span><button id="refresh" type="button" data-i18n="refresh"></button></p>
+        <p class="sec-head" data-i18n="lines_here"></p>
+        <p id="stop-lines" class="lines" data-i18n-aria="lines_here"></p>
+        <div class="foot-btns">
+          <button id="trip-here" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l10 10-10 10L2 12z"/><path d="M9 13v-2h5M12 8.5l2.5 2.5-2.5 2.5"/></svg><span data-i18n="trip_here"></span></button>
+          <a id="infobus" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg><span data-i18n="infobus"></span></a>
+        </div>
       </footer>
     </section>
   </aside>
@@ -318,8 +324,14 @@
     <a href="#lineas" data-go="lineas" data-i18n-title="tab_lines"><span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="14" height="15" rx="3"/><path d="M5 11h14M8 21v-3M16 21v-3"/></svg></span><span class="lbl" data-i18n="tab_lines"></span></a>
     <a href="#info" data-go="info" data-i18n-title="nav_more"><span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.6v.2"/></svg></span><span class="lbl" data-i18n="nav_more"></span></a>
   </nav>
+  <!-- Sobre el mapa (rediseño, fase 2): ir a casa y Favoritas (inicio); volver (parada y dirección) -->
+  <div id="map-fabs" class="map-fabs">
+    <button id="fab-home" type="button" data-i18n-aria="go_home" data-i18n-title="go_home"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z"/></svg></button>
+    <button id="fab-fav" type="button" data-i18n-aria="tab_fav" data-i18n-title="tab_fav"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2.8 5.8 6.2.9-4.5 4.4 1 6.2L12 17.4 6.5 20.3l1-6.2L3 9.7l6.2-.9z"/></svg></button>
+  </div>
+  <button id="map-back" class="map-back" type="button" data-i18n-aria="back" data-i18n-title="back"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></button>
   <button id="locate" class="locate" type="button" data-i18n-aria="locate">
-    <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="7" fill="none"/></svg>
+    <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7"/><circle class="dot" cx="12" cy="12" r="3"/><path d="M12 1.5v3M12 19.5v3M1.5 12h3M19.5 12h3"/></svg>
   </button>
 
   <div id="toast" class="toast" role="status" hidden></div>

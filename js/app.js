@@ -494,10 +494,45 @@
       .sort((a, b) => a.d - b.d).slice(0, n);
   }
 
+  // Filas del buscador y de las paradas cercanas como en el mockup (rediseño, fase 2): un cuadro
+  // con el icono (parada, línea, sitio o dirección), el nombre, una línea gris y la distancia.
+  const STOP_TILE = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="1" y="1" width="22" height="22" rx="6" fill="#D3202F"/><path d="M8 5.5h8a2 2 0 0 1 2 2v8.5a1.2 1.2 0 0 1-1.2 1.2H7.2A1.2 1.2 0 0 1 6 16V7.5a2 2 0 0 1 2-2z" fill="#fff"/><rect x="7.6" y="7.6" width="8.8" height="4.2" rx="1" fill="#D3202F"/></svg>';
+  const PIN_TILE = '<svg class="ln" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21c-5-6-7-9.5-7-12a7 7 0 0 1 14 0c0 2.5-2 6-7 12z"/><circle cx="12" cy="9" r="2.5"/></svg>';
+  const SITE_TILE = {
+    estacion: '<svg class="ln" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="13" rx="3"/><path d="M4 11h16M8 21l2-4M16 21l-2-4"/></svg>',
+    aeropuerto: '<svg class="ln" viewBox="0 0 24 24" aria-hidden="true"><path d="M10.5 3.5a1.5 1.5 0 0 1 3 0V9l7 4v2l-7-2v5l2 1.5V21l-3.5-1-3.5 1v-1.5l2-1.5v-5l-7 2v-2l7-4z"/></svg>',
+    hospital: '<svg class="ln" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M12 8v8M8 12h8"/></svg>',
+    otro: '<svg class="ln" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21c-5-6-7-9.5-7-12a7 7 0 0 1 14 0c0 2.5-2 6-7 12z"/><path d="M12 6.5l.9 1.9 2 .3-1.5 1.4.4 2-1.8-1-1.8 1 .4-2-1.5-1.4 2-.3z"/></svg>',
+  };
+  SITE_TILE.salud = SITE_TILE.hospital;
+  const siteTile = (type) => SITE_TILE[type] || SITE_TILE.otro;
+  const nLines = (n) => (n === 1 ? t("n_line1") : t("n_lines", { n }));
+  function resRow(attrs, tile, nameHtml, sub, dist) {
+    const li = document.createElement("li");
+    li.innerHTML = `<button type="button" class="res-row" ${attrs}>
+      <span class="tile">${tile}</span>
+      <span class="txt"><span class="name">${nameHtml}</span>${sub ? `<span class="sub">${sub}</span>` : ""}</span>
+      ${dist != null ? `<span class="dist">${fmtDist(dist)}</span>` : ""}
+    </button>`;
+    return li;
+  }
+  function resStop(s, nameHtml) {
+    return resRow(`data-id="${esc(s.id)}"`, STOP_TILE, nameHtml || esc(s.name),
+      esc(`${t("stop_n", { id: s.id })} · ${nLines(s.lines.length)}`), me ? haversine(me, s.ll) : null);
+  }
+  function secHead(text, extra = "") {
+    const li = document.createElement("li");
+    li.className = "sec-head";
+    li.innerHTML = `<span>${esc(text)}</span>${extra}`;
+    return li;
+  }
+
   // "Qué sale ya cerca de mí" (22): con la ubicación, primero los próximos buses de las paradas a
   // menos de 600 m, mezclados por minutos (sin los que pasan antes de poder llegar andando).
   const NEAR_DEP_M = 600, NEAR_DEP_MAX = 8;
   let nearTimer = null;
+  // Inicio como en el mockup (3): "Sale ya cerca de ti" con un enlace a las paradas cercanas, que
+  // van debajo en la misma hoja. Sin tu ubicación: las paradas de la zona del mapa.
   function renderNear() {
     if (!stops.length) return;
     clearTimeout(nearTimer);
@@ -505,22 +540,32 @@
       const near = nearest(me, NEAR_COUNT);
       const dep = document.createElement("li");
       dep.className = "near-dep";
-      dep.innerHTML = `<p class="group-head">${esc(t("near_dep"))}</p><div class="arrivals near-dep-list"><p class="note">…</p></div>`;
-      const items = [dep, groupHead(t("near_stops")), ...near.map(({ s, d }) => stopItem(s, { dist: d, sub: t("walk", { n: walkMin(d) }) }))];
-      fillList(items, "");
+      dep.innerHTML = `<div class="near-head"><h3>${esc(t("near_dep"))}</h3><button type="button" class="near-more" data-near-more="1">${esc(t("near_stops"))}</button></div>
+        <div class="near-dep-list"><p class="note">…</p></div>`;
+      const head = secHead(t("near_stops"));
+      head.id = "near-stops-head";
+      fillList([dep, head, ...near.map(({ s }) => resStop(s))], "");
       refreshNearDep();
     } else {
       const c = map.getCenter();
-      const items = nearest([c.lat, c.lng], NEAR_COUNT).map(({ s }) => stopItem(s, {}));
-      const p = document.createElement("span");
-      p.append(`${t("area_note")} `);
-      const b = document.createElement("button");
-      b.type = "button"; b.textContent = t("use_location");
-      b.onclick = locate;
-      p.append(b);
-      fillList(items, p);
+      const top = document.createElement("li");
+      top.className = "near-dep";
+      top.innerHTML = `<div class="near-head"><h3>${esc(t("area_title"))}</h3><button type="button" class="near-more" data-use-loc="1">${esc(t("use_location"))}</button></div>`;
+      fillList([top, ...nearest([c.lat, c.lng], NEAR_COUNT).map(({ s }) => resStop(s))], "");
     }
   }
+  $("#list").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-near-more], [data-use-loc]");
+    if (!b) return;
+    e.stopPropagation();
+    if (b.dataset.useLoc) { locate(); return; }
+    // "Paradas cercanas": se abre la hoja entera y se baja hasta la lista.
+    setPanel("full");
+    setTimeout(() => {
+      const h = $("#near-stops-head");
+      if (h) $("#list").scrollTo({ top: h.offsetTop - $("#list").offsetTop, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+    }, 300);
+  });
 
 
   function highlight(name, tokens) {
@@ -570,8 +615,8 @@
       else {
         const p = dirData.parse(q);
         const found = dirData.matchStreets(p.street, p.num ? 3 : 4);
-        found.forEach((st) => addr.push(addrItem(st, p.num, tokens)));
-        if (p.num && found[0]) dirData.numbersStarting(found[0], p.num, 3).forEach((n) => addr.push(addrItem(found[0], n, tokens)));
+        found.forEach((st) => addr.push(addrItem(st, p.num, tokens, true)));
+        if (p.num && found[0]) dirData.numbersStarting(found[0], p.num, 3).forEach((n) => addr.push(addrItem(found[0], n, tokens, true)));
       }
     }
     // Sitios importantes, también a partir de 3 letras.
@@ -580,18 +625,39 @@
       if (!sitesData) ensureSites().then(() => { if ($("#q").value.trim() === q && mode === "search") renderSearch(q); }).catch(() => {});
       else sites = matchSites(q);
     }
+    // Como en el mockup (11): Paradas, Líneas, Sitios y Direcciones, cada grupo con su título.
+    // Si hay otros grupos, solo las 5 primeras paradas y un botón para verlas todas.
+    const others = lineRes.length || addr.length || sites.length;
+    const few = others && !searchAllStops ? shown.slice(0, 5) : shown;
     const items = [];
-    if (lineRes.length) {
-      items.push(groupHead(t("res_lines")));
-      lineRes.forEach((code) => items.push(lineItem(code, highlight(lines[code].nombre, tokens))));
+    if (shown.length) {
+      items.push(secHead(t("res_stops")), ...few.map((s) => resStop(s, highlight(s.name, tokens))));
+      if (few.length < shown.length || res.length > shown.length) {
+        const li = document.createElement("li");
+        li.className = "see-all";
+        li.innerHTML = few.length < shown.length ? `<button type="button" data-all-stops="1">${esc(t("see_all_stops", { n: res.length }))}</button>` : `<p class="note">${esc(t("many", { n: res.length }))}</p>`;
+        items.push(li);
+      }
     }
-    if (sites.length) items.push(groupHead(t("res_sites")), ...sites.map((s) => siteItem(s, tokens)));
-    if (addr.length) items.push(groupHead(t("res_addr")), ...addr);
-    if ((lineRes.length || addr.length || sites.length) && shown.length) items.push(groupHead(t("res_stops")));
-    shown.forEach((s) => items.push(stopItem(s, { nameHtml: highlight(s.name, tokens), dist: me ? haversine(me, s.ll) : null })));
-    fillList(items,
-      res.length || lineRes.length || addr.length || sites.length ? (res.length > shown.length ? t("many", { n: res.length }) : "") : t("no_results", { q }));
+    if (lineRes.length) {
+      items.push(secHead(t("res_lines")));
+      lineRes.forEach((code) => {
+        const [d0, d1] = lines[code].sentidos;
+        items.push(resRow(`data-line="${esc(code)}"`, `<span class="badge"${lineStyle(code)}>${esc(code)}</span>`,
+          highlight(d0 ? d0.destino : lines[code].nombre, tokens), d1 ? highlight(d1.destino, tokens) : ""));
+      });
+    }
+    if (sites.length) items.push(secHead(t("res_sites")), ...sites.map((x) => siteItem(x, tokens)));
+    if (addr.length) items.push(secHead(t("res_addr")), ...addr);
+    fillList(items, res.length || others ? "" : t("no_results", { q }));
   }
+  let searchAllStops = false;
+  $("#list").addEventListener("click", (e) => {
+    if (!e.target.closest("[data-all-stops]")) return;
+    e.stopPropagation();
+    searchAllStops = true;
+    render();
+  });
 
 
   // ---------- Sitios importantes (6) ----------
@@ -625,13 +691,7 @@
     return out.slice(0, limit).map((x) => x.s);
   }
   function siteItem(s, tokens) {
-    const li = document.createElement("li");
-    li.innerHTML = `<button type="button" data-site="${s.i}">
-      <span class="name">${highlight(s.name, tokens)}</span>
-      <span class="sub">${esc(t(`site_${s.type}`))}</span>
-      ${me ? `<span class="dist">${fmtDist(haversine(me, s.ll))}</span>` : ""}
-    </button>`;
-    return li;
+    return resRow(`data-site="${s.i}"`, siteTile(s.type), highlight(s.name, tokens), esc(t(`site_${s.type}`)), me ? haversine(me, s.ll) : null);
   }
 
   function lineItem(code, nameHtml) {
@@ -672,7 +732,21 @@
     head.innerHTML = `<span>${esc(t("recent_title"))}</span><button type="button" class="recent-clear" data-recent-clear="1">${esc(t("recent_clear"))}</button>`;
     return [head, ...items];
   }
-  function renderRecent() { fillList(recentItems(), ""); }
+  // Buscador en uso sin nada escrito: las buscadas recientemente o, si no hay, las paradas cercanas.
+  function renderRecent() {
+    const items = [];
+    if (recents.length) {
+      items.push(secHead(t("recent_title"), `<button type="button" class="recent-clear" data-recent-clear="1">${esc(t("recent_clear"))}</button>`));
+      recents.forEach((r, k) => {
+        if (r.id) { const s = byId.get(r.id); if (s) items.push(resStop(s)); return; }
+        items.push(resRow(`data-recent="${k}"`, r.site ? siteTile(r.site) : PIN_TILE, esc(r.label), esc(r.site ? t(`site_${r.site}`) : t("fav_address")), me ? haversine(me, r.ll) : null));
+      });
+    } else {
+      const c = map.getCenter();
+      items.push(secHead(t(me ? "near_stops" : "area_title")), ...nearest(me || [c.lat, c.lng], NEAR_COUNT).map(({ s }) => resStop(s)));
+    }
+    fillList(items, "");
+  }
 
   // Líneas como en el mockup (rediseño): buscador en la cabecera roja, filtros Todas / Cerca de
   // ti / Nocturnas y cada línea con sus dos destinos.
@@ -727,12 +801,22 @@
   const TABS = ["near", "fav", "lines"];
   function render() {
     const q = $("#q").value.trim();
-    if (q) { mode = "search"; renderSearch(q); return; }
-    if (document.activeElement === $("#q") && !location.hash && recents.length) { mode = "recent"; renderRecent(); return; }
+    $("#q-clear").hidden = !q;
+    if (q) { mode = "search"; renderSearch(q); syncSearchScreen(); return; }
+    searchAllStops = false;
+    if (document.activeElement === $("#q") && !location.hash) { mode = "recent"; renderRecent(); syncSearchScreen(); return; }
     if (mode === "search" || mode === "recent") mode = TABS.find((t) => $(`#tab-${t}`).getAttribute("aria-selected") === "true") || "near";
     if (mode === "fav") renderFav();
     else if (mode === "lines") renderLines();
     else renderNear();
+    syncSearchScreen();
+  }
+  // Buscador en uso (mockup 11): cabecera roja con el buscador y "Cancelar", resultados en la hoja.
+  function syncSearchScreen() {
+    if (panel.dataset.view !== "home" || mode === "fav" || mode === "lines") return;
+    const on = mode === "search" || mode === "recent";
+    panel.dataset.screen = on ? "search" : "home";
+    if (on && !isDesktop()) panel.dataset.state = "full";
   }
 
   function setTab(which) {
@@ -890,7 +974,7 @@
     if (own) $("#q").value = "";
     TABS.forEach((x) => $(`#tab-${x}`).setAttribute("aria-selected", x === which));
     mode = which;
-    panel.dataset.screen = own ? which : "";
+    panel.dataset.screen = own ? which : "home";
     $("#screen-head").hidden = !own;
     $("#screen-extra").hidden = !own;
     if (!own || which !== "lines") { $("#screen-extra").replaceChildren(); delete $("#screen-extra").dataset.kind; }
@@ -1396,9 +1480,10 @@
     current = s;
     showView("stop");
     $("#stop-name").textContent = s.name;
-    $("#stop-id").innerHTML = esc(t("stop_n", { id: "\u0000" })).replace("\u0000", `<strong>${esc(s.id)}</strong>`);
+    // Como en el mockup (4): "Parada 8820 · 20 líneas"; las chapas de las líneas, al final de la hoja.
+    $("#stop-id").textContent = `${t("stop_n", { id: s.id })} · ${nLines(s.lines.length)}`;
     $("#stop-lines").innerHTML = s.lines.map((l) => lineChip(l)).join("");
-    $("#stop-dist").textContent = me ? ` · ${fmtDist(haversine(me, s.ll))}, ${t("walk", { n: walkMin(haversine(me, s.ll)) })}` : "";
+    $("#stop-dist").textContent = "";
     $("#infobus").href = INFOBUS_URL(s.id);
     updateFavBtn();
     document.title = `${s.name} · ${APP_NAME}`;
@@ -1595,8 +1680,10 @@
                      : `<span class="eta">${etaNum(m)}</span>`;
         sub = delayHtml(g.delay) + (g.mins[1] != null ? `<small>${esc(t("next", { n: g.mins[1] }))}</small>` : "");
       } else {
-        eta = `<span class="eta sched"><b>${esc(hhmm(g.at[0]))}</b></span>`;
-        sub = `<small class="sched-tag">${esc(t("scheduled"))}${g.at[1] != null ? ` · ${esc(t("then_at", { time: hhmm(g.at[1]) }))}` : ""}</small>`;
+        // Según horario: "previsto" y los minutos que faltan, en naranja (mockup 4).
+        const m = Math.max(0, Math.round(g.sortMin));
+        eta = `<span class="eta sched"><small>${esc(t("sched_word"))}</small>${etaNum(m)}</span>`;
+        sub = `<small class="sched-tag">${esc(t("sched_sub"))}${g.at[1] != null ? ` · ${esc(t("then_at", { time: hhmm(g.at[1]) }))}` : ""}</small>`;
       }
       // Toda la fila (número, destino y tiempo) abre la línea en el mapa.
       const known = lines && lines[g.linea];
@@ -1719,7 +1806,7 @@
           const key = `${code}|${norm(raw)}`;
           if (seen.has(key)) return;              // de cada línea y letrero, el próximo en esa parada
           seen.add(key);
-          rows.push({ code, raw, ruta: titleCase(raw), m, s, walk });
+          rows.push({ code, raw, ruta: titleCase(raw), m, s, walk, d });
         });
       });
       // De cada línea y letrero, solo en la parada donde sale antes.
@@ -1731,7 +1818,7 @@
         const known = lines && lines[r.code];
         return `<${known ? "button" : "div"} class="arrival"${known ? ` type="button" data-near-line="${esc(r.code)}" data-near-stop="${esc(r.s.id)}" data-near-raw="${esc(r.raw)}"` : ""}>
           <span class="badge"${lineStyle(r.code)}>${esc(r.code)}</span>
-          <span class="route"><b>${esc(r.ruta)}</b><small>${esc(r.s.name)} · ${esc(t("walk", { n: r.walk }))}</small></span>${eta}
+          <span class="route"><b>${esc(r.ruta)}</b><small>${esc(r.s.name)} · ${esc(fmtDist(r.d))}</small></span>${eta}
         </${known ? "button" : "div"}>`;
       }).join("") : `<p class="note">${esc(t("near_dep_none"))}</p>`;
     });
@@ -2040,9 +2127,17 @@
     document.title = `${place.label} · ${APP_NAME}`;
     $("#place-name").textContent = place.label;
     updatePlaceFav();
-    $("#place-meta").textContent = place.site ? t(`site_${place.site}`) : place.approx ? t("addr_approx") : /\d/.test(place.label) ? t("addr_exact") : t("addr_whole");
-    $("#place-dist").textContent = me ? ` · ${fmtDist(haversine(me, place.ll))}` : "";
-    $("#place-stops").replaceChildren(...nearest(place.ll, 6).map(({ s, d }) => stopItem(s, { dist: d, sub: t("walk", { n: walkMin(d * 1.25) }) })));
+    // Como en el mockup (10): "Dirección · a 650 m de ti" y las paradas de alrededor con sus líneas.
+    $("#place-meta").textContent = place.site ? t(`site_${place.site}`) : place.approx ? t("addr_approx") : /\d/.test(place.label) ? t("fav_address") : t("addr_whole");
+    $("#place-dist").textContent = me ? ` · ${t("from_you", { d: fmtDist(haversine(me, place.ll)) })}` : "";
+    $("#place-stops").replaceChildren(...nearest(place.ll, 6).map(({ s, d }) => {
+      const li = document.createElement("li");
+      li.innerHTML = `<button type="button" class="pstop" data-id="${esc(s.id)}">
+        <span class="txt"><span class="name">${esc(s.name)}</span><span class="pl"><small>${esc(t("stop_n", { id: s.id }))}</small>${s.lines.map((l) => `<i${lineStyle(l)}>${esc(l)}</i>`).join("")}</span></span>
+        <span class="walk"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="13" cy="4" r="2"/><path d="M9 21l3-7 3 3v4M7 12l3-4 4 2 3 3"/></svg>${esc(hMin(walkMin(d * 1.25)))}</span>
+      </button>`;
+      return li;
+    }));
     if (!placeMarker) placeMarker = L.marker(place.ll, { icon: placeIcon, keyboard: false, interactive: false, zIndexOffset: 1200 });
     placeMarker.setLatLng(place.ll).addTo(map);
     if (!same) {
@@ -2473,7 +2568,7 @@
 
   // Una calle propuesta. num: número escrito; "" toda la calle; null falta el número (al tocarla
   // se completa el campo con "Calle, " para seguir escribiendo).
-  function addrItem(st, num, tokens) {
+  function addrItem(st, num, tokens, tile = false) {
     const li = document.createElement("li");
     let sub;
     if (num === null) sub = t("addr_add_num");
@@ -2482,6 +2577,10 @@
     // Calles con el mismo nombre en sitios distintos: se dice cerca de qué parada están.
     if (st.dup && stops.length) sub += ` · ${t("near_stop", { name: nearest(st.ll, 1)[0].s.name })}`;
     const label = num ? `${st.name}, ${num}` : st.name;
+    if (tile) {
+      return resRow(`data-addr="${st.i}" data-num="${num === null ? "" : esc(num)}"${num === null ? ' data-fill="1"' : ""}`, PIN_TILE,
+        highlight(num === null ? `${st.name}, …` : label, tokens), esc(sub), me ? haversine(me, dirData.resolve(st, num || "").ll) : null);
+    }
     li.innerHTML = `<button type="button" data-addr="${st.i}" data-num="${num === null ? "" : esc(num)}"${num === null ? ' data-fill="1"' : ""}>
       <span class="name">${highlight(label, tokens)}</span>
       <span class="sub">${esc(sub)}</span>
@@ -3610,6 +3709,10 @@
   // Tocar una pestaña muestra su contenido aunque quedara texto en el buscador.
   TABS.forEach((tab) => $(`#tab-${tab}`).addEventListener("click", () => { $("#q").value = ""; setTab(tab); }));
   $("#locate").addEventListener("click", locate);
+  $("#map-back").addEventListener("click", goBack);
+  $("#fab-fav").addEventListener("click", () => navigate("favoritas"));
+  // Ir a casa: el viaje hasta casa; si aún no está elegida, Favoritas para elegirla.
+  $("#fab-home").addEventListener("click", () => { if (favs.home) goTo(favs.home); else navigate("favoritas"); });
 
   $("#q").addEventListener("input", () => {
     clearTimeout(qTimer);
@@ -3617,10 +3720,21 @@
   });
   $("#q").addEventListener("focus", () => {
     if (!isDesktop()) $("#panel").dataset.state = "full";
-    if (!$("#q").value.trim() && !location.hash && recents.length) render();
+    if (!$("#q").value.trim() && !location.hash) render();
+  });
+  $("#q-clear").addEventListener("click", () => { $("#q").value = ""; $("#q").focus(); render(); });
+  $("#q-cancel").addEventListener("click", () => {
+    clearTimeout(qTimer);
+    $("#q").value = "";
+    $("#q").blur();
+    mode = "near";
+    if (location.hash) navigate(""); else render();
+    if (!isDesktop()) panel.dataset.state = "peek";
   });
   // Al salir del buscador vacío, vuelve la pestaña. Tocar un reciente no quita el foco (mousedown).
-  $("#q").addEventListener("blur", () => setTimeout(() => { if (mode === "recent" && document.activeElement !== $("#q")) render(); }, 150));
+  $("#q").addEventListener("blur", () => setTimeout(() => {
+    if (mode === "recent" && document.activeElement !== $("#q")) { render(); if (!isDesktop() && panel.dataset.view === "home") panel.dataset.state = "peek"; }
+  }, 150));
   $("#list").addEventListener("mousedown", (e) => { if (mode === "recent" && e.target.closest("button")) e.preventDefault(); });
   $("#q").addEventListener("keydown", (e) => {
     if (e.key === "Enter") {
@@ -3630,7 +3744,7 @@
       const first = $("#list button[data-id], #list button[data-line], #list button[data-site], #list button[data-addr]");
       if (first) first.click();
     }
-    if (e.key === "Escape") { e.target.value = ""; render(); }
+    if (e.key === "Escape") { $("#q-cancel").click(); }
   });
 
   // Hoja inferior (móvil): deslizar hacia abajo la reduce hasta dejar casi todo el mapa a la vista;

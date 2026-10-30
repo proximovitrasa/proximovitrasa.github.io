@@ -830,3 +830,175 @@ button.badge:hover { filter: brightness(1.08); }
 .about-x { position: absolute; top: 14px; right: 14px; width: 36px; height: 36px; padding: 0; border: 0; border-radius: 50%; background: var(--surface); color: var(--brand); box-shadow: var(--sh-sm); display: grid; place-items: center; }
 .about-x svg { width: 18px; height: 18px; stroke-width: 2.6; }
 .about-card p:last-of-type { margin-bottom: 0; }
+
+/* ==========================================================================
+   Rediseño (63), fase 2: inicio, buscador en uso, parada y dirección (mockups 3, 11, 4 y 10)
+   ========================================================================== */
+/* Instalar la app: ahora en Más (la franja de arriba taparía el buscador) */
+.install { display: none !important; }
+
+/* Botones sobre el mapa: rojos, con sombra pequeña */
+.locate { background: var(--brand); color: var(--brand-ink); box-shadow: var(--sh-sm); }
+.locate svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; }
+.locate svg .dot { fill: currentColor; stroke: none; }
+.map-fabs, .map-back { display: none; }
+.map-fabs { position: fixed; left: 16px; z-index: 900; flex-direction: column; border-radius: 12px; overflow: hidden; background: var(--brand); box-shadow: var(--sh-sm); }
+.map-fabs button { display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border: 0; background: transparent; color: var(--brand-ink); }
+.map-fabs button + button { border-top: 1px solid rgba(255, 255, 255, .25); color: #FFD25A; }
+.map-fabs svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+#fab-fav svg { fill: currentColor; stroke-width: 1.5; }
+.map-back { position: fixed; left: 16px; top: calc(18px + env(safe-area-inset-top)); z-index: 900; place-items: center; width: 44px; height: 44px; padding: 0; border: 0; border-radius: 50%; background: var(--surface); color: var(--ink); box-shadow: var(--sh-sm); }
+.map-back svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+
+/* Buscador: blanco, 52 px, radio 16, sombra media; "Cómo llegar" cuadrado rojo con su icono */
+.search-row { gap: 10px; align-items: center; }
+.search { display: flex; align-items: center; gap: 10px; height: 52px; padding: 0 16px; background: var(--surface); border-radius: 16px; box-shadow: var(--sh-md); }
+.search > svg { position: static; transform: none; flex: none; width: 20px; height: 20px; color: var(--granite); fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; }
+.search input { flex: 1; min-width: 0; height: 100%; padding: 0; border: 0; border-radius: 0; background: transparent; font-size: 16px; color: var(--ink); }
+.search input:focus { box-shadow: none; }
+.search input::-webkit-search-cancel-button { display: none; }
+.q-clear { flex: none; display: grid; place-items: center; width: 32px; height: 32px; padding: 0; margin-right: -4px; border: 0; border-radius: 50%; background: var(--chip); color: var(--granite); }
+.q-clear[hidden] { display: none; }
+.q-clear svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2.6; stroke-linecap: round; }
+.trip-btn { width: 52px; min-width: 0; height: 52px; padding: 0; border-radius: 16px; background: var(--brand); color: var(--brand-ink); box-shadow: var(--sh-md); }
+.trip-btn svg { width: 22px; height: 22px; stroke-width: 2.2; }
+.trip-btn span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.q-cancel { display: none; flex: none; min-height: 44px; padding: 0 2px; border: 0; background: transparent; color: var(--brand-ink); font-size: 15px; font-weight: 600; }
+
+/* Hoja (inicio, parada, dirección): 20 px a los lados y el asa como en el mockup */
+.panel[data-screen="home"], .panel[data-view="stop"], .panel[data-view="place"] { padding-left: 20px; padding-right: 20px; }
+.panel[data-screen="home"] .grip, .panel[data-view="stop"] .grip, .panel[data-view="place"] .grip { height: 24px; align-items: start; padding-top: 10px; }
+.grip span { background: #DAD3CF; }
+@media (prefers-color-scheme: dark) { .grip span { background: #4A4550; } }
+.panel[data-screen="home"] .view, .panel[data-view="stop"] .view, .panel[data-view="place"] .view { margin-top: 0; }
+.panel[data-screen="home"] #list, .panel[data-screen="search"] #list { margin: 0 -20px; padding: 0 20px 16px; }
+.panel[data-view="stop"] .search-row, .panel[data-view="place"] .search-row { display: none; }
+
+/* Inicio: "Sale ya cerca de ti" */
+.stops .near-dep { border: 0; }
+.near-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.near-head h3 { margin: 0; font: 700 20px/1.2 var(--cond); }
+.stops .near-head .near-more { width: auto; display: inline; padding: 4px 0; border: 0; background: none; color: var(--brand); font-size: 14px; font-weight: 600; white-space: nowrap; }
+.stops .near-head .near-more:hover { background: none; text-decoration: underline; }
+.stops .near-dep-list { margin: 6px 0 0; padding: 0; }
+.near-dep-list .note { margin: 8px 0; font-size: 14px; }
+.stops .near-dep-list .arrival, .arrivals .arrival { grid-template-columns: 48px minmax(0, 1fr) auto; column-gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--line); }
+.arrivals .arrival { padding: 10px 0; }
+.stops .near-dep-list .arrival:hover, .arrivals button.arrival:hover { background: none; }
+.near-dep-list .badge, .arrivals .badge { justify-self: start; height: auto; min-width: 0; padding: 2px 10px; border-radius: 7px; font: 700 17px/1.2 var(--cond); }
+.near-dep-list .route b, .arrivals .route b { font-size: 15px; font-weight: 600; line-height: 1.3; }
+.near-dep-list .route small, .arrivals .route small { font-size: 13px; color: var(--granite); font-weight: 400; }
+.arrivals .route small.ontime, .arrivals .route small.late, .arrivals .route small.early { font-weight: 400; color: var(--granite); }
+.arrivals .route small.ontime::first-letter, .arrivals .route small.late::first-letter { text-transform: uppercase; }
+.near-dep-list .eta, .arrivals .eta { font-family: var(--sans); color: var(--live); font-weight: 600; font-size: 16px; }
+.near-dep-list .eta b { font: 700 24px/1 var(--cond); color: var(--live); }
+.arrivals .eta b { font: 700 26px/1 var(--cond); color: var(--live); }
+.near-dep-list .eta span, .arrivals .eta span { font: 600 16px/1 var(--sans); color: var(--live); margin-left: 4px; }
+.near-dep-list .eta.now b, .arrivals .eta.now b { font-size: 22px; }
+.arrivals .eta.sched, .arrivals .eta.sched b, .arrivals .eta.sched span { color: var(--sched); }
+.arrivals .eta.sched { font-size: 13px; line-height: 1.1; }
+.arrivals .eta.sched small { display: block; font: 600 13px/1.1 var(--sans); }
+.arrivals .arrival.is-sched .badge { opacity: 1; }
+.stops .sec-head { display: flex; align-items: baseline; justify-content: space-between; font: 700 19px/1.2 var(--cond); margin: 14px 0 4px; padding: 0; border: 0; color: var(--ink); }
+.stops .sec-head:first-child { margin-top: 2px; }
+.stops .sec-head .recent-clear { font: 600 14px/1 var(--sans); color: var(--brand); }
+
+/* Filas del buscador y de paradas: cuadro de 36 px con el icono, nombre, línea gris y distancia */
+.stops .res-row { display: grid; grid-template-columns: 36px minmax(0, 1fr) auto; align-items: center; column-gap: 12px; min-height: 52px; padding: 6px 0; border-bottom: 1px solid var(--line); }
+.stops .res-row:hover { background: none; }
+.res-row .tile { width: 36px; height: 36px; border-radius: 10px; background: var(--chip); display: grid; place-items: center; }
+.res-row .tile > svg { width: 22px; height: 22px; }
+.res-row .tile > svg.ln { width: 20px; height: 20px; fill: none; stroke: var(--soft); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.res-row .tile .badge { height: auto; min-width: 0; padding: 1px 6px; border-radius: 6px; font: 700 14px/1.25 var(--cond); }
+.res-row .txt { min-width: 0; }
+.stops .res-row .name { display: block; font-size: 15px; font-weight: 600; line-height: 1.3; }
+.stops .res-row .sub { display: block; font-size: 13px; color: var(--granite); }
+.stops .res-row .dist { grid-row: auto; grid-column: auto; align-self: center; margin: 0; font: 400 13px/1 var(--sans); color: var(--granite); }
+.stops .res-row mark { text-decoration: none; font-weight: 700; color: inherit; }
+.stops .see-all button { width: auto; display: inline-block; padding: 10px 0; border: 0; background: none; color: var(--brand); font-size: 14px; font-weight: 600; }
+
+/* Buscador en uso: cabecera roja con el buscador y "Cancelar"; resultados en la hoja blanca */
+.panel[data-screen="search"] { background: var(--brand); }
+.panel[data-screen="search"] .grip { display: none; }
+.panel[data-screen="search"] .search-row { padding: 0 0 12px; }
+.panel[data-screen="search"] .search { padding: 0 14px; outline: 3px solid rgba(255, 255, 255, .45); }
+.panel[data-screen="search"] .trip-btn { display: none; }
+.panel[data-screen="search"] .q-cancel { display: block; }
+.panel[data-screen="search"] #home { margin: 0 -12px; padding: 10px 20px 0; position: relative; background: var(--surface); border-radius: 28px 28px 0 0; box-shadow: var(--sh-up); }
+.panel[data-screen="search"] #home::before { content: ""; display: block; flex: none; width: 40px; height: 4px; margin: 0 auto 10px; border-radius: 2px; background: #DAD3CF; }
+@media (prefers-color-scheme: dark) { .panel[data-screen="search"] #home::before { background: #4A4550; } }
+.panel[data-screen="search"] #list-note { margin: 0 0 8px; font-size: 14px; }
+
+/* Parada y dirección: título de 26 px, línea gris y botones de 44 px */
+#stop > .stop-head, #place > .stop-head { grid-template-columns: minmax(0, 1fr) auto; align-items: start; }
+#stop .stop-title h2, #place .stop-title h2 { margin: 0; font: 700 26px/1.05 var(--cond); }
+#stop .stop-meta, #place .stop-meta { margin-top: 2px; font-size: 13px; color: var(--granite); }
+#stop .head-actions, #place .head-actions { gap: 4px; margin-right: -8px; }
+#stop .head-actions .icon-btn, #place .head-actions .icon-btn { width: 44px; height: 44px; border-radius: 50%; color: var(--soft); }
+#stop .head-actions .icon-btn:hover, #place .head-actions .icon-btn:hover { background: var(--chip); }
+#stop .head-actions svg, #place .head-actions svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+#stop .head-actions .share svg, #place .head-actions .share svg { width: 20px; height: 20px; }
+.fav[aria-pressed="true"] { color: #E0A800 !important; }
+.fav[aria-pressed="true"] svg { fill: currentColor !important; stroke: currentColor !important; stroke-width: 1.5 !important; }
+#stop { overflow-y: auto; overscroll-behavior: contain; margin: 0 -20px; padding: 0 20px; }
+#stop .arrivals { flex: none; overflow: visible; margin: 8px 0 0; padding: 0; }
+#stop .arrivals > .note { margin: 4px 0 6px; font-size: 13px; }
+/* Pie de la parada (al bajar): actualización, líneas que paran, Cómo llegar aquí e Infobus */
+#stop .stop-foot { display: block; padding: 12px 0 20px; color: var(--granite); }
+.stop-foot .upd { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0; font-size: 13px; }
+.stop-foot .upd #refresh { padding: 6px 0; color: var(--brand); font-size: 14px; font-weight: 600; }
+.stop-foot .sec-head { margin: 14px 0 8px; font: 700 19px/1.2 var(--cond); color: var(--ink); }
+.stop-foot #stop-lines { margin: 0; gap: 6px; }
+.stop-foot #stop-lines .chip { font: 700 15px/1.2 var(--cond); padding: 2px 9px; border-radius: 7px; border: 0; }
+.stop-foot .foot-btns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 16px; }
+.stop-foot .foot-btns button, .stop-foot .foot-btns a { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; padding: 0 10px; border: 0; border-radius: 14px; background: var(--chip); color: var(--ink); font-size: 15px; font-weight: 600; text-decoration: none; text-align: center; }
+.stop-foot .foot-btns svg { width: 20px; height: 20px; flex: none; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+
+/* Dirección: botón rojo "Cómo llegar aquí" y paradas de alrededor con sus líneas y minutos a pie */
+.place-trip { min-height: 48px; height: auto; margin-top: 12px; border-radius: 14px; background: var(--brand); color: var(--brand-ink); font: 600 16px/1 var(--sans); letter-spacing: 0; }
+.place-trip svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+#place .group-label { margin: 16px 0 0; padding: 0; border: 0; font: 700 19px/1.2 var(--cond); color: var(--ink); }
+#place-stops { margin: 0 -20px; padding: 0 20px 16px; }
+.stops .pstop { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; column-gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--line); }
+.stops .pstop:hover { background: none; }
+.stops li:last-child .pstop { border-bottom: 0; }
+.stops .pstop .name { display: block; font-size: 15px; font-weight: 600; line-height: 1.3; }
+.pstop .pl { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin-top: 4px; }
+.pstop .pl small { font-size: 12px; color: var(--granite); margin-right: 2px; }
+.pstop .pl i { font: normal 700 13px/1.25 var(--cond); padding: 1px 8px; border-radius: 6px; background: var(--lc, var(--chip)); color: var(--lt, var(--ink)); }
+.pstop .walk { display: flex; align-items: center; gap: 4px; font-size: 13px; color: var(--soft); white-space: nowrap; }
+.pstop .walk svg { width: 14px; height: 14px; fill: none; stroke: var(--granite); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+/* Aviso: abajo, encima de la barra (antes se estiraba de arriba abajo) */
+@media (max-width: 859.98px) { .toast { top: auto; } }
+
+/* Móvil: posiciones y altos del mockup (390 × 844) */
+@media (max-width: 859.98px) {
+  /* Inicio: buscador flotando arriba, hoja de 264 px, botones 16 px por encima de la hoja */
+  .panel[data-screen="home"] .search-row { position: fixed; z-index: 1002; top: calc(18px + env(safe-area-inset-top)); left: 16px; right: 16px; }
+  .panel[data-screen="home"][data-state="min"] .search { visibility: visible; }
+  .panel[data-screen="home"]:not([data-state="full"]) { height: 264px; min-height: 0; }
+  .panel[data-screen="home"][data-state="min"] { height: 92px; }
+  .panel[data-screen="home"][data-state="full"] { height: calc(100dvh - var(--nav-h) - 88px - env(safe-area-inset-top)); }
+  .panel[data-screen="home"] ~ .map-fabs { display: flex; bottom: calc(264px + 16px + var(--nav-h)); }
+  .panel[data-screen="home"] ~ .locate { bottom: calc(264px + 16px + var(--nav-h)); }
+  .panel[data-screen="home"][data-state="min"] ~ .map-fabs, .panel[data-screen="home"][data-state="min"] ~ .locate { bottom: calc(92px + 16px + var(--nav-h)); }
+  .panel[data-screen="home"][data-state="full"] ~ .map-fabs { display: none; }
+  /* Buscador en uso: pantalla roja entera hasta la barra */
+  .panel[data-screen="search"] { height: calc(100dvh - var(--nav-h)) !important; border-radius: 0; padding: calc(12px + env(safe-area-inset-top)) 12px 0; }
+  .panel[data-screen="search"] ~ .locate, .panel[data-screen="search"] ~ .map-fabs { display: none; }
+  /* Parada y dirección: el mapa arriba (272 px) con volver y mi ubicación; la hoja debajo */
+  .panel[data-view="stop"], .panel[data-view="place"] { height: calc(100dvh - var(--nav-h) - 272px); min-height: 300px; }
+  .panel[data-view="stop"][data-state="min"], .panel[data-view="place"][data-state="min"] { height: 92px; min-height: 0; }
+  .panel[data-view="stop"][data-state="full"], .panel[data-view="place"][data-state="full"] { height: calc(100dvh - var(--nav-h) - 80px - env(safe-area-inset-top)); }
+  .panel[data-view="stop"] ~ .map-back, .panel[data-view="place"] ~ .map-back { display: grid; }
+  .panel[data-view="stop"] ~ .locate, .panel[data-view="place"] ~ .locate { top: calc(18px + env(safe-area-inset-top)); bottom: auto !important; width: 44px; height: 44px; display: grid; }
+  #stop > .stop-head > #back, #place > .stop-head > #place-back { display: none; }
+}
+@media (min-width: 860px) {
+  #stop > .stop-head, #place > .stop-head { grid-template-columns: auto minmax(0, 1fr) auto; }
+}
+.res-row .tile > svg:not(.ln) { stroke: none; }
+.q-clear svg { position: static; transform: none; color: currentColor; }
+.search input { -webkit-appearance: none; appearance: none; }
+@media (min-width: 860px) { .panel[data-screen="home"] .view { margin-top: 16px; } }
