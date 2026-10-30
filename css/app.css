@@ -1204,3 +1204,6 @@ body:has(.panel:not([data-screen="home"])) .install, body:has(.panel[data-state=
 .desk-acts .opt-star[aria-pressed="true"] { color: #E0A800; }
 .desk-acts .opt-star[aria-pressed="true"] svg { fill: currentColor; }
 #when-now[aria-pressed="true"] { border: 0; box-shadow: none; color: #A8141F; }
+/* "Previsto en 2 min · Sin buses en vivo" en una sola línea */
+.trip-opts .when .warn.nl { font-size: 13px; white-space: nowrap; }
+.trip-opts .when .sched + .warn.nl { margin-left: 0; }

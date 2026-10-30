@@ -3048,7 +3048,7 @@
       return `<li class="opt-li"><button type="button" class="opt" data-opt="${esc(j.key)}"${cur(j.key)}>
         <span class="chain">${chain(j)}</span>
         <span class="eta">${durHtml(total)}</span>
-        <span class="when">${leave}${statusHtml(first)}${late}${first.doubtful ? ` <span class="warn">${esc(t("no_live"))}</span>` : ""}${isTight(j) ? ` <span class="warn">${esc(t("tight_transfer"))}</span>` : ""}</span>
+        <span class="when">${leave}${statusHtml(first)}${late}${first.doubtful ? `<span class="warn nl"> · ${esc(t("no_live"))}</span>` : ""}${isTight(j) ? ` <span class="warn">${esc(t("tight_transfer"))}</span>` : ""}</span>
         <span class="arr">${esc(arriveShort(j.arr))}</span>
       </button></li>`;
     });
