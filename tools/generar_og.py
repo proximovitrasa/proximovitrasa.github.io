@@ -14,7 +14,7 @@ body{{margin:0;width:1200px;height:630px;background:#F4F1EF;display:flex;align-i
 img{{width:380px;height:380px;filter:drop-shadow(0 16px 32px rgba(94,46,50,.25))}}
 h1{{font:72px/1 BC;color:#1B1B1F;margin:0 0 20px}} p{{font:34px/1.3 BM;color:#4A454E;margin:0}}
 </style><img src="data:image/svg+xml;base64,{b64('icons/logo.svg')}">
-<div><h1>Vigo Bus</h1><p>Próximo bus, paradas, líneas y cómo llegar en Vigo.</p></div>"""
+<div><h1>Vitrasa en Vivo</h1><p>El bus donde realmente está, no donde debería estar</p></div>"""
 
 with sync_playwright() as p:
     b = p.chromium.launch()
