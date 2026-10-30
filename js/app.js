@@ -1254,7 +1254,8 @@
     return busState({ loc: track.loc, est, at: track.at });   // con "cabecera" (38), como en Cómo llegar
   }
 
-  const BUS_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3.5h10a2.5 2.5 0 0 1 2.5 2.5v10.5a1.5 1.5 0 0 1-1.5 1.5H6a1.5 1.5 0 0 1-1.5-1.5V6A2.5 2.5 0 0 1 7 3.5z"/><rect x="6" y="17" width="3" height="3" rx="1"/><rect x="15" y="17" width="3" height="3" rx="1"/><rect class="w" x="6.6" y="6.2" width="10.8" height="5" rx="1"/><circle class="w" cx="8" cy="14.4" r="1.1"/><circle class="w" cx="16" cy="14.4" r="1.1"/></svg>';
+  // Bus en marcha (mockups 2 y 5): un autobús de lado, blanco, con las ventanas del color de la línea.
+  const BUS_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path class="bw" d="M3.5 6h15.2a2.3 2.3 0 0 1 2.2 1.6l1.1 3.6V16a1 1 0 0 1-1 1H3.5a1.5 1.5 0 0 1-1.5-1.5v-8A1.5 1.5 0 0 1 3.5 6z"/><rect class="bc" x="4" y="8" width="3.6" height="3.4" rx=".6"/><rect class="bc" x="8.6" y="8" width="3.6" height="3.4" rx=".6"/><rect class="bc" x="13.2" y="8" width="3.6" height="3.4" rx=".6"/><path class="bc" d="M17.8 8h1.3l1.1 3.4h-2.4z"/><circle class="bw bs" cx="7" cy="17" r="2.1"/><circle class="bw bs" cx="17" cy="17" r="2.1"/></svg>';
 
   // Bus en vivo en el mapa: destacado (anillo y pulso del color de la línea) y, a su lado, lo que
   // le falta para llegar a la parada. Lo usan la línea abierta desde una parada y Cómo llegar.
@@ -1270,6 +1271,8 @@
     const el = marker.getElement();
     if (!el) return;
     el.querySelector(".bus-arrow").style.transform = `rotate(${Math.round(s.bearing)}deg)`;
+    // El autobús mira hacia donde va: hacia el oeste, dado la vuelta.
+    el.querySelector(".bus-dot > svg").style.transform = ((s.bearing % 360) + 360) % 360 > 180 ? "scaleX(-1)" : "";
     const m = Math.round(Number(est.minutos) - (Date.now() - at) / 60000);
     el.querySelector(".bus-eta").textContent = m <= 0 ? t("arriving") : hMin(m);
   }
@@ -1434,7 +1437,7 @@
       sub = m <= 0 ? `<span class="eta now"><b>${esc(t("arriving"))}</b></span>`
                    : `<span class="eta">${etaNum(m)}</span>`;
     } else main = esc(t("bus_none"));
-    card.innerHTML = `<span class="bus-dot">${BUS_ICON}</span>
+    card.innerHTML = `<span class="bus-dot" style="--lc:${l.color}">${BUS_ICON}</span>
       <span class="what"><b>${esc(tr.stop === active.from ? t("bus_title_short") : t("bus_title", { stop: s ? s.name : tr.stop }))}</b><small>${main}</small></span>${sub}`;
     card.hidden = false;
   }
@@ -2537,7 +2540,7 @@
   // Diccionario de calles y portales (js/direcciones.js); se descarga al abrir "Cómo llegar".
   let dirData = null;
   const ensureDir = () => window.PV_DIR.load().then((d) => (dirData = d));
-  const pinIcon = (w) => L.divIcon({ className: "trip-pin", html: `<span class="pin pin-${w}">${w.toUpperCase()}</span>`, iconSize: [30, 30], iconAnchor: [15, 15] });
+  const pinIcon = (w) => L.divIcon({ className: "trip-pin", html: `<span class="pin pin-${w}">${w.toUpperCase()}</span>`, iconSize: [28, 28], iconAnchor: [14, 14] });
 
   function openTrip(b) {
     if (!trip.a && me && !farFromVigo(me)) trip.a = { kind: "me", ll: me };
@@ -3883,6 +3886,12 @@
   TABS.forEach((tab) => $(`#tab-${tab}`).addEventListener("click", () => { $("#q").value = ""; setTab(tab); }));
   $("#locate").addEventListener("click", locate);
   $("#map-back").addEventListener("click", goBack);
+  // Bordes del mapa difuminados (mockups): la de abajo sigue a la hoja cuando sube o baja.
+  const fadeAt = () => document.documentElement.style.setProperty("--sheet-top", `${Math.round(panel.getBoundingClientRect().top)}px`);
+  if (window.ResizeObserver) new ResizeObserver(fadeAt).observe(panel);
+  panel.addEventListener("transitionend", fadeAt);
+  addEventListener("resize", fadeAt);
+  fadeAt();
   $("#map-share").addEventListener("click", () => $('[data-share="line"]').click());
   $("#map-full").addEventListener("click", () => setPanel(panel.dataset.state === "min" ? baseState() : "min"));
   $("#tf-share").addEventListener("click", () => $('[data-share="trip"]').click());

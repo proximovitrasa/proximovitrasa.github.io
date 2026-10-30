@@ -1187,7 +1187,7 @@ body:has(.panel:not([data-screen="home"])) .install, body:has(.panel[data-state=
   .panel[data-screen="tripd"] .grip { height: 24px; align-items: start; padding-top: 10px; }
   .panel[data-screen="tripd"] #trip > .trip-head, .panel[data-screen="tripd"] .trip-chips, .panel[data-screen="tripd"] .trip-fields, .panel[data-screen="tripd"] .trip-when, .panel[data-screen="tripd"] #trip-pref { display: none !important; }
   .panel[data-screen="tripd"] .trip-result { margin: 0 -20px; padding: 0 20px 16px; }
-  .panel[data-screen="tripd"] ~ .map-back, .panel[data-screen="tripd"] ~ .map-full { display: grid; }
+  .panel[data-screen="tripd"] ~ .map-back, .panel[data-screen="tripd"] ~ #map-full { display: grid; }
   .panel[data-screen="tripd"] ~ #trip-fabs { display: flex; top: calc(236px + env(safe-area-inset-top)); }
   .panel[data-screen="tripd"] ~ .locate { display: grid; top: calc(280px + env(safe-area-inset-top)); bottom: auto !important; }
   .panel[data-screen="tripd"][data-state="min"] ~ #trip-fabs, .panel[data-screen="tripd"][data-state="min"] ~ .locate { top: auto; bottom: calc(92px + 16px + var(--nav-h)) !important; }
@@ -1326,3 +1326,43 @@ body:has(.panel:not([data-screen="home"])) .install, body:has(.panel[data-state=
 }
 /* Casa y trabajo: "27 min · A en 4 min" */
 .hw-txt small .hb { font: normal 700 12px/1.2 var(--cond); padding: 0 5px; border-radius: 4px; background: var(--lc, var(--chip)); color: var(--lt, var(--ink)); }
+
+/* ==========================================================================
+   Rediseño (63), fase 5: mapa
+   ========================================================================== */
+/* Bus en marcha: círculo del color de la línea con borde blanco, halo, flecha y los minutos */
+.bus-pin .bus-dot { width: 36px; height: 36px; background: var(--lc); box-shadow: 0 0 0 3px #fff, 0 0 0 10px color-mix(in srgb, var(--lc) 16%, transparent), 0 3px 8px rgba(94, 46, 50, .3); }
+.bus-pin .bus-dot svg { width: 24px; height: 24px; }
+.bus-pin .bus-dot::after { inset: -10px; border-width: 2px; }
+.bus-dot svg .bw { fill: #fff; }
+.bus-dot svg .bc { fill: var(--lc); }
+.bus-dot svg .bs { stroke: var(--lc); stroke-width: 1.4; }
+.bus-arrow { inset: -13px; }
+.bus-arrow::before { border-width: 0 6px 8px; border-color: transparent transparent var(--lc); filter: drop-shadow(0 0 1px #fff) drop-shadow(0 0 1px #fff); }
+.bus-eta { left: calc(100% + 12px); padding: 0 10px; height: 24px; display: flex; align-items: center; border-radius: 12px; background: var(--lc, #13222C); color: var(--lt, #fff); font: 600 13px/1 var(--sans); box-shadow: 0 0 0 2px #fff, 0 2px 6px rgba(94, 46, 50, .3); }
+.bus-pin .bus-eta { background: var(--lc); }
+.bus-pin { --lt: #fff; }
+/* Mi ubicación: punto azul con borde blanco y halo suave */
+.me-dot { width: 19px; height: 19px; border: 3px solid #fff; background: #1C6FA8; box-shadow: 0 0 0 16px rgba(28, 111, 168, .14), 0 1px 3px rgba(19, 34, 44, .35); }
+/* Origen y destino: círculos de 22 px con la letra (A oscuro, B rojo) */
+.trip-pin .pin { width: 22px; height: 22px; font: 700 13px/1 var(--cond); box-shadow: 0 0 0 3px #fff, 0 2px 4px rgba(19, 34, 44, .35); }
+.pin-a { background: #1B1B1F; }
+.pin-b { background: var(--brand); }
+
+/* Bordes del mapa difuminados en el color de la hoja (móvil) */
+.map-fade { display: none; position: fixed; inset: 0; z-index: 800; pointer-events: none; --fc: var(--surface); }
+.map-fade i { position: absolute; display: block; }
+.map-fade .ft { left: 0; right: 0; top: 0; height: 115px; background: linear-gradient(180deg, var(--fc) 0%, color-mix(in srgb, var(--fc) 85%, transparent) 25%, color-mix(in srgb, var(--fc) 45%, transparent) 60%, transparent 100%); }
+.map-fade .fl, .map-fade .fr { top: 0; width: 22px; height: calc(var(--sheet-top, 60vh) - 20px); }
+.map-fade .fl { left: 0; background: linear-gradient(90deg, var(--fc) 0%, color-mix(in srgb, var(--fc) 70%, transparent) 35%, transparent 100%); }
+.map-fade .fr { right: 0; background: linear-gradient(270deg, var(--fc) 0%, color-mix(in srgb, var(--fc) 70%, transparent) 35%, transparent 100%); }
+.map-fade .fb { left: 0; right: 0; top: calc(var(--sheet-top, 60vh) - 92px); height: 120px; background: linear-gradient(180deg, transparent 0%, color-mix(in srgb, var(--fc) 35%, transparent) 40%, color-mix(in srgb, var(--fc) 80%, transparent) 75%, var(--fc) 100%); }
+@media (max-width: 859.98px) {
+  .panel[data-screen="home"] ~ .map-fade, .panel[data-view="stop"] ~ .map-fade, .panel[data-view="place"] ~ .map-fade,
+  .panel[data-view="line"] ~ .map-fade, .panel[data-screen="tripd"] ~ .map-fade { display: block; }
+  .panel[data-screen="home"] ~ .map-fade .ft { height: 140px; }
+  .panel[data-screen="home"] ~ .map-fade .fb { top: calc(var(--sheet-top, 60vh) - 64px); }
+  .panel[data-state="min"] ~ .map-fade .fb { display: none; }
+}
+/* "previsto" encima de los minutos (la clase .sched de Cómo llegar no debe ponerlo en línea) */
+.arrivals .eta.sched, .near-dep-list .eta.sched, #line-bus .eta.sched { display: block; }
