@@ -1266,7 +1266,7 @@
   function busMarker(color, texto, ll) {
     return L.marker(ll, { keyboard: false, interactive: false, zIndexOffset: 900, icon: L.divIcon({
       className: "bus-pin", iconSize: [40, 40], iconAnchor: [20, 20],
-      html: `<span class="bus-dot" style="--lc:${color};--lt:${texto}"><span class="bus-arrow"></span>${BUS_ICON}</span><span class="bus-eta"></span>`,
+      html: `<span class="bus-dot" style="--lc:${color};--lt:${texto}"><span class="bus-arrow"></span>${BUS_ICON}</span><span class="bus-eta" style="--lc:${color};--lt:${texto}"></span>`,
     }) });
   }
   function placeBus(marker, s, est, at) {
