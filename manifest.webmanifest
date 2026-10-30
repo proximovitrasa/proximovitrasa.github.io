@@ -1,6 +1,6 @@
 {
-  "name": "ProximoVitrasa",
-  "short_name": "ProximoVitrasa",
+  "name": "Vigo Bus",
+  "short_name": "Vigo Bus",
   "description": "Paradas de Vitrasa en Vigo y cuándo llega el próximo bus.",
   "lang": "es",
   "start_url": "./",

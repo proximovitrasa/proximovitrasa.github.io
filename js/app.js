@@ -51,6 +51,8 @@
   const $ = (s) => document.querySelector(s);
   const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const norm = (s) => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9ñ ]+/g, " ").replace(/\s+/g, " ").trim();
+  // Nombre de la web (antes ProximoVitrasa; cambiado a "Vigo Bus" por el usuario el 30/10).
+  const APP_NAME = "Vigo Bus";
   const isDesktop = () => matchMedia("(min-width: 860px)").matches;
   const canHover = matchMedia("(hover: hover)").matches;
 
@@ -894,7 +896,7 @@
     if (!own || which !== "lines") { $("#screen-extra").replaceChildren(); delete $("#screen-extra").dataset.kind; }
     $("#screen-title").textContent = own ? t(which === "fav" ? "tab_fav" : "tab_lines") : "";
     if (!isDesktop()) panel.dataset.state = own ? "full" : (panel.dataset.state === "full" ? "peek" : panel.dataset.state || "peek");
-    document.title = own ? `${$("#screen-title").textContent} · ProximoVitrasa` : "ProximoVitrasa";
+    document.title = own ? `${$("#screen-title").textContent} · ${APP_NAME}` : APP_NAME;
     updateTabbar();
     render();
   }
@@ -1032,7 +1034,7 @@
     $("#line-dirs").innerHTML = dirs.map((i) =>
       `<button role="tab" type="button" data-dir="${i}" aria-selected="${i === active.dir}">${esc(t("towards", { dest: l.sentidos[i].destino }))}</button>`).join("");
     renderLineStops();
-    document.title = `${t("line_n", { code })} · ProximoVitrasa`;
+    document.title = `${t("line_n", { code })} · ${APP_NAME}`;
     if (!isDesktop()) panel.dataset.state = "peek";
     drawLine();
     if (changed) {
@@ -1399,7 +1401,7 @@
     $("#stop-dist").textContent = me ? ` · ${fmtDist(haversine(me, s.ll))}, ${t("walk", { n: walkMin(haversine(me, s.ll)) })}` : "";
     $("#infobus").href = INFOBUS_URL(s.id);
     updateFavBtn();
-    document.title = `${s.name} · ProximoVitrasa`;
+    document.title = `${s.name} · ${APP_NAME}`;
     if (repaint) return;           // solo volver a escribir los textos (cambio de idioma)
     if (!isDesktop()) panel.dataset.state = "stop";
     selRing.setLatLng(s.ll).addTo(map);
@@ -1633,7 +1635,7 @@
     clearLine();
     showView("sched");
     if (!sched || sched.id !== id || sched.line !== line) sched = { id, day: sched && sched.id === id ? sched.day : todayType(), line };
-    document.title = `${t("sched_title")}${line ? ` · ${line}` : ""} · ${s.name} · ProximoVitrasa`;
+    document.title = `${t("sched_title")}${line ? ` · ${line}` : ""} · ${s.name} · ${APP_NAME}`;
     $("#sched-name").textContent = s.name;
     $("#sched-meta").textContent = line ? `${t("line_n", { code: line })} · ${t("stop_n", { id })}` : t("stop_n", { id });
     if (!isDesktop()) panel.dataset.state = "full";
@@ -2035,7 +2037,7 @@
     const same = place && placeToken(place) === placeToken(next);   // p. ej., al cambiar de idioma
     showView("place");
     place = next;
-    document.title = `${place.label} · ProximoVitrasa`;
+    document.title = `${place.label} · ${APP_NAME}`;
     $("#place-name").textContent = place.label;
     updatePlaceFav();
     $("#place-meta").textContent = place.site ? t(`site_${place.site}`) : place.approx ? t("addr_approx") : /\d/.test(place.label) ? t("addr_exact") : t("addr_whole");
@@ -2103,7 +2105,7 @@
     const d = shareData(ctx);
     if (!d) return;
     if (navigator.share && touchDevice()) {
-      try { await navigator.share({ title: "ProximoVitrasa", text: d.text, url: d.url }); return; }
+      try { await navigator.share({ title: APP_NAME, text: d.text, url: d.url }); return; }
       catch (e) { if (e && e.name === "AbortError") return; }   // cerrado por el usuario: nada que hacer
     }
     try { await copyText(d.url); toast(t("share_copied")); } catch { toast(t("share_fail")); }
@@ -2159,7 +2161,7 @@
     leaveStop();
     clearLine();
     showView("info");
-    document.title = `${t("info_title")} · ProximoVitrasa`;
+    document.title = `${t("info_title")} · ${APP_NAME}`;
     renderInfo();
     if (!isDesktop()) panel.dataset.state = "full";
   }
@@ -2365,7 +2367,7 @@
     trip.picking = null;
     const same = tripOpen() && lastTrip && lastTrip.hash === location.hash;
     showView("trip");
-    document.title = `${t("trip_title")} · ProximoVitrasa`;
+    document.title = `${t("trip_title")} · ${APP_NAME}`;
     if (!isDesktop() && panel.dataset.state !== "full") panel.dataset.state = baseState();
     closeSugg();
     renderTripFields();
@@ -3700,14 +3702,14 @@
       if (lastArrivals) renderArrivals(lastArrivals);
       showUpdated();
     } else if (active) showLine(active.code, active.from, active.variant ? active.variant.ruta : null);
-    else if (place) { document.title = "ProximoVitrasa"; showPlace(); }
+    else if (place) { document.title = APP_NAME; showPlace(); }
     else if (!$("#info").hidden) showInfo();
     else if (!$("#sched").hidden && sched) showSched(sched.id, sched.line);
     else if (tripOpen()) {
       renderTripFields();
       renderWhen();
       if (lastTrip) renderTripResult(); else computeTrip(false);
-      document.title = `${t("trip_title")} · ProximoVitrasa`;
+      document.title = `${t("trip_title")} · ${APP_NAME}`;
     }
     else render();
   }

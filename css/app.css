@@ -825,3 +825,8 @@ button.badge:hover { filter: brightness(1.08); }
 /* Acerca de */
 .about-card p { margin: 0 0 12px; font-size: 15px; line-height: 1.45; color: var(--soft); }
 .about-card .ios-ok { margin-top: 4px; }
+.about-card { position: relative; padding-top: 22px; }
+.about-card h2 { padding-right: 44px; }
+.about-x { position: absolute; top: 14px; right: 14px; width: 36px; height: 36px; padding: 0; border: 0; border-radius: 50%; background: var(--surface); color: var(--brand); box-shadow: var(--sh-sm); display: grid; place-items: center; }
+.about-x svg { width: 18px; height: 18px; stroke-width: 2.6; }
+.about-card p:last-of-type { margin-bottom: 0; }
