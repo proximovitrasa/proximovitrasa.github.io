@@ -465,6 +465,7 @@
       // Con las líneas ya cargadas: abrir un enlace #linea/… o dar color a las chapas visibles.
       if (location.hash.startsWith("#linea/")) route();
       else if (current) $("#stop-lines").innerHTML = current.lines.map((l) => lineChip(l)).join("");
+      else if (panel.dataset.view === "place" && location.hash.startsWith("#dir/")) showPlace(location.hash.slice(5));   // chapas con su color
       else render();
     })
     .catch(() => { lines = {}; })
@@ -885,8 +886,10 @@
   // ---------- Barra de secciones (rediseño, fase 1) ----------
   // Buscar = inicio y todo lo que se abre desde él (parada, línea, dirección, horarios); Favoritas,
   // Cómo llegar, Líneas y Más (información útil e idioma), cada una con su pantalla.
+  let lineTab = "";   // sección de la barra desde la que se abrió la línea ("lineas" o la de siempre)
   function tabbarSection() {
     const v = panel.dataset.view;
+    if (v === "line" && lineTab) return lineTab;
     if (v === "trip") return "ir";
     if (v === "info") return "info";
     if (v === "home" && mode === "fav") return "favoritas";
@@ -904,7 +907,7 @@
     if (!a) return;
     e.preventDefault();
     const go = a.dataset.go;
-    if (go === tabbarSection() && go !== "") return;
+    if (go === tabbarSection() && go !== "" && panel.dataset.view !== "line") return;
     if (go === "ir") { openTrip(); return; }
     if (go === "") { $("#q").value = ""; navigate(""); return; }
     navigate(go);
@@ -946,6 +949,7 @@
   addEventListener("popstate", route);
 
   function showView(id) {
+    if (id !== "line" && id !== "sched") lineTab = "";
     ["home", "line", "stop", "trip", "place", "info", "sched"].forEach((v) => ($(`#${v}`).hidden = v !== id));
     panel.dataset.view = id;
     if (id !== "home") {
@@ -3842,6 +3846,8 @@
       lineRuta = line.dataset.ruta || null;
       // Desde una parada, la fila abre solo los viajes con ese letrero (como una línea aparte).
       const ruta = current && line.dataset.raw;
+      // Abierta desde la pantalla Líneas: la barra sigue marcando Líneas.
+      lineTab = panel.dataset.view === "home" && mode === "lines" ? "lineas" : "";
       navigate(`linea/${line.dataset.line}${current ? `/${current.id}` : ""}${ruta ? `/${encodeURIComponent(ruta)}` : ""}`);
       return;
     }
