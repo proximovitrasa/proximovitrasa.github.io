@@ -24,8 +24,9 @@ jobs:
             done
             return 1
           }
-          descargar "[out:json][timeout:300];(way[natural=coastline]($BBOX);wr[natural=water]($BBOX);wr[natural=bay]($BBOX);way[waterway=riverbank]($BBOX);wr[man_made~'^(pier|breakwater|groyne)\$']($BBOX);wr[landuse=harbour]($BBOX);wr[\"seamark:type\"=harbour]($BBOX););out geom;" fuentes/costa.json
-          gzip -9 fuentes/costa.json
+          descargar "[out:json][timeout:600];way[natural=coastline]($BBOX);out geom;" fuentes/costa.json
+          descargar "[out:json][timeout:600];(way[natural=water]($BBOX);way[man_made~'^(pier|breakwater|groyne)\$']($BBOX););out geom;" fuentes/agua.json || true
+          gzip -9 fuentes/*.json
       - name: Guardar
         run: |
           git config user.name "github-actions[bot]"
