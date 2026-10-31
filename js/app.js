@@ -815,7 +815,7 @@
       const near = new Set();
       stops.forEach((s) => { if (haversine(me, s.ll) <= NEAR_LINES_M) s.lines.forEach((c) => near.add(c)); });
       codes = codes.filter((c) => near.has(c));
-    }
+    } else if (linesFilter === "near" && meFar) codes = [];   // lejos de Vigo: ninguna cerca
     if (q) codes = codes.filter((c) => norm(c).startsWith(q) || lines[c].sentidos.some((d) => norm(d.destino).includes(q)));
     const chips = document.createElement("li");
     chips.className = "line-filters";
@@ -830,7 +830,7 @@
         ${CHEV_R}</button>`;
       return li;
     });
-    fillList([chips, ...items], items.length ? "" : t(linesFilter === "near" && !me ? "geo_needed" : "lines_none"));
+    fillList([chips, ...items], items.length ? "" : t(linesFilter === "near" && !me ? (meFar ? "geo_far" : "geo_needed") : "lines_none"));
   }
   $("#screen-extra").addEventListener("input", (e) => { if (e.target.id === "lines-q") renderLines(); });
   $("#list").addEventListener("click", (e) => {
@@ -874,16 +874,30 @@
   // ---------- Ubicación ----------
   // Mi ubicación en tiempo real (66): con el permiso ya dado, el punto azul sigue tu posición
   // mientras la web está a la vista (sin mover el mapa); se para al ocultarla.
-  let watchId = null, nearAt = null;
+  let watchId = null, nearAt = null, meFar = false;
+  const FAR_VIGO_M = 25000;
+  const farFromVigo = (ll) => haversine(ll, VIGO) > FAR_VIGO_M;
+  // Lejos de Vigo (más de 25 km del centro) la web solo vale para Vigo: tu posición no se guarda
+  // en `me` (para todo lo demás es como si no hubiera ubicación) ni se dibuja el punto azul.
   function setMe(pos) {
-    me = [pos.coords.latitude, pos.coords.longitude];
+    const ll = [pos.coords.latitude, pos.coords.longitude];
+    meFar = farFromVigo(ll);
+    if (meFar) {
+      me = null;
+      if (meMarker) { meMarker.remove(); meMarker = null; }
+      return ll;
+    }
+    me = ll;
     const icon = L.divIcon({ className: "", html: '<div class="me-dot"></div>', iconSize: [18, 18] });
     if (meMarker) meMarker.setLatLng(me); else meMarker = L.marker(me, { icon, interactive: false, keyboard: false }).addTo(map);
+    return ll;
   }
   function startWatch() {
     if (watchId != null || !("geolocation" in navigator) || document.hidden) return;
     watchId = navigator.geolocation.watchPosition((pos) => {
+      const had = me;
       setMe(pos);
+      if (!me) { if (had && panel.dataset.view === "home") { nearAt = null; render(); } return; }
       // En el inicio, las paradas y los buses cercanos se rehacen si te has movido más de 80 m.
       if (panel.dataset.view === "home" && mode === "near" && (!nearAt || haversine(nearAt, me) > 80)) { nearAt = me.slice(); render(); }
     }, () => { stopWatch(); }, { enableHighAccuracy: true, maximumAge: 10000, timeout: 30000 });
@@ -894,16 +908,17 @@
   if (navigator.permissions && navigator.permissions.query) {
     navigator.permissions.query({ name: "geolocation" }).then((st) => { if (st.state === "granted") startWatch(); }).catch(() => {});
   }
-  function getPosition(onOk) {
+  // onFar: qué hacer si estás lejos de Vigo (por defecto, avisar y no hacer nada más).
+  function getPosition(onOk, onFar = () => toast(t("geo_far"))) {
     if (!("geolocation" in navigator)) { toast(t("geo_unsupported")); return; }
     const btn = $("#locate");
     btn.classList.add("busy");
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         btn.classList.remove("busy");
-        setMe(pos);
+        const ll = setMe(pos);
         startWatch();
-        onOk(me);
+        if (me) onOk(me); else onFar(ll);
       },
       (err) => {
         btn.classList.remove("busy");
@@ -913,27 +928,18 @@
     );
   }
 
-  // Lejos de Vigo (más de 25 km del centro): no hay paradas ni calles que usar.
-  const farFromVigo = (ll) => haversine(ll, VIGO) > 25000;
-
   function locate() {
-    // En "Cómo llegar" solo se centra el mapa en tu posición, sin salir de la vista;
-    // si estás lejos de Vigo, se avisa y el mapa no se mueve.
+    // En "Cómo llegar" solo se centra el mapa en tu posición, sin salir de la vista.
+    // Lejos de Vigo: se avisa y el mapa se queda donde está.
     if (tripOpen()) {
-      getPosition((ll) => { if (farFromVigo(ll)) toast(t("geo_far_trip")); else focusOn(ll, 16); });
+      getPosition((ll) => focusOn(ll, 16), () => toast(t("geo_far_trip")));
       return;
     }
     getPosition(() => {
         if (location.hash) navigate("");
         $("#q").value = "";
         setTab("near");
-        if (farFromVigo(me)) {
-          toast(t("geo_far"));
-          const [n] = nearest(me, 1);
-          if (n) focusOn(n.s.ll, 14);
-        } else {
-          focusOn(me, 16);
-        }
+        focusOn(me, 16);
     });
   }
 
@@ -2080,7 +2086,7 @@
     const go = () => ["home", "work"].forEach((k) => hwEta(k));
     if (me) go(); else if (navigator.permissions && navigator.permissions.query) {
       // Solo si ya se dio permiso: no se pide la ubicación por abrir Favoritas.
-      navigator.permissions.query({ name: "geolocation" }).then((st) => { if (st.state === "granted") getPosition(() => { if (mode === "fav") renderHw(); go(); }); }).catch(() => {});
+      navigator.permissions.query({ name: "geolocation" }).then((st) => { if (st.state === "granted") getPosition(() => { if (mode === "fav") renderHw(); go(); }, () => {}); }).catch(() => {});
     }
   }
   // Nombres útiles en favoritas (64): un punto del mapa o "aquí" se guarda con el portal más cercano
@@ -2256,7 +2262,7 @@
     trip.b = f.b ? parseEnd(decodeURIComponent(f.b)) : meEnd;
     navigate(`ir/${endToken(trip.a)}/${endToken(trip.b)}`);
     const w = !f.a ? "a" : !f.b ? "b" : null;
-    if (w && !trip[w]) getPosition((ll) => { if (tripOpen() && !trip[w] && !farFromVigo(ll)) setEnd(w, { kind: "me", ll }); });
+    if (w && !trip[w]) getPosition((ll) => { if (tripOpen() && !trip[w]) setEnd(w, { kind: "me", ll }); }, () => {});
   }
   // Ir a casa o al trabajo: Cómo llegar desde tu ubicación (si se puede) hasta allí.
   function goTo(p) {
@@ -2265,7 +2271,7 @@
     trip.b = { kind: "addr", ll: p.ll, label: p.label };
     if (me && !farFromVigo(me)) trip.a = { kind: "me", ll: me };
     navigate(`ir/${endToken(trip.a)}/${endToken(trip.b)}`);
-    if (!trip.a) getPosition((ll) => { if (tripOpen() && !trip.a && !farFromVigo(ll)) setEnd("a", { kind: "me", ll }); });
+    if (!trip.a) getPosition((ll) => { if (tripOpen() && !trip.a) setEnd("a", { kind: "me", ll }); }, () => {});
   }
   $("#list").addEventListener("input", (e) => { if (e.target.id === "fav-pick-q") fillPicker(); });
   // En el móvil, al escribir, el panel sube a pantalla completa con el buscador arriba: si no, los
@@ -3806,8 +3812,7 @@
     const sp = e.target.closest("button[data-trip]");
     if (!sp) return;
     if (sp.dataset.trip === "me") {
-      getPosition((ll) => {
-        if (!farFromVigo(ll)) { setEnd(w, { kind: "me", ll }); return; }
+      getPosition((ll) => setEnd(w, { kind: "me", ll }), () => {
         // Lejos de Vigo: no se usa como origen ni destino y el mapa se queda donde está.
         const inp = $(`#trip-${w}`);
         inp.value = endLabel(trip[w]);
