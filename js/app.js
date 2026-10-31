@@ -494,6 +494,11 @@
       // Encuadre inicial: el centro de Vigo, donde está la mayoría de paradas.
       map.setView(VIGO, 14);
       syncStops();
+      // Si la ubicación llegó antes que las paradas, se vuelve a mirar si estás lejos de Vigo.
+      if (me && farFromVigo(me)) {
+        me = null; meFar = true;
+        if (meMarker) { meMarker.remove(); meMarker = null; }
+      }
       route();
     })
     .catch(() => {
@@ -875,8 +880,15 @@
   // Mi ubicación en tiempo real (66): con el permiso ya dado, el punto azul sigue tu posición
   // mientras la web está a la vista (sin mover el mapa); se para al ocultarla.
   let watchId = null, nearAt = null, meFar = false;
-  const FAR_VIGO_M = 25000;
-  const farFromVigo = (ll) => haversine(ll, VIGO) > FAR_VIGO_M;
+  // "Lejos de Vigo" = a más de 3 km del perímetro de la ciudad, tomado como la parada de Vitrasa
+  // más cercana (decisión del usuario, 31/10). Si las paradas aún no han cargado, se usa el
+  // centro con un margen amplio y se corrige en cuanto llegue la siguiente posición.
+  const FAR_VIGO_M = 3000, FAR_CENTER_M = 25000;
+  function farFromVigo(ll) {
+    if (!stops.length) return haversine(ll, VIGO) > FAR_CENTER_M;
+    for (const s of stops) if (haversine(ll, s.ll) <= FAR_VIGO_M) return false;
+    return true;
+  }
   // Lejos de Vigo (más de 25 km del centro) la web solo vale para Vigo: tu posición no se guarda
   // en `me` (para todo lo demás es como si no hubiera ubicación) ni se dibuja el punto azul.
   function setMe(pos) {
