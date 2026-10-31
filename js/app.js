@@ -3892,6 +3892,7 @@
   TABS.forEach((tab) => $(`#tab-${tab}`).addEventListener("click", () => { $("#q").value = ""; setTab(tab); }));
   $("#locate").addEventListener("click", locate);
   $("#map-back").addEventListener("click", goBack);
+  $("#screen-back").addEventListener("click", goBack);
   // Bordes del mapa difuminados (mockups): la de abajo sigue a la hoja cuando sube o baja.
   const fadeAt = () => document.documentElement.style.setProperty("--sheet-top", `${Math.round(panel.getBoundingClientRect().top)}px`);
   if (window.ResizeObserver) new ResizeObserver(fadeAt).observe(panel);

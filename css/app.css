@@ -1371,3 +1371,28 @@ body:has(.panel:not([data-screen="home"])) .install, body:has(.panel[data-state=
 /* Autobús y minutos con el color del texto de la línea (blanco en las oscuras, oscuro en las claras, como sus chapas) */
 .bus-dot svg .bw { fill: var(--lt, #fff); }
 .bus-eta { color: var(--lt, #fff); }
+
+/* ==========================================================================
+   Ajustes del usuario (31/10): cabeceras de las pantallas rojas iguales que Cómo llegar —
+   volver a la izquierda, título centrado en la ventana— y 16 px entre la cabecera y la hoja
+   ========================================================================== */
+.screen-head, #trip > .trip-head, #sched > .sched-head { display: grid !important; grid-template-columns: 44px minmax(0, 1fr) 44px; align-items: center; height: 44px; margin: 0; color: var(--brand-ink); }
+.screen-head[hidden] { display: none !important; }
+.screen-head > .icon-btn, #trip > .trip-head > #trip-back, #sched > .sched-head > #sched-back { grid-column: 1; width: 44px; height: 44px; margin-left: -10px; color: var(--brand-ink); background: none; }
+.screen-head > h2, #trip > .trip-head > .trip-title, #sched > .sched-head > .sched-title { grid-column: 2; grid-row: 1; margin: 0; text-align: center; font: 700 22px/1 var(--cond); letter-spacing: .01em; }
+#trip > .trip-head > .share, #sched > .sched-head > .share { grid-column: 3; grid-row: 1; margin-right: -10px; }
+.screen-head > .icon-btn svg, #trip-back svg, #sched-back svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+.screen-head > .icon-btn:hover { background: rgba(255, 255, 255, .12); }
+/* Hoja a 16 px de lo último de la cabecera (título, casa/trabajo o el buscador de líneas) */
+.hw-row { margin-bottom: 0; }
+.screen-extra .lines-head, .lines-head { margin-bottom: 0; }
+.panel[data-screen="fav"] #home, .panel[data-screen="lines"] #home, .panel[data-screen="info"] #info { margin-top: 16px; }
+@media (max-width: 859.98px) {
+  .panel[data-screen="fav"], .panel[data-screen="lines"], .panel[data-screen="info"] { padding: calc(18px + env(safe-area-inset-top)) 20px 0; }
+  .panel[data-screen="fav"] #home, .panel[data-screen="lines"] #home, .panel[data-screen="info"] #info { margin-left: -20px; margin-right: -20px; }
+}
+@media (min-width: 860px) {
+  .panel[data-screen="fav"], .panel[data-screen="lines"], .panel[data-screen="info"] { padding-top: 12px; }
+}
+.hw-row, .screen-extra .lines-head, .lines-head { margin-top: 6px; }
+@media (max-width: 859.98px) { .panel[data-screen="sched"] { padding-top: calc(18px + env(safe-area-inset-top)); } }
