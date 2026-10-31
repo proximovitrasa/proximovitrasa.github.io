@@ -31,7 +31,7 @@ let malos = 0, buenos = 0, perdidos = 0;
 const ej = [];
 for (const cs of muestra) for (const min of [0, 3, -3, 6, -6, 10, -10, 15, 20]) {
   const r = P.liveReaches(cs.leg, cs.h, new Date(base + (cs.t + min * 60) * 1000));
-  const ok = r === "yes" || r === "unknown";
+  const ok = r === "yes";   // como la web desde el 31/10 (67): solo con certeza
   if (ok && !cs.truth) { malos++; if (ej.length < 5) ej.push(`${cs.leg.line} "${cs.h}" ${P.ids[cs.leg.board]}→${P.ids[cs.leg.alight]} retraso ${min}`); }
   else if (ok) buenos++; else if (cs.truth) perdidos++;
 }
