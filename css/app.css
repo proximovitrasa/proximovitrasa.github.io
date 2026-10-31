@@ -1407,3 +1407,15 @@ body:has(.panel:not([data-screen="home"])) .install, body:has(.panel[data-state=
 .fab-lang-menu .flag, .lang-menu .flag { width: 24px; height: 16px; flex: none; border-radius: 3px; }
 .fab-lang-menu .flag, .lang-menu .flag { stroke: none; }
 .lang-menu button { color: var(--ink); }
+
+/* Mapa de fondo (58): selector en Más y satélite sin el filtro de color */
+.sat-base .leaflet-tile-pane { filter: none; }
+.map-layers { margin-top: 4px; flex: none; }
+.map-layers .sec-head { font: 700 19px/1.2 var(--cond); margin: 16px 0 8px; color: var(--ink); }
+.layer-seg { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; padding: 4px; border-radius: 12px; background: var(--chip); }
+.layer-seg button { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 40px; border: 0; border-radius: 9px; background: transparent; color: var(--soft); font-size: 14px; }
+.layer-seg button[aria-checked="true"] { background: var(--brand); color: var(--brand-ink); font-weight: 600; }
+.layer-seg .sw { width: 18px; height: 18px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 0 1px rgba(0, 0, 0, .15); flex: none; }
+.sw-light { background: linear-gradient(135deg, #F2F2F0 50%, #D8DDE0 50%); }
+.sw-dark { background: linear-gradient(135deg, #2B2D33 50%, #1A1C20 50%); }
+.sw-sat { background: linear-gradient(135deg, #5B7B4A 45%, #8C8A6E 45%, #8C8A6E 60%, #3F6A7E 60%); }

@@ -22,8 +22,8 @@
   const LANG_KEY = "pv:idioma";
   function pickLang() {
     try { const saved = localStorage.getItem(LANG_KEY); if (saved && I18N.dict[saved]) return saved; } catch { /* sin almacenamiento */ }
-    const nav = (navigator.languages || [navigator.language || "es"]).map((l) => l.slice(0, 2).toLowerCase());
-    return nav.find((l) => I18N.dict[l]) || "es";
+    // Sin idioma elegido, gallego (57, decisión del usuario 31/10); se cambia con la bandera del mapa o en Más.
+    return "gl";
   }
   let lang = pickLang();
   function t(key, params = {}) {
@@ -180,7 +180,40 @@
   // para no retrasar la web. Todo lo demás del mapa sigue en Leaflet. Si el móvil no tiene WebGL, o OpenFreeMap no carga en BASE_TIMEOUT, se usa el mapa
   // de OpenStreetMap de siempre (exige la cabecera Referer).
   const BASE_TIMEOUT = 8000;
-  const OFM_STYLE = "https://tiles.openfreemap.org/styles/positron";
+  // Mapa de fondo (58): claro (Positron, por defecto), oscuro (estilo "dark" de OpenFreeMap; si no
+  // carga, "fiord") o satélite (ortofoto PNOA del IGN, gratis y sin claves). Se recuerda en el móvil.
+  const LAYER_KEY = "pv:capa";
+  const OFM = (n) => `https://tiles.openfreemap.org/styles/${n}`;
+  let baseLayer = "light";
+  try { baseLayer = ["light", "dark", "sat"].includes(localStorage.getItem(LAYER_KEY)) ? localStorage.getItem(LAYER_KEY) : "light"; } catch { /* sin almacenamiento */ }
+  const OFM_STYLE = OFM(baseLayer === "dark" ? "dark" : "positron");
+  const PNOA_ATTR = 'Ortofoto: <a href="https://pnoa.ign.es/">PNOA</a> cedido por © <a href="https://www.ign.es/">IGN</a>';
+  let satLayer = null;
+  function setBaseLayer(kind) {
+    baseLayer = kind;
+    try { localStorage.setItem(LAYER_KEY, kind); } catch { /* sin almacenamiento */ }
+    const box = map.getContainer();
+    box.classList.toggle("sat-base", kind === "sat");
+    box.classList.toggle("dark-base", kind === "dark");
+    if (kind === "sat") {
+      if (!satLayer) satLayer = L.tileLayer("https://www.ign.es/wmts/pnoa-ma?service=WMTS&request=GetTile&version=1.0.0&format=image/jpeg&layer=OI.OrthoimageCoverage&style=default&tilematrixset=GoogleMapsCompatible&TileMatrix={z}&TileRow={y}&TileCol={x}", {
+        maxNativeZoom: 19, maxZoom: 20, attribution: PNOA_ATTR,
+      });
+      if (!map.hasLayer(satLayer)) satLayer.addTo(map);
+      satLayer.bringToBack();
+      if (glLayer && glLayer.getContainer && glLayer.getContainer()) glLayer.getContainer().style.visibility = "hidden";
+      if (osmLayer && map.hasLayer(osmLayer)) map.removeLayer(osmLayer);
+      return;
+    }
+    if (satLayer && map.hasLayer(satLayer)) map.removeLayer(satLayer);
+    if (glLayer) {
+      if (glLayer.getContainer && glLayer.getContainer()) glLayer.getContainer().style.visibility = "";
+      const gl = glLayer.getMaplibreMap();
+      glReady = false;
+      gl.setStyle(OFM(kind === "dark" ? "dark" : "positron"));
+      gl.once("styledata", () => { glReady = true; });
+    } else if (osmLayer && !map.hasLayer(osmLayer)) osmLayer.addTo(map);
+  }
   const OFM_ATTR = '<a href="https://openfreemap.org/">OpenFreeMap</a> © <a href="https://www.openmaptiles.org/">OpenMapTiles</a>, datos de <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
   let osmLayer = null, glLayer = null, glReady = false;
   function useOSM() {
@@ -190,7 +223,7 @@
       maxZoom: 19, referrerPolicy: "strict-origin-when-cross-origin",
       attribution: '© <a href="https://www.openstreetmap.org/copyright">Colaboradores de OpenStreetMap</a>',
     });
-    if (!map.hasLayer(osmLayer)) osmLayer.addTo(map);
+    if (!map.hasLayer(osmLayer) && baseLayer !== "sat") osmLayer.addTo(map);
   }
   function hasWebGL() {
     try { const c = document.createElement("canvas"); return !!(window.WebGL2RenderingContext && c.getContext("webgl2")) || !!c.getContext("webgl"); }
@@ -221,7 +254,12 @@
       });
       // Sin el estilo (OpenFreeMap caído o sin red), a OpenStreetMap; los fallos sueltos de una
       // tesela una vez cargado el mapa no cambian nada.
-      gl.on("error", () => { if (!glReady) { clearTimeout(timer); useOSM(); } });
+      gl.on("error", () => {
+        // Sin el estilo oscuro de OpenFreeMap, su otro estilo oscuro ("fiord").
+        if (baseLayer === "dark" && !glReady && !gl._pvFiord) { gl._pvFiord = true; gl.setStyle(OFM("fiord")); return; }
+        if (!glReady) { clearTimeout(timer); useOSM(); }
+      });
+      if (baseLayer === "sat") setBaseLayer("sat");
     } catch {
       clearTimeout(timer);
       useOSM();
@@ -1960,8 +1998,35 @@
       navigator.permissions.query({ name: "geolocation" }).then((st) => { if (st.state === "granted") getPosition(() => { if (mode === "fav") renderHw(); go(); }); }).catch(() => {});
     }
   }
+  // Nombres útiles en favoritas (64): un punto del mapa o "aquí" se guarda con el portal más cercano
+  // (a menos de 40 m) o, si no hay, con sus coordenadas. Las guardadas antes con "Punto del mapa" o
+  // "Aquí (mi ubicación actual)" se arreglan solas la primera vez que se abren las Favoritas.
+  function placeName(ll) {
+    const a = nearestAddr(ll);
+    return a ? a.label : `${ll[0].toFixed(5)}, ${ll[1].toFixed(5)}`;
+  }
+  const VAGUE = new Set(Object.values(I18N.dict).flatMap((d) => [d.map_point, d.saved_here]).filter(Boolean));
+  let favNamesFixed = false;
+  function fixFavNames() {
+    if (favNamesFixed) return;
+    const bad = (x) => x && VAGUE.has(x);
+    const todo = favs.trips.some((f) => bad(f.al) || bad(f.bl)) || ["home", "work"].some((k) => favs[k] && bad(favs[k].label)) || favs.places.some((p) => bad(p.label));
+    favNamesFixed = true;
+    if (!todo) return;
+    ensureDir().then(() => {
+      favs.trips.forEach((f) => {
+        if (bad(f.al)) { const p = parseEnd(f.a); if (p) f.al = placeName(p.ll); }
+        if (bad(f.bl)) { const p = parseEnd(f.b); if (p) f.bl = placeName(p.ll); }
+      });
+      ["home", "work"].forEach((k) => { if (favs[k] && bad(favs[k].label)) favs[k].label = placeName(favs[k].ll); });
+      favs.places.forEach((p) => { if (bad(p.label)) p.label = placeName(p.ll); });
+      saveFavs();
+      if (mode === "fav" && panel.dataset.view === "home") renderFav();
+    }).catch(() => { favNamesFixed = false; });
+  }
   function renderFav() {
     clearTimeout(favTimer);
+    fixFavNames();
     renderHw();
     refreshHwEta();
     const items = [];
@@ -2151,7 +2216,7 @@
     if (b.dataset.pk) {
       e.stopPropagation();
       const k = b.dataset.pk;
-      if (k === "me") savePick({ ll: me.slice(), label: t("saved_here") });
+      if (k === "me") { const ll = me.slice(); ensureDir().catch(() => {}).then(() => savePick({ ll, label: placeName(ll) })); }
       else if (k === "site") { const s = sitesData[Number(b.dataset.i)]; savePick({ ll: s.ll, label: s.name, site: s.type }); }
       else if (k === "stop") { const s = byId.get(b.dataset.i); savePick({ ll: s.ll, label: s.name }); }
       else if (k === "addr") {
@@ -3084,7 +3149,7 @@
   // Opción que se ve en el mapa: la elegida o, si no, la primera de la lista.
   // Trayectos favoritos (37): la estrella de cada opción la guarda o la quita.
   const favEnd = (p) => (p && p.kind !== "me" ? endToken(p) : "");
-  const favEndLabel = (p) => (p && p.kind !== "me" ? endLabel(p) : null);
+  const favEndLabel = (p) => (p && p.kind !== "me" ? (p.kind === "map" ? placeName(p.ll) : endLabel(p)) : null);
   const tripFavFor = (key) => favs.trips.find((f) => f.a === favEnd(trip.a) && f.b === favEnd(trip.b) && f.key === key);
   function starBtn(key) {
     const on = !!tripFavFor(key);
@@ -3893,6 +3958,15 @@
   $("#locate").addEventListener("click", locate);
   $("#map-back").addEventListener("click", goBack);
   $("#screen-back").addEventListener("click", goBack);
+  const renderLayerSeg = () => document.querySelectorAll("#layer-seg [data-layer]").forEach((b) => b.setAttribute("aria-checked", b.dataset.layer === baseLayer));
+  $("#layer-seg").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-layer]");
+    if (!b || b.dataset.layer === baseLayer) return;
+    setBaseLayer(b.dataset.layer);
+    renderLayerSeg();
+  });
+  renderLayerSeg();
+  if (baseLayer === "sat") setBaseLayer("sat");
   // Bordes del mapa difuminados (mockups): la de abajo sigue a la hoja cuando sube o baja.
   const fadeAt = () => document.documentElement.style.setProperty("--sheet-top", `${Math.round(panel.getBoundingClientRect().top)}px`);
   if (window.ResizeObserver) new ResizeObserver(fadeAt).observe(panel);

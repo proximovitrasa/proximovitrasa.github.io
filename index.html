@@ -1,6 +1,6 @@
 <!doctype html>
 <!-- SPDX-License-Identifier: AGPL-3.0-only · © 2026 asergom · ver LICENSE y TERMINOS-ADICIONALES.md -->
-<html lang="es" translate="no" class="notranslate">
+<html lang="gl" translate="no" class="notranslate">
 <head>
   <meta charset="utf-8">
   <meta name="google" content="notranslate">
@@ -285,6 +285,15 @@
           <span class="hw-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.6v.2"/></svg></span>
           <span class="hw-txt"><b data-i18n="about_tile"></b><small data-i18n="about_tile_sub"></small></span>
         </button>
+      </div>
+      <!-- Mapa de fondo (58): claro (por defecto), oscuro o satélite -->
+      <div class="map-layers">
+        <p class="sec-head" data-i18n="map_layer"></p>
+        <div id="layer-seg" class="layer-seg" role="radiogroup" data-i18n-aria="map_layer">
+          <button type="button" role="radio" data-layer="light"><i class="sw sw-light"></i><span data-i18n="layer_light"></span></button>
+          <button type="button" role="radio" data-layer="dark"><i class="sw sw-dark"></i><span data-i18n="layer_dark"></span></button>
+          <button type="button" role="radio" data-layer="sat"><i class="sw sw-sat"></i><span data-i18n="layer_sat"></span></button>
+        </div>
       </div>
       <ul id="info-list" class="stops info-list"></ul>
     </section>
