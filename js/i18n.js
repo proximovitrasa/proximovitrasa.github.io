@@ -3,8 +3,9 @@
 window.PV_I18N = {
   // Banderas dibujadas aquí mismo (viewBox 30×20), sin imágenes externas.
   langs: [
-    { code: "es", name: "Español", flag: '<rect width="30" height="20" fill="#AA151B"/><rect y="5" width="30" height="10" fill="#F1BF00"/>' },
+    // Orden de la lista (decisión del usuario, 31/10): gallego, español y luego los demás.
     { code: "gl", name: "Galego", flag: '<rect width="30" height="20" fill="#fff"/><path d="M0 0L30 20" stroke="#0099CC" stroke-width="5"/>' },
+    { code: "es", name: "Español", flag: '<rect width="30" height="20" fill="#AA151B"/><rect y="5" width="30" height="10" fill="#F1BF00"/>' },
     { code: "pt", name: "Português", flag: '<rect width="30" height="20" fill="#FF0000"/><rect width="12" height="20" fill="#006600"/><circle cx="12" cy="10" r="4" fill="#FFCC00"/><circle cx="12" cy="10" r="2.3" fill="#FF0000"/>' },
     { code: "eu", name: "Euskara", flag: '<rect width="30" height="20" fill="#D52B1E"/><path d="M0 0L30 20M30 0L0 20" stroke="#009B48" stroke-width="3"/><path d="M15 0V20M0 10H30" stroke="#fff" stroke-width="3"/>' },
     { code: "ca", name: "Català", flag: '<rect width="30" height="20" fill="#FCDD09"/><path d="M0 3.33H30M0 7.78H30M0 12.22H30M0 16.67H30" stroke="#DA121A" stroke-width="2.22"/>' },
