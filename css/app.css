@@ -1426,3 +1426,7 @@ body:has(.panel:not([data-screen="home"])) .install, body:has(.panel[data-state=
 .sched-times sup, .sc-heads sup, .sched-legend sup { font-size: 10px; font-weight: 700; color: var(--brand); margin-left: 1px; }
 .sc-heads button[aria-pressed="true"] sup { color: inherit; }
 .sched-legend { margin: 6px 0 0; font-size: 12px; color: var(--soft); }
+/* Capas del mapa en la botonera (58): icono de capas apiladas */
+.map-fabs #fab-layer { border-top: 1px solid rgba(255, 255, 255, .25); color: var(--brand-ink); }
+#fab-layer svg { fill: none; stroke: currentColor; stroke-width: 2; }
+#fab-layer-menu .sw { width: 22px; height: 22px; border-radius: 6px; border: 2px solid #fff; box-shadow: 0 0 0 1px rgba(0, 0, 0, .15); flex: none; display: inline-block; }

@@ -4043,13 +4043,31 @@
   $("#locate").addEventListener("click", locate);
   $("#map-back").addEventListener("click", goBack);
   $("#screen-back").addEventListener("click", goBack);
-  const renderLayerSeg = () => document.querySelectorAll("#layer-seg [data-layer]").forEach((b) => b.setAttribute("aria-checked", b.dataset.layer === baseLayer));
-  $("#layer-seg").addEventListener("click", (e) => {
+  // Capas del mapa en la botonera (58): lista a la derecha del botón, como la de idiomas.
+  const renderLayerSeg = () => document.querySelectorAll("#fab-layer-menu [data-layer]").forEach((b) => b.parentElement.setAttribute("aria-selected", b.dataset.layer === baseLayer));
+  function toggleFabLayer(open) {
+    const menu = $("#fab-layer-menu"), btn = $("#fab-layer");
+    const show = open != null ? open : menu.hidden;
+    menu.hidden = !show;
+    btn.setAttribute("aria-expanded", show);
+    if (!show) return;
+    if (typeof toggleFabLang === "function") toggleFabLang(false);
+    const r = btn.getBoundingClientRect();
+    menu.style.left = `${Math.round(r.right + 8)}px`;
+    menu.style.bottom = `${Math.round(innerHeight - r.bottom)}px`;
+    (menu.querySelector('[aria-selected="true"] button') || menu.querySelector("button")).focus();
+  }
+  $("#fab-layer").addEventListener("click", (e) => { e.stopPropagation(); toggleFabLayer(); });
+  $("#fab-layer-menu").addEventListener("click", (e) => {
     const b = e.target.closest("[data-layer]");
-    if (!b || b.dataset.layer === baseLayer) return;
-    setBaseLayer(b.dataset.layer);
-    renderLayerSeg();
+    if (!b) return;
+    e.stopPropagation();
+    toggleFabLayer(false);
+    $("#fab-layer").focus();
+    if (b.dataset.layer !== baseLayer) { setBaseLayer(b.dataset.layer); renderLayerSeg(); }
   });
+  document.addEventListener("click", (e) => { if (!e.target.closest("#fab-layer-menu, #fab-layer")) toggleFabLayer(false); });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("#fab-layer-menu").hidden) { toggleFabLayer(false); $("#fab-layer").focus(); } });
   renderLayerSeg();
   if (baseLayer === "sat") setBaseLayer("sat");
   // Bordes del mapa difuminados (mockups): la de abajo sigue a la hoja cuando sube o baja.
@@ -4202,6 +4220,7 @@
     menu.hidden = !show;
     btn.setAttribute("aria-expanded", show);
     if (!show) return;
+    if (!$("#fab-layer-menu").hidden) toggleFabLayer(false);
     const r = btn.getBoundingClientRect();
     menu.style.left = `${Math.round(r.right + 8)}px`;
     menu.style.bottom = `${Math.round(innerHeight - r.bottom)}px`;

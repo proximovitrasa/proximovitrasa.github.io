@@ -286,15 +286,6 @@
           <span class="hw-txt"><b data-i18n="about_tile"></b><small data-i18n="about_tile_sub"></small></span>
         </button>
       </div>
-      <!-- Mapa de fondo (58): claro (por defecto), oscuro o satélite -->
-      <div class="map-layers">
-        <p class="sec-head" data-i18n="map_layer"></p>
-        <div id="layer-seg" class="layer-seg" role="radiogroup" data-i18n-aria="map_layer">
-          <button type="button" role="radio" data-layer="light"><i class="sw sw-light"></i><span data-i18n="layer_light"></span></button>
-          <button type="button" role="radio" data-layer="dark"><i class="sw sw-dark"></i><span data-i18n="layer_dark"></span></button>
-          <button type="button" role="radio" data-layer="sat"><i class="sw sw-sat"></i><span data-i18n="layer_sat"></span></button>
-        </div>
-      </div>
       <ul id="info-list" class="stops info-list"></ul>
     </section>
 
@@ -349,8 +340,15 @@
     <button id="fab-fav" type="button" data-i18n-aria="tab_fav" data-i18n-title="tab_fav"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2.8 5.8 6.2.9-4.5 4.4 1 6.2L12 17.4 6.5 20.3l1-6.2L3 9.7l6.2-.9z"/></svg></button>
     <!-- Idioma: el globo con la bandera del idioma elegido; abre la lista de idiomas -->
     <button id="fab-lang" type="button" aria-haspopup="listbox" aria-expanded="false" data-i18n-aria="language" data-i18n-title="language"></button>
+    <!-- Mapa de fondo (58): capas apiladas; abre la lista claro / oscuro / satélite -->
+    <button id="fab-layer" type="button" aria-haspopup="listbox" aria-expanded="false" data-i18n-aria="map_layer" data-i18n-title="map_layer"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 2.5 8 12 13l9.5-5z"/><path d="M2.5 12.5 12 17.5l9.5-5"/><path d="M2.5 16.5 12 21.5l9.5-5"/></svg></button>
   </div>
   <ul id="fab-lang-menu" class="lang-menu fab-lang-menu" role="listbox" hidden data-i18n-aria="language"></ul>
+  <ul id="fab-layer-menu" class="lang-menu fab-lang-menu" role="listbox" hidden data-i18n-aria="map_layer">
+    <li role="option"><button type="button" data-layer="light"><i class="sw sw-light"></i><span data-i18n="layer_light"></span></button></li>
+    <li role="option"><button type="button" data-layer="dark"><i class="sw sw-dark"></i><span data-i18n="layer_dark"></span></button></li>
+    <li role="option"><button type="button" data-layer="sat"><i class="sw sw-sat"></i><span data-i18n="layer_sat"></span></button></li>
+  </ul>
   <!-- Pasos de una opción de Cómo llegar (mockup 2): mapa a pantalla completa, compartir y guardar -->
   <button id="map-full" class="map-full" type="button" data-i18n-aria="full_map" data-i18n-title="full_map"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
   <div id="trip-fabs" class="map-fabs trip-fabs">
