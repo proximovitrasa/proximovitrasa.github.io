@@ -14,7 +14,7 @@ body{{margin:0;width:1200px;height:630px;background:#F4F1EF;display:flex;align-i
 img{{width:380px;height:380px;filter:drop-shadow(0 16px 32px rgba(94,46,50,.25))}}
 h1{{font:72px/1 BC;color:#1B1B1F;margin:0 0 20px}} p{{font:34px/1.3 BM;color:#4A454E;margin:0}}
 </style><img src="data:image/svg+xml;base64,{b64('icons/logo.svg')}">
-<div><h1>Vitrasa en Vivo</h1><p>El bus donde realmente está, no donde debería estar</p></div>"""
+<div><h1>Vitrasa en Vivo</h1><p><span>El bus donde realmente está,</span><br><span>no donde debería estar</span></p></div>"""
 
 with sync_playwright() as p:
     b = p.chromium.launch()
@@ -22,6 +22,14 @@ with sync_playwright() as p:
     pg.set_content(HTML)
     pg.wait_for_function("document.fonts.ready && document.images[0].complete")
     pg.evaluate("document.fonts.ready")
+    # El lema, en dos líneas, del mismo ancho que el título: un bloque que cuadra debajo.
+    pg.evaluate("""() => {
+      const h = document.querySelector('h1'), p = document.querySelector('p');
+      const w = () => Math.max(...[...p.querySelectorAll('span')].map((x) => x.getBoundingClientRect().width));
+      p.style.whiteSpace = 'nowrap';
+      const r = document.createRange(); r.selectNodeContents(h);
+      p.style.fontSize = (34 * r.getBoundingClientRect().width / w()) + 'px';
+    }""")
     pg.screenshot(path=str(RAIZ / "icons/og.png"))
     b.close()
 print("icons/og.png generado")
