@@ -649,6 +649,10 @@
         const all = passes.filter((p) => p.line === g.line && (g.dir == null || p.dir === g.dir));
         if (g.dir == null && new Set(all.map((p) => p.dir)).size > 1) continue;   // sentido dudoso
         const same = all.filter((p) => { const h = pats[p.pat].h; return h && h.some((x) => normTxt(x) === g.r); });
+        // Letrero que no está en el horario: solo si todos esos viajes hacen el mismo recorrido (si no,
+        // se podría mover el viaje de otro ramal; 67: sin certeza, mejor no tocar el horario).
+        const oneRoute = all.length && all.every((p) => pats[p.pat].p.join() === pats[all[0].pat].p.join());
+        if (!same.length && !oneRoute) continue;
         const ps = same.length ? same : all;
         const used = new Set();
         for (const m of g.mins.sort((a, b) => a - b)) {
@@ -686,7 +690,15 @@
         return ok.every(Boolean) ? "yes" : ok.some(Boolean) ? "mixed" : "no";
       }
       const all = pats.filter((pt) => mine(pt) && pt.p.includes(leg.board));
-      if (!all.length) return pats.some(mine) ? "no" : "unknown";
+      if (!all.length) {
+        if (pats.some(mine)) return "no";
+        // Letrero que no está en el horario: solo vale si TODOS los viajes de la línea y sentido que
+        // pasan por la subida a esa hora llegan a la bajada (así da igual el ramal); si no, "mixed"
+        // y se usa el horario (67: nunca ofrecer un bus sin certeza de que llega).
+        const any = upcoming(leg.board, when, MATCH_WINDOW, MATCH_WINDOW).filter((x) => pats[x.pat].l === leg.line && pats[x.pat].s === leg.dir);
+        if (!any.length) return "unknown";
+        return any.every((x) => goes(pats[x.pat], leg.board, leg.alight)) ? "yes" : "mixed";
+      }
       const ok = all.map((pt) => goes(pt, leg.board, leg.alight));
       return ok.every(Boolean) ? "yes" : ok.some(Boolean) ? "mixed" : "no";
     }

@@ -69,6 +69,10 @@
   const walkMin = (m) => Math.max(1, Math.round(m / 75)); // ~4,5 km/h
 
   const LOWER = new Set(["por", "de", "do", "da", "dos", "das", "del", "e", "y", "o", "a", "en"]);
+  // "Hasta <parada>" para los viajes con varios letreros (67): se enseña tal cual, sin titleCase.
+  const UNTIL = new Set();
+  const untilLabel = (name) => { const x = t("until_stop", { stop: name }); UNTIL.add(x); return x; };
+  const headText = (h) => (UNTIL.has(h) ? h : titleCase(h));
   function titleCase(s) {
     return s.replace(/\s+/g, " ").trim().toLowerCase().split(" ")
       .map((w, i) => (i > 0 && LOWER.has(w)) ? w : w.replace(/^(\(?)(\p{L})/u, (_, p, c) => p + c.toUpperCase()))
@@ -868,6 +872,28 @@
   }
 
   // ---------- Ubicación ----------
+  // Mi ubicación en tiempo real (66): con el permiso ya dado, el punto azul sigue tu posición
+  // mientras la web está a la vista (sin mover el mapa); se para al ocultarla.
+  let watchId = null, nearAt = null;
+  function setMe(pos) {
+    me = [pos.coords.latitude, pos.coords.longitude];
+    const icon = L.divIcon({ className: "", html: '<div class="me-dot"></div>', iconSize: [18, 18] });
+    if (meMarker) meMarker.setLatLng(me); else meMarker = L.marker(me, { icon, interactive: false, keyboard: false }).addTo(map);
+  }
+  function startWatch() {
+    if (watchId != null || !("geolocation" in navigator) || document.hidden) return;
+    watchId = navigator.geolocation.watchPosition((pos) => {
+      setMe(pos);
+      // En el inicio, las paradas y los buses cercanos se rehacen si te has movido más de 80 m.
+      if (panel.dataset.view === "home" && mode === "near" && (!nearAt || haversine(nearAt, me) > 80)) { nearAt = me.slice(); render(); }
+    }, () => { stopWatch(); }, { enableHighAccuracy: true, maximumAge: 10000, timeout: 30000 });
+  }
+  function stopWatch() { if (watchId != null) { navigator.geolocation.clearWatch(watchId); watchId = null; } }
+  document.addEventListener("visibilitychange", () => { if (document.hidden) stopWatch(); else if (me) startWatch(); });
+  // Si ya se dio permiso otra vez, se empieza sin preguntar nada.
+  if (navigator.permissions && navigator.permissions.query) {
+    navigator.permissions.query({ name: "geolocation" }).then((st) => { if (st.state === "granted") startWatch(); }).catch(() => {});
+  }
   function getPosition(onOk) {
     if (!("geolocation" in navigator)) { toast(t("geo_unsupported")); return; }
     const btn = $("#locate");
@@ -875,9 +901,8 @@
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         btn.classList.remove("busy");
-        me = [pos.coords.latitude, pos.coords.longitude];
-        const icon = L.divIcon({ className: "", html: '<div class="me-dot"></div>', iconSize: [18, 18] });
-        if (meMarker) meMarker.setLatLng(me); else meMarker = L.marker(me, { icon, interactive: false, keyboard: false }).addTo(map);
+        setMe(pos);
+        startWatch();
         onOk(me);
       },
       (err) => {
@@ -965,9 +990,14 @@
     if (h === "lineas") { showHome("lines"); return; }
     // #horario/<parada>[/<línea>]: horarios de una parada, de todas sus líneas o de una (35).
     if (h.startsWith("horario/")) {
-      const [sid, ln] = h.slice(8).split("/").map(decodeURIComponent);
+      const [sid, ln, head] = h.slice(8).split("/").map(decodeURIComponent);
       if (ln && !lines) { linesReady.then(() => { if (decodeURIComponent(location.hash.slice(1)) === h) route(); }); return; }
-      if (byId.has(sid)) { showSched(sid, ln && lines && lines[ln] ? ln : null); return; }
+      if (byId.has(sid)) {
+        // Desde un ramal: su letrero ya elegido en todas las tarjetas de esa línea.
+        if (head && ln) for (let d = 0; d < 2; d++) schedPick.set(`${ln}|${d}`, norm(head));
+        showSched(sid, ln && lines && lines[ln] ? ln : null);
+        return;
+      }
     }
     if (h.startsWith("dir/") && showPlace(h.slice(4))) return;
     if (h.startsWith("linea/")) {
@@ -1612,6 +1642,9 @@
     try { text = new TextDecoder("utf-8", { fatal: true }).decode(buf); }
     catch { text = new TextDecoder("windows-1252").decode(buf); }
     const data = JSON.parse(text);
+    // Algunos letreros de la API llevan un asterisco ("R. NIETO - CAEIRO*") sin explicación oficial
+    // (60): se quita y se enseña el letrero tal cual, sin suponer qué significa.
+    (data.estimaciones || []).forEach((x) => { if (x && x.ruta != null) x.ruta = String(x.ruta).replace(/\*/g, "").trim(); });
     feedLive(id, data.estimaciones, Date.now());
     return data;
   }
@@ -1728,7 +1761,12 @@
     for (const g of groups.values()) {
       const mins = g.buses.filter((m) => !isNaN(m)).sort((a, b) => a - b);
       if (!mins.length) continue;
-      if (g.dir != null) covered.add(`${g.linea}|${g.dir}`);
+      // Cubre su letrero (67): si coincide con un letrero del horario, solo ese; si no, toda la línea
+      // y sentido (sin saber qué viaje es, no se ofrece ningún "previsto" de ella).
+      const hn = norm(g.raw || "");
+      const known = g.dir != null && !!stopPlan && stopPlan.pats.some((pt) => pt.l === g.linea && pt.s === g.dir && pt.h && pt.h.some((x) => norm(x) === hn));
+      if (known) covered.add(`${g.linea}|${g.dir}|${hn}`);
+      else if (g.dir != null) covered.add(`${g.linea}|${g.dir}`);
       else if (lines && lines[g.linea]) lines[g.linea].sentidos.forEach((_, i) => covered.add(`${g.linea}|${i}`));
       // Retraso: frente a los viajes del horario con su mismo letrero (si los hay; si no, la línea y sentido).
       const all = g.dir != null ? passesOf.get(`${g.linea}|${g.dir}`) || [] : [];
@@ -1738,15 +1776,32 @@
       const delay = ps.length ? delayOf(ps, nowS + mins[0] * 60, new Set()) : null;
       rows.push({ live: true, linea: g.linea, ruta: g.ruta, raw: g.raw, sortMin: mins[0], mins, delay });
     }
-    // Según horario (19): líneas y sentidos sin ningún bus en vivo, su próximo paso.
+    // Según horario (19): por línea, sentido y letrero de cada viaje (67: un ramal o un viaje que
+    // "remata" antes sale con su propio letrero y sus horas, nunca con el destino de otro), sin los
+    // que ya tienen un bus en vivo.
+    const headOf = (p) => {
+      const pt = stopPlan.pats[p.pat];
+      if (pt.h && pt.h.length === 1) return pt.h[0];
+      const last = byId.get(stopPlan.ids[pt.p[pt.p.length - 1]]);   // varios letreros: "Hasta <su última parada>"
+      return last ? untilLabel(last.name) : "";
+    };
+    const schedOf = new Map();
     for (const [k, ps] of passesOf) {
       if (covered.has(k)) continue;
+      ps.forEach((p) => {
+        const h = headOf(p), key = `${k}|${norm(h)}`;
+        if (covered.has(key)) return;
+        if (!schedOf.has(key)) schedOf.set(key, { h, ps: [] });
+        schedOf.get(key).ps.push(p);
+      });
+    }
+    for (const { h, ps } of schedOf.values()) {
       const next = ps.filter((p) => p.at >= nowS - 30 && p.at <= nowS + SCHED_AHEAD);
       if (!next.length) continue;
       const [linea, dir] = [next[0].line, next[0].dir];
       const ln = lines && lines[linea];
-      const ruta = ln && ln.sentidos[dir] ? ln.sentidos[dir].destino : "";
-      rows.push({ live: false, linea, ruta, sortMin: (next[0].at - nowS) / 60, at: next.map((p) => p.at) });
+      const ruta = h ? headText(h) : ln && ln.sentidos[dir] ? ln.sentidos[dir].destino : "";
+      rows.push({ live: false, linea, ruta, raw: UNTIL.has(h) ? "" : h, sortMin: (next[0].at - nowS) / 60, at: next.map((p) => p.at) });
     }
     rows.sort((a, b) => a.sortMin - b.sortMin);
 
@@ -1829,7 +1884,9 @@
       // Líneas y sentidos que pasan por la parada algún día (para decir "no pasa" en los demás).
       const all = new Map();
       if (si != null) for (const [n, k] of plan.at[si]) { const pt = plan.pats[n]; if (k < pt.p.length - 1) all.set(`${pt.l}|${pt.s}`, { line: pt.l, dir: pt.s, times: [] }); }
-      passes.forEach((p) => all.get(`${p.line}|${p.dir}`).times.push(p.t));
+      // Cada hora con el letrero de su viaje (67): para ver por separado ramales y viajes que "rematan".
+      const headOf = (p) => { const pt = plan.pats[p.pat]; if (pt.h && pt.h.length === 1) return pt.h[0]; const last = byId.get(plan.ids[pt.p[pt.p.length - 1]]); return last ? untilLabel(last.name) : ""; };
+      passes.forEach((p) => { const g = all.get(`${p.line}|${p.dir}`); g.times.push(p.t); (g.heads = g.heads || []).push(headOf(p)); });
       const order = Object.keys(lines || {});
       const groups = [...all.values()].filter((g) => !sched.line || g.line === sched.line).sort((a, b) => (!a.times.length - !b.times.length) || order.indexOf(a.line) - order.indexOf(b.line) || a.dir - b.dir);
       const date = new Date(`${plan.fecha}T12:00:00`).toLocaleDateString(lang, { day: "numeric", month: "short", year: "numeric" });
@@ -1843,14 +1900,33 @@
         const dest = ln && ln.sentidos[g.dir] ? ln.sentidos[g.dir].destino : "";
         const head = `<span class="badge"${lineStyle(g.line)}>${esc(g.line)}</span><span class="what"><b>${esc(dest)}</b>`;
         if (!g.times.length) return `<div class="sched-card off"><div class="sc-head">${head}<small>${esc(t("no_service"))}</small></span></div></div>`;
-        const ts = g.times;
-        const meta = [t("first_last", { first: hhmm(ts[0]), last: hhmm(ts[ts.length - 1]) }), everyText(ts)].filter(Boolean).join(" · ");
-        const nextI = isToday ? ts.findIndex((x) => x >= nowS - 60) : -1;
-        const cells = ts.map((x, i) => `<span class="${i === nextI ? "next" : isToday && x < nowS - 60 ? "past" : ""}">${hhmm(x)}</span>`).join("");
-        const open = sched.line || !opened;
+        // Letreros de esta línea y sentido: el principal (el de más viajes) y los demás (ramales y
+        // viajes que acaban antes), con un botón cada uno; en "Todos", los demás llevan una letra.
+        const cnt = new Map();
+        g.heads.forEach((h) => cnt.set(norm(h), { h, n: ((cnt.get(norm(h)) || {}).n || 0) + 1 }));
+        const hs = [...cnt.entries()].sort((a, b) => b[1].n - a[1].n);
+        const key = `${g.line}|${g.dir}`;
+        let pick = schedPick.get(key) || "";
+        if (pick && !cnt.has(pick)) pick = "";
+        const letter = new Map(hs.slice(1).map(([k], i) => [k, "abcdefgh"[i] || "*"]));
+        const idx = g.times.map((_, i) => i).filter((i) => !pick || norm(g.heads[i]) === pick);
+        const ts = idx.map((i) => g.times[i]);
+        const meta = ts.length ? [t("first_last", { first: hhmm(ts[0]), last: hhmm(ts[ts.length - 1]) }), everyText(ts)].filter(Boolean).join(" · ") : "";
+        const nextJ = isToday ? ts.findIndex((x) => x >= nowS - 60) : -1;
+        const cells = idx.map((i, j) => {
+          const x = g.times[i], lt = !pick && letter.get(norm(g.heads[i]));
+          return `<span class="${j === nextJ ? "next" : isToday && x < nowS - 60 ? "past" : ""}">${hhmm(x)}${lt ? `<sup>${lt}</sup>` : ""}</span>`;
+        }).join("");
+        const nextI = nextJ;
+        const chips = hs.length > 1 ? `<div class="sc-heads" data-key="${esc(key)}">${[["", t("lines_all")], ...hs.map(([k, v]) => [k, headText(v.h)])]
+          .map(([k, txt]) => `<button type="button" data-head="${esc(k)}" aria-pressed="${k === pick}">${k && letter.get(k) ? `<sup>${letter.get(k)}</sup> ` : ""}${esc(txt)}</button>`).join("")}</div>` : "";
+        // Con un letrero elegido, el título de la tarjeta es ese letrero.
+        const headSel = pick ? `<span class="badge"${lineStyle(g.line)}>${esc(g.line)}</span><span class="what"><b>${esc(headText(cnt.get(pick).h))}</b>` : head;
+        const legend = !pick && letter.size ? `<p class="sched-legend">${[...letter].map(([k, lt]) => `<sup>${lt}</sup> ${esc(headText(cnt.get(k).h))}`).join(" · ")}</p>` : "";
+        const open = sched.line || !opened || schedPick.has(key);
         opened = true;
-        return `<details class="sched-card"${open ? " open" : ""}><summary class="sc-head">${head}<small>${esc(meta)}</small></span><svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></summary>
-          <div class="sched-times">${cells}</div>${isToday && nextI >= 0 ? `<p class="sched-hint">${esc(t("sched_hint"))}</p>` : ""}</details>`;
+        return `<details class="sched-card"${open ? " open" : ""}><summary class="sc-head">${headSel}<small>${esc(meta)}</small></span><svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></summary>
+          ${chips}<div class="sched-times">${cells}</div>${legend}${isToday && nextI >= 0 ? `<p class="sched-hint">${esc(t("sched_hint"))}</p>` : ""}</details>`;
       }).join("");
       box.innerHTML = (html || `<div class="state"><strong>${esc(t("sched_none"))}</strong></div>`) +
         `<p class="note">${esc(t("sched_note", { date }))}</p>`;
@@ -1862,6 +1938,15 @@
     const box = d.querySelector(".sched-times"), nx = box && box.querySelector(".next");
     if (nx) box.scrollTop = Math.max(0, nx.offsetTop - box.offsetTop - 38);
   }
+  // Letrero elegido en cada tarjeta de horarios (línea|sentido → letrero normalizado; "" = todos).
+  const schedPick = new Map();
+  $("#sched-list").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-head]");
+    if (!b) return;
+    e.preventDefault();
+    schedPick.set(b.closest(".sc-heads").dataset.key, b.dataset.head);
+    renderSched();
+  });
   $("#sched-list").addEventListener("toggle", (e) => { if (e.target.open) scrollToNext(e.target); }, true);
   $("#sched-days").addEventListener("click", (e) => {
     const b = e.target.closest("[data-day]");
@@ -1875,7 +1960,7 @@
   $("#line-sched").addEventListener("click", () => {
     if (!active) return;
     const stop = active.from || lines[active.code].sentidos[active.dir].paradas[0];
-    if (stop) navigate(`horario/${stop}/${encodeURIComponent(active.code)}`);
+    if (stop) navigate(`horario/${stop}/${encodeURIComponent(active.code)}${active.variant ? `/${encodeURIComponent(active.variant.ruta)}` : ""}`);
   });
   $("#sched-back").addEventListener("click", goBack);
 
@@ -2914,7 +2999,7 @@
     // antes, ni aquellos en los que a esa hora hay viajes con su letrero que llegan y otros que no.
     const good = mine.filter((x) => {
       const r = plan.liveReaches(leg, x.ruta, new Date(e.at + Number(x.minutos) * 60000));
-      return r === "yes" || r === "unknown";
+      return r === "yes";   // "unknown" (sin viajes de la línea a esa hora): sin certeza, se usa el horario
     });
     if (mine.length && !good.length) return null;
     return good.map((x) => ({ ...x, _at: e.at }));

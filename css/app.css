@@ -1419,3 +1419,10 @@ body:has(.panel:not([data-screen="home"])) .install, body:has(.panel[data-state=
 .sw-light { background: linear-gradient(135deg, #F2F2F0 50%, #D8DDE0 50%); }
 .sw-dark { background: linear-gradient(135deg, #2B2D33 50%, #1A1C20 50%); }
 .sw-sat { background: linear-gradient(135deg, #5B7B4A 45%, #8C8A6E 45%, #8C8A6E 60%, #3F6A7E 60%); }
+/* Horarios por letrero (67): ramales y viajes que acaban antes */
+.sc-heads { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.sc-heads button { min-height: 30px; padding: 0 10px; border: 0; border-radius: 999px; background: var(--chip); color: var(--soft); font-size: 13px; }
+.sc-heads button[aria-pressed="true"] { background: var(--brand); color: var(--brand-ink); font-weight: 600; }
+.sched-times sup, .sc-heads sup, .sched-legend sup { font-size: 10px; font-weight: 700; color: var(--brand); margin-left: 1px; }
+.sc-heads button[aria-pressed="true"] sup { color: inherit; }
+.sched-legend { margin: 6px 0 0; font-size: 12px; color: var(--soft); }
