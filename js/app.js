@@ -3988,6 +3988,13 @@
     document.querySelectorAll("[data-i18n-title]").forEach((el) => (el.title = t(el.dataset.i18nTitle)));
     $("#lang-btn .flag").innerHTML = flagSvg(lang);
     $("#lang-code").textContent = (I18N.langs.find((l) => l.code === lang) || {}).name || lang.toUpperCase();
+    // Botón del mapa: la bandera dentro de un círculo, como un globo, con borde blanco.
+    $("#fab-lang").innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true"><defs><clipPath id="fab-globe"><circle cx="12" cy="12" r="9"/></clipPath></defs>
+      <g clip-path="url(#fab-globe)"><svg class="flagin" x="3" y="3" width="18" height="18" viewBox="0 0 30 20" preserveAspectRatio="xMidYMid slice">${flagSvg(lang)}</svg></g>
+      <circle class="ring" cx="12" cy="12" r="9"/></svg>`;
+    $("#fab-lang-menu").innerHTML = I18N.langs.map((l) =>
+      `<li role="option" aria-selected="${l.code === lang}"><button type="button" data-lang="${l.code}" lang="${l.code}">
+        <svg class="flag" viewBox="0 0 30 20" aria-hidden="true">${l.flag}</svg><span>${esc(l.name)}</span></button></li>`).join("");
     $("#lang-menu").innerHTML = I18N.langs.map((l) =>
       `<li role="option" aria-selected="${l.code === lang}"><button type="button" data-lang="${l.code}" lang="${l.code}">
         <svg class="flag" viewBox="0 0 30 20" aria-hidden="true">${l.flag}</svg><span>${esc(l.name)}</span></button></li>`).join("");
@@ -4029,6 +4036,29 @@
     if (b.dataset.lang !== lang) setLang(b.dataset.lang);
   });
   document.addEventListener("click", (e) => { if (!e.target.closest(".lang")) toggleLangMenu(false); });
+  // Acceso directo al idioma en los botones del mapa: la lista se abre a su derecha.
+  function toggleFabLang(open) {
+    const menu = $("#fab-lang-menu"), btn = $("#fab-lang");
+    const show = open != null ? open : menu.hidden;
+    menu.hidden = !show;
+    btn.setAttribute("aria-expanded", show);
+    if (!show) return;
+    const r = btn.getBoundingClientRect();
+    menu.style.left = `${Math.round(r.right + 8)}px`;
+    menu.style.bottom = `${Math.round(innerHeight - r.bottom)}px`;
+    (menu.querySelector('[aria-selected="true"] button') || menu.querySelector("button")).focus();
+  }
+  $("#fab-lang").addEventListener("click", (e) => { e.stopPropagation(); toggleFabLang(); });
+  $("#fab-lang-menu").addEventListener("click", (e) => {
+    const b = e.target.closest("button[data-lang]");
+    if (!b) return;
+    e.stopPropagation();
+    toggleFabLang(false);
+    $("#fab-lang").focus();
+    if (b.dataset.lang !== lang) setLang(b.dataset.lang);
+  });
+  document.addEventListener("click", (e) => { if (!e.target.closest("#fab-lang-menu, #fab-lang")) toggleFabLang(false); });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("#fab-lang-menu").hidden) { toggleFabLang(false); $("#fab-lang").focus(); } });
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape" && !$("#lang-menu").hidden) { toggleLangMenu(false); $("#lang-btn").focus(); }
   });

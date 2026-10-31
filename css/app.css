@@ -1396,3 +1396,14 @@ body:has(.panel:not([data-screen="home"])) .install, body:has(.panel[data-state=
 }
 .hw-row, .screen-extra .lines-head, .lines-head { margin-top: 6px; }
 @media (max-width: 859.98px) { .panel[data-screen="sched"] { padding-top: calc(18px + env(safe-area-inset-top)); } }
+/* Idioma en los botones del mapa: la bandera en un círculo con borde blanco, como el globo de Más */
+#fab-lang { border-top: 1px solid rgba(255, 255, 255, .25); color: var(--brand-ink); }
+#fab-lang svg { width: 22px; height: 22px; }
+#fab-lang svg, #fab-lang .flagin { stroke: none; }
+#fab-lang .ring { fill: none; stroke: #fff; stroke-width: 2; }
+.map-fabs button + button + button { color: var(--brand-ink); }
+.fab-lang-menu { position: fixed; top: auto; right: auto; z-index: 1003; box-shadow: var(--sh-md); }
+.fab-lang-menu[hidden] { display: none; }
+.fab-lang-menu .flag, .lang-menu .flag { width: 24px; height: 16px; flex: none; border-radius: 3px; }
+.fab-lang-menu .flag, .lang-menu .flag { stroke: none; }
+.lang-menu button { color: var(--ink); }
