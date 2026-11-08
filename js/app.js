@@ -2075,6 +2075,7 @@
       const r = net.route(me, p.ll);
       const walkEq = r ? r.eq + r.offFrom + r.offTo : Infinity;
       const origins = stopsAround(net, plan, me), dests = stopsAround(net, plan, p.ll, undefined, true);
+      withStops(plan);
       const cands = plan.search({ origins, dests, walk: walkEq, maxTransfers: 2, prefer: "fast", originsMech: origins.mech, destsMech: dests.mech, time: start });
       const opts = plan.choose(cands, start, walkEq);
       const nowS = (Date.now() - dayBase(start).getTime()) / 1000;
@@ -2944,6 +2945,8 @@
   const PLAN = window.PV_PLAN;
   const MAX_WALK_STOP = 1000;        // metros a pie como máximo hasta la parada de subida o desde la de bajada
   const ORIGIN_LIVE = 6;                // paradas más cercanas a A que se piden en vivo (horario en vivo)
+  const SHOW_OPTIONS = 8;               // opciones en bus que se ven de entrada; el resto, con "Ver más" (8/11)
+  const LIVE_MAX_STOPS = 16;            // en las vueltas completas, paradas de subida de candidatos ocultos como mucho
   const FULL_EVERY = 4;                 // cada 4 vueltas (2 min) se piden todas las paradas de los candidatos
   const LIVE_MAX_AGE = 180000;          // un dato en vivo de más de 3 min no se usa en Cómo llegar
   const liveCache = new Map();       // parada → { at, list | null } (null: sin respuesta)
@@ -3054,7 +3057,7 @@
       hash: location.hash, net, plan, planError: !plan, fecha: net.fecha, vvWhen,
       walk: r ? { dist: r.dist + r.offFrom + r.offTo, eq: r.eq + r.offFrom + r.offTo, r } : null,
       approx: [trip.a, trip.b].filter((p) => p.kind === "addr" && p.approx).map((p) => p.label),
-      cands: [], opts: [], live: false,
+      cands: [], opts: [], live: false, more: false,
     };
     if (plan) {
       lastTrip.origins = stopsAround(net, plan, trip.a.ll);
@@ -3104,8 +3107,11 @@
   const tripStart = () => (trip.when && trip.whenMode !== "arr" && trip.when > new Date() ? trip.when : new Date());
 
   // Busca de nuevo (las opciones del horario, aún sin tiempos en vivo).
+  // Coordenadas de las paradas para el planificador (distancia de los tramos en bus, ver pick()).
+  const withStops = (plan) => { if (!plan.stopsSet && byId.size) { plan.setStops((id) => { const s = byId.get(id); return s && s.ll; }); plan.stopsSet = true; } return plan; };
   function planSearch() {
     const lt = lastTrip;
+    withStops(lt.plan);
     const walk = lt.walk ? lt.walk.eq : Infinity;
     const q = { origins: lt.origins, dests: lt.dests, walk, maxTransfers: 2, prefer: tripPref, originsMech: lt.origins.mech, destsMech: lt.dests.mech };
     // "Llegar a las" (10): se busca desde 3 h antes (o desde ahora); si no hay forma de llegar a
@@ -3140,16 +3146,23 @@
     const lt = lastTrip;
     if (!lt || !lt.plan) return;
     clearTimeout(tripTimer);
-    // Paradas de subida que se piden en vivo (31, fase 3): la primera vez y cada FULL_EVERY vueltas,
-    // las de todos los candidatos (una opción oculta puede pasar delante si su bus va mejor); en las
-    // demás, solo las de las opciones que se ven y la abierta. Así, cada 30 s, unas pocas paradas en
-    // vez de las de hasta 8 candidatos con 3 buses.
+    // Paradas de subida que se piden en vivo (31, fase 3): siempre las de las opciones que se ven y
+    // la abierta; la primera vez y cada FULL_EVERY vueltas, también las de los demás candidatos (una
+    // opción oculta puede pasar delante si su bus va mejor), de los mejores a los peores y como mucho
+    // LIVE_MAX_STOPS paradas más (8/11: ahora puede haber decenas de candidatos).
     lt.liveRound = (lt.liveRound || 0) + 1;
     const full = lt.liveRound === 1 || lt.liveRound % FULL_EVERY === 1;
-    const keys = new Set([...(lt.opts || []).map((j) => j.key), trip.sel]);
+    const keys = new Set([...visibleOpts().map((j) => j.key), trip.sel]);
     const boards = () => {
-      const ids = new Set();
-      lt.cands.forEach((j) => { if (full || keys.has(j.key)) j.legs.forEach((l) => l.type === "bus" && ids.add(lt.plan.ids[l.board])); });
+      const ids = new Set(), stopsOf = (j) => j.legs.filter((l) => l.type === "bus").map((l) => lt.plan.ids[l.board]);
+      lt.cands.forEach((j) => { if (keys.has(j.key)) stopsOf(j).forEach((id) => ids.add(id)); });
+      if (full) {
+        const cap = ids.size + LIVE_MAX_STOPS;
+        [...lt.cands].sort((a, b) => a.score - b.score).forEach((j) => {
+          const st = stopsOf(j).filter((id) => !ids.has(id));
+          if (ids.size + st.length <= cap) st.forEach((id) => ids.add(id));
+        });
+      }
       return ids;
     };
     // Horario en vivo: también las paradas más cercanas a A (un bus retrasado que ya "tendría que
@@ -3204,13 +3217,16 @@
     return `<span class="sched">${esc(m < 60 && m > 0 ? atTime(leg.dep) : txt)} · ${esc(t("scheduled"))}</span>`;
   }
   // Hora de una salida o llegada, con "mañana" si es del día siguiente.
-  // Duración de una opción: desde que sales de A (andando hasta la primera parada incluido) hasta
-  // que llegas a B; sin la espera hasta que toca salir (p. ej. de noche, al primer bus de la mañana).
-  // Si hay que esperar más de 3 min antes de salir, se dice a qué hora (la duración no cuenta esa
-  // espera; sin el aviso, un bus de "17 min" parecía más rápido que andar 19 aunque llegase después).
+  // Duración de una opción (8/11, criterio del usuario): desde la hora pedida (o desde ahora, si no
+  // se ha elegido hora) hasta que llegas a B, con la espera hasta salir incluida, también de noche
+  // (aunque salgan varias horas). Así la que menos dura es siempre la que antes llega; antes se
+  // contaba desde la salida de cada opción y un bus de "17 min" parecía más rápido que otro de 25
+  // aunque llegase después.
+  // "Llegar a las": no hay hora de salida pedida, así que se cuenta desde que toca salir (como antes).
+  // Si hay que esperar más de 3 min antes de salir, se dice a qué hora.
   const LEAVE_NOTE_MIN = 3;
   const leaveSec = (j) => Math.max(j.dep, nowSec());
-  const tripMin = (j) => (j.arr - leaveSec(j)) / 60;
+  const tripMin = (j) => (j.arr - (lastTrip.arriveBy ? leaveSec(j) : startSec())) / 60;
   function leaveText(j, always) {
     const s = leaveSec(j);
     if (!always && s - startSec() <= LEAVE_NOTE_MIN * 60) return "";
@@ -3293,6 +3309,14 @@
       : startSec() + walkMin(lt.walk.eq) * 60 <= first.arr;
   }
   const busKey = (l) => `${l.line}|${l.board}`;
+  // Opciones en bus que se ven en la lista: las SHOW_OPTIONS primeras (todas tras "Ver más"), más
+  // la abierta o la del trayecto guardado si está más abajo.
+  function visibleOpts() {
+    const lt = lastTrip;
+    if (lt.more || lt.opts.length <= SHOW_OPTIONS) return lt.opts;
+    const k = trip.sel || wanted();
+    return lt.opts.filter((o, i) => i < SHOW_OPTIONS || o.key === k);
+  }
 
   // Lista de opciones; con una elegida, sus pasos.
   function renderTripResult() {
@@ -3310,7 +3334,8 @@
     const shown = shownKey();
     const cur = (k) => (k === shown ? ' aria-current="true"' : "");
     const arr = !!lt.arriveBy;
-    const items = lt.opts.map((j) => {
+    const vis = visibleOpts();
+    const items = vis.map((j) => {
       const first = j.legs.find((l) => l.type === "bus");
       const total = tripMin(j);
       const lt0 = leaveText(j, arr);
@@ -3335,6 +3360,9 @@
       </button>${starBtn("walk")}</li>`;
       if (walkOnTop()) items.unshift(w); else items.push(w);
     }
+    // "Ver N opciones más": las que no caben en las SHOW_OPTIONS primeras.
+    const hidden = lt.opts.length - vis.length;
+    if (hidden > 0) items.push(`<li class="opt-li more-li"><button type="button" class="opts-more" data-opt-more="1">${esc(t(hidden === 1 ? "more_opts_1" : "more_opts_n", { n: hidden }))}</button></li>`);
     let head = "";
     if (lt.planError) head = `<p class="trip-note">${esc(t("plan_error"))}</p>`;
     else if (!lt.opts.length) head = `<div class="state"><strong>${esc(t("plan_none"))}</strong></div>`;
@@ -3679,6 +3707,12 @@
       return;
     }
     if (e.target.closest("[data-tfshare]")) { $('[data-share="trip"]').click(); return; }
+    if (e.target.closest("[data-opt-more]") && lastTrip) {
+      lastTrip.more = true;
+      renderTripResult();
+      refreshLive(tripSeq);   // tiempos en vivo de las que acaban de aparecer
+      return;
+    }
     const b = e.target.closest("button[data-opt]");
     if (!b || !lastTrip) return;
     trip.sel = b.dataset.opt;

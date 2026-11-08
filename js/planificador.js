@@ -23,10 +23,19 @@
     transfers: { walk: WALK_PENALTY, transfer: 1200 },   // cada transbordo cuenta como 20 min
     walk: { walk: 2, transfer: TRANSFER_PENALTY },      // cada minuto andando cuenta como 3
   };
-  const MAX_OPTIONS = 5;
-  const WIDE_OPTIONS = 8;
-  const CUTOFF = 25 * 60;        // se descartan opciones que cuestan 25 min más que la mejor
-  const WALK_SLACK = 5 * 60;     // el bus tiene que ahorrar más de 5 min frente a ir andando
+  // Qué opciones se enseñan (ver pick()): valores por defecto de OpenTripPlanner, salvo el tope
+  // (criterio del usuario: más de 15 no tiene sentido) y TRANSFER_GAIN (no está en OTP).
+  const MAX_OPTIONS = 15;               // la web enseña 8 y el resto con "Ver más"
+  const MAX_CANDIDATES = 50;            // antes de los tiempos en vivo (tope de OTP)
+  const WALK_RELUCTANCE = 2;            // coste para filtrar: andar cuenta doble…
+  const BOARD_COST = 10 * 60;           // …y cada bus al que se sube, 10 min
+  const COST_LIMIT_BASE = 15 * 60;      // límite de coste: 15 min…
+  const COST_LIMIT_FACTOR = 1.5;        // …+ 1,5 × el de otra opción…
+  const COST_LIMIT_RELAX = 0.4;         // …+ 0,4 × la diferencia de hora entre las dos
+  const SIMILAR_KEEP_THREE = 0.68;      // parecidas: tramos principales hasta el 68 % de la distancia, 3 por grupo
+  const SIMILAR_KEEP_ONE = 0.85;        // y hasta el 85 %, una
+  const OTHER_LEGS_FACTOR = 2;          // en el grupo del 68 %, fuera las que cuestan más del doble en lo que no comparten
+  const TRANSFER_GAIN = 5 * 60;         // transbordo a una línea que ya lleva directa: solo si ahorra más de 5 min
   const USELESS_M = 50;           // ver pick(): bus que no ahorra andar (50 m ya cuentan para quien le cuesta andar)
   const MAX_WAIT = 3600;         // espera máxima en un transbordo
 
@@ -461,48 +470,180 @@
       j.dep = legs[1].dep - legs[0].m / WALK;
     }
 
-    // Elegir las opciones que se enseñan. Se quita una opción si otra sale igual o más tarde,
-    // llega igual o antes, se anda menos y no tiene más transbordos (es peor en todo), o si ir
-    // andando todo el camino llega como mucho 5 min más tarde.
-    // Con "wide" (antes de consultar los tiempos en vivo) se guardan hasta 8 y solo se quitan las
-    // que llegan 10 min más tarde que otra mejor en todo lo demás: la espera real puede cambiarlo.
+    // ---------- Qué opciones se enseñan ----------
+    // Criterio del usuario (8/11): varias alternativas (cada uno puede preferir una línea u otra),
+    // con los filtros de OpenTripPlanner (código de OTP 2.x, ItineraryListFilterChainBuilder y
+    // RouteRequestToFilterChainMapper, leído el 8/11/2026) y un tope de MAX_OPTIONS.
+    // Coste para filtrar ("coste generalizado" de OTP, con sus pesos por defecto): el tiempo desde la
+    // hora pedida hasta llegar, con todas las esperas (criterio del usuario: también la de antes de
+    // salir; OTP no la cuenta), el tiempo andando otra vez (andar cuenta doble) y 10 min por cada bus
+    // al que se sube. En "llegar a las", desde que toca salir hasta la hora pedida. Nunca se enseña:
+    // la duración y la llegada que se ven son las reales.
+    // Distancias de los tramos (para las parecidas): las que se andan y, en bus, la suma en línea
+    // recta entre las paradas por las que pasa (setStops); sin coordenadas, 5 m por segundo de viaje.
+    let stopLL = null;
+    const cumDist = new Map();   // patrón → distancia acumulada en cada posición
+    function setStops(llOf) {
+      stopLL = ids.map((id) => llOf(id) || null);
+      cumDist.clear();
+    }
+    const hav = (a, b) => {
+      const r = Math.PI / 180, dl = (b[0] - a[0]) * r, dn = (b[1] - a[1]) * r;
+      const h = Math.sin(dl / 2) ** 2 + Math.cos(a[0] * r) * Math.cos(b[0] * r) * Math.sin(dn / 2) ** 2;
+      return 12742000 * Math.asin(Math.sqrt(h));
+    };
+    function rideDist(l) {
+      if (!stopLL) return (l.arr - l.dep) * 5;
+      let c = cumDist.get(l.pat);
+      if (!c) {
+        const p = pats[l.pat].p;
+        c = [0];
+        for (let k = 1; k < p.length; k++) c.push(c[k - 1] + (stopLL[p[k]] && stopLL[p[k - 1]] ? hav(stopLL[p[k - 1]], stopLL[p[k]]) : 0));
+        cumDist.set(l.pat, c);
+      }
+      return c[l.to] - c[l.from];
+    }
+    // Tramos de una opción con sus horas, distancia y viaje (como los "legs" de OTP). Los tramos a
+    // pie de 0 m (transbordo en la misma parada) no son tramos.
+    function legsOf(j) {
+      const out = [];
+      let prevBus = null;
+      j.legs.forEach((l, i) => {
+        if (l.type === "bus") {
+          out.push({ bus: true, start: l.dep, end: l.arr, dist: rideDist(l), trip: `${l.pat}|${l.tripDep}`, from: l.from, to: l.to, board: l.board, alight: l.alight, cost: l.arr - l.dep + BOARD_COST });
+          prevBus = l;
+          return;
+        }
+        if (!(l.m > 0)) return;
+        const start = i === 0 ? j.dep : prevBus.arr;
+        const end = i === j.legs.length - 1 ? j.arr : start + l.m / WALK;
+        out.push({ bus: false, start, end, dist: l.m });
+      });
+      return out;
+    }
+    // Leg.isPartiallySameLeg de OTP: mismo modo y se solapan en el tiempo; a pie, con eso basta; en
+    // bus, además el mismo viaje y tramos de recorrido que se solapan.
+    const sameLeg = (a, b) => a.bus === b.bus && a.start < b.end && b.start < a.end &&
+      (!a.bus || (a.trip === b.trip && a.from < b.to && a.to > b.from));
+    // GroupByDistance de OTP: los tramos principales son los más largos hasta sumar p de la
+    // distancia total; dos opciones se agrupan si todos los tramos principales de la que tiene
+    // menos están en la otra.
+    function mainLegs(it, p) {
+      const legs = [...it.legs].sort((a, b) => b.dist - a.dist);
+      const limit = p * legs.reduce((s, l) => s + l.dist, 0);
+      let sum = 0, i = 0;
+      while (sum < limit && i < legs.length) sum += legs[i++].dist;
+      return legs.slice(0, Math.max(1, i));
+    }
+    const contains = (big, small) => small.every((l) => big.some((m) => sameLeg(l, m)));
+    const keyMatch = (a, b) => (a.length > b.length ? contains(a, b) : contains(b, a));
+    // GroupByFilter de OTP: cada opción entra en el primer grupo con el que casa; si casa con varios,
+    // se juntan. La clave del grupo, la más corta.
+    function groupBy(items, keyOf, match) {
+      const groups = [];
+      for (const it of items) {
+        const k = keyOf(it);
+        let found = null;
+        for (const g of groups) {
+          if (!g.items.length || !match(g.key, k)) continue;
+          if (!found) { if (k.length < g.key.length) g.key = k; g.items.push(it); found = g; }
+          else { if (g.key.length < found.key.length) found.key = g.key; found.items.push(...g.items); g.items = []; }
+        }
+        if (!found) groups.push({ key: k, items: [it] });
+      }
+      return groups.filter((g) => g.items.length);
+    }
+    const flagged = (it) => it.flags.size > 0;
+    const byCost = (a, b) => a.cost - b.cost || a.j.transfers - b.j.transfers;
+    // Quita (marca) en "list" las que no están entre las n primeras sin marcar (MaxLimit de OTP).
+    const maxLimit = (list, n, tag) => list.filter((it) => !flagged(it)).slice(n).forEach((it) => it.flags.add(tag));
+    // Un filtro de parecidas de OTP (similar-legs-filter-<p>-<n>), con lo que hace por defecto:
+    // con n = 3, antes una sola de las que suben y bajan en las mismas paradas y fuera las que
+    // cuestan más del doble en lo que no comparten; después las n de menor coste, y la de menos
+    // transbordos se recupera si solo la quitaron estos filtros.
+    function similarFilter(items, p, n, sysTags) {
+      const tag = `similar-${p}-${n}`;
+      sysTags.add(tag);
+      for (const g of groupBy(items, (it) => mainLegs(it, p), keyMatch)) {
+        let list = g.items;
+        if (n > 1) {
+          // Mismas paradas de subida y bajada en todos los tramos en bus: una (OTP le pone otra marca,
+          // que no está en sysTags: estas no se recuperan).
+          const stopsKey = (it) => it.legs.filter((l) => l.bus).map((l) => `${l.board}>${l.alight}`).join(",");
+          for (const sg of groupBy(list, (it) => [stopsKey(it)], (a, b) => a[0] === b[0])) maxLimit(sg.items.sort(byCost), 1, `${tag}-same-stations`);
+          // Lo que no se comparte (RemoveOtherThanSameLegsMaxGeneralizedCost, factor 2).
+          const live = list.filter((it) => !flagged(it));
+          if (live.length >= 2) {
+            const trips = (it) => new Set(it.legs.filter((l) => l.bus).map((l) => l.trip));
+            const common = live.map(trips).reduce((a, b) => new Set([...a].filter((x) => b.has(x))));
+            if (common.size) {
+              const commonCost = Math.min(...live.map((it) => it.legs.filter((l) => l.bus && common.has(l.trip)).reduce((s, l) => s + Math.max(0, l.cost), 0)));
+              const minCost = Math.min(...live.map((it) => it.cost));
+              const limit = Math.max(0, minCost - commonCost) * OTHER_LEGS_FACTOR + commonCost;
+              sysTags.add("other-legs");
+              live.filter((it) => it.cost > limit).forEach((it) => it.flags.add("other-legs"));
+            }
+          }
+        }
+        list = list.sort(byCost);
+        maxLimit(list, n, tag);
+        const few = [...list].sort((a, b) => a.j.transfers - b.j.transfers || a.cost - b.cost)[0];
+        if (few && [...few.flags].every((f) => sysTags.has(f))) few.flags.clear();
+      }
+    }
+
+    // Elegir las opciones que se enseñan, en este orden:
+    //  1. Fuera las que ya no se pueden coger y los buses con los que se anda lo mismo (o casi,
+    //     USELESS_M) que yendo andando (p. ej. 60 m hasta la parada, una parada hacia atrás y 770 m
+    //     andando, frente a 660 m andando). Si no queda ningún bus, el mejor de esos (criterio del
+    //     usuario: siempre al menos un bus, aunque andar sea mejor; OTP los quitaría).
+    //  2. Un transbordo para acabar en una línea que ya lleva directa ("15A una parada y luego el
+    //     H2" frente al H2), salvo que llegue más de 5 min antes (en "llegar a las", que deje salir
+    //     más de 5 min más tarde): criterio del usuario, no está en OTP.
+    //  3. Parecidas al 68 % (como mucho 3 por grupo) y al 85 % (una), como OTP.
+    //  4. Límite de coste de OTP: fuera la que cueste más de 15 min + 1,5 × el coste de otra
+    //     (de las que quedan) + 0,4 × la diferencia de hora entre las dos (la menor entre la de
+    //     salida y la de llegada).
+    //  5. Como mucho MAX_OPTIONS, por hora de llegada (como OTP); "llegar a las", como siempre,
+    //     por lo tarde que se puede salir (j.score).
+    // "wide" (antes de consultar los tiempos en vivo): sin el paso 3, el límite 10 min más holgado y
+    // hasta MAX_CANDIDATES, porque la espera real puede cambiar cuál es la mejor.
     function pick(list, now, walk, wide = false) {
       const walkArr = walk < Infinity ? now + walk / WALK : Infinity;
-      // Un bus con el que se anda lo mismo (o casi, USELESS_M) que yendo andando hasta el destino no
-      // sirve para nada (p. ej. 60 m hasta la parada, una parada hacia atrás y 770 m andando, frente
-      // a 660 m andando): se quita, salvo que no quede ninguna otra opción en bus (criterio del
-      // usuario: siempre al menos un bus).
       const ok = list.filter((j) => !j.broken);
-      const useful = ok.filter((j) => !(walk < Infinity && j.walkM >= walk - USELESS_M));
-      const all = useful.length ? useful : ok;
-      // "Llegar a las": compensa si deja salir más de 5 min más tarde que andando.
-      const T = all.length ? all[0].arriveBy : null;
-      const walkDep = T != null && walk < Infinity ? T - walk / WALK : -Infinity;
-      const worth = T != null ? (j) => j.dep - WALK_SLACK > walkDep : (j) => j.arr + WALK_SLACK < walkArr;
-      const slower = T != null ? (j) => j.dep <= walkDep : (j) => j.arr >= walkArr;
-      list = all.filter(worth);
-      // Si ninguna opción en bus compensa frente a andar, se enseña igualmente la mejor (marcada
-      // "slower"); antes de los tiempos en vivo se guardan unas pocas, porque la espera real cambia.
-      if (!list.length && all.length) {
-        return all.sort((a, b) => a.score - b.score).slice(0, wide ? 3 : 1).map((j) => ({ ...j, slower: slower(j) }));
-      }
-      // Un transbordo para acabar cogiendo una línea que ya se puede coger directamente (y que
-      // llega más o menos a la vez) no aporta nada: "15A una parada y luego el H2" frente al H2.
+      if (!ok.length) return [];
+      const T = ok[0].arriveBy != null ? ok[0].arriveBy : null;
+      const cost = (j) => (T != null ? T - j.dep : j.arr - now) + (WALK_RELUCTANCE - 1) * j.walkM / WALK +
+        BOARD_COST * (j.transfers + 1) + (j.late ? 3600 : 0);
+      let items = ok.map((j) => ({ j, cost: cost(j), legs: legsOf(j), flags: new Set() }));
+      // 1.
+      const useful = items.filter((it) => !(walk < Infinity && it.j.walkM >= walk - USELESS_M));
+      items = useful.length ? useful : [items.sort(byCost)[0]];
+      // 2.
       const lastLine = (j) => j.legs[j.legs.length - 2].line;
-      const directs = list.filter((j) => !j.transfers);
-      list = list.filter((j) => !j.transfers || !directs.some((o) => lastLine(o) === lastLine(j) && o.arr <= j.arr + 120));
-      list.sort((a, b) => a.score - b.score);
-      const out = [];
-      // El margen amplio solo cuando el primer bus es distinto: es la espera que más cambia en vivo.
-      const first = (j) => `${j.legs[1].line}|${j.legs[1].board}`;
-      for (const j of list) {
-        if (out.length >= (wide ? WIDE_OPTIONS : MAX_OPTIONS) || j.score > list[0].score + CUTOFF * (wide ? 1.4 : 1)) break;
-        if (!out.some((o) => {
-          const margin = wide && first(o) !== first(j) ? 600 : -60;
-          return o.dep >= j.dep - 60 && o.arr <= j.arr - margin && o.walkM <= j.walkM + 50 && o.transfers <= j.transfers;
-        })) out.push(j);
+      const directs = items.filter((it) => !it.j.transfers).map((it) => it.j);
+      const gains = (x, d) => (T != null ? x.dep - d.dep : d.arr - x.arr) > TRANSFER_GAIN;
+      items = items.filter(({ j }) => !j.transfers || directs.every((d) => lastLine(d) !== lastLine(j) || gains(j, d)));
+      // 3.
+      if (!wide) {
+        const sysTags = new Set();
+        similarFilter(items, SIMILAR_KEEP_THREE, 3, sysTags);
+        similarFilter(items, SIMILAR_KEEP_ONE, 1, sysTags);
       }
-      return out;
+      // 4.
+      const refs = items.filter((it) => !flagged(it));
+      for (const s of refs) {
+        if (refs.some((t) => s.cost > COST_LIMIT_BASE + (wide ? 600 : 0) + COST_LIMIT_FACTOR * t.cost +
+          COST_LIMIT_RELAX * Math.min(Math.abs(s.j.dep - t.j.dep), Math.abs(s.j.arr - t.j.arr)))) s.flags.add("cost");
+      }
+      // 5.
+      const byArr = (a, b) => a.arr - b.arr || a.walkM - b.walkM || a.transfers - b.transfers;
+      const walkDep = T != null && walk < Infinity ? T - walk / WALK : -Infinity;
+      const slower = T != null ? (j) => j.dep <= walkDep : (j) => j.arr >= walkArr;
+      return items.filter((it) => !flagged(it)).map((it) => it.j)
+        .sort(T != null ? (a, b) => a.score - b.score : byArr)
+        .slice(0, wide ? MAX_CANDIDATES : MAX_OPTIONS)
+        .map((j) => ({ ...j, slower: slower(j) }));
     }
     // Selección final, con las opciones ya corregidas por los tiempos en vivo.
     function choose(list, time = new Date(), walk = Infinity) {
@@ -703,7 +844,7 @@
       return ok.every(Boolean) ? "yes" : ok.some(Boolean) ? "mixed" : "no";
     }
 
-    return { ids, index, pats, at, transfers, search, retime, choose, stopPasses, upcoming, liveReaches, observe, liveDelay, fecha: data.fecha, WALK };
+    return { ids, index, pats, at, transfers, search, retime, choose, setStops, stopPasses, upcoming, liveReaches, observe, liveDelay, fecha: data.fecha, WALK };
   }
 
   let pending = null;
