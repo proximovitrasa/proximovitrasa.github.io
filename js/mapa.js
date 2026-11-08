@@ -305,11 +305,12 @@
     // Orden: los grupos por z (y, a igual z, por orden de creación); dentro de cada grupo, líneas
     // continuas, después las discontinuas y encima los círculos (como los dibuja Leaflet).
     const groups = [];
+    const anchors = [];   // otras capas nuestras con su z (las paradas, 600), para ordenar los grupos
     let gseq = 0;
     const layerOrder = (g) => g.layers;   // ids de capas del grupo, en orden de dibujo
     function beforeIdFor(g, kind) {
       if (kind !== "C") { const c = g.layers.find((x) => x.endsWith(":C")); if (c) return c; }
-      const later = groups.filter((h) => h !== g && (h.z > g.z || (h.z === g.z && h.seq > g.seq)) && h.layers.length)
+      const later = groups.concat(anchors).filter((h) => h !== g && (h.z > g.z || (h.z === g.z && h.seq > g.seq)) && h.layers.length)
         .sort((a, b) => a.z - b.z || a.seq - b.seq);
       return later.length ? layerOrder(later[0])[0] : undefined;
     }
@@ -390,6 +391,95 @@
     ml.on("style.load", () => groups.forEach(touch));
     let looseGroup = null;   // círculos sueltos (el anillo de la parada elegida), encima de todo
     const loose = () => looseGroup || (looseGroup = makeGroup(500));
+
+    // ----- Paradas: una sola capa de símbolos (fase 2) -----
+    // Icono de parada (señal con un autobús) dibujado en un lienzo con las mismas formas que el SVG
+    // de app.js, a 2× y con la sombra dentro; uno por pareja de colores ("fondo|figura"). MapLibre
+    // lo pide cuando le falta (también tras cambiar de fondo, que borra las imágenes).
+    const STOP_IMG = "pv-stop:";
+    function stopImage(bg, fg) {
+      const k = 2, W = 38 * k, c = document.createElement("canvas");
+      c.width = c.height = W;
+      const x = c.getContext("2d");
+      x.scale(k, k);
+      x.translate(3, 3);
+      const rr = (X, Y, w, h, r) => { x.beginPath(); x.roundRect(X, Y, w, h, r); };
+      x.save();
+      x.shadowColor = "rgba(19,34,44,.45)"; x.shadowBlur = 2 * k * 0.8; x.shadowOffsetY = 1;
+      rr(1.5, 1.5, 29, 29, 8); x.fillStyle = bg; x.fill();
+      x.restore();
+      rr(1.5, 1.5, 29, 29, 8); x.lineWidth = 2.5; x.strokeStyle = "#fff"; x.stroke();
+      x.fillStyle = fg;
+      x.beginPath(); x.arc(8.6, 9.6, 2.6, 0, 2 * Math.PI); x.fill();
+      rr(7.8, 11.5, 1.6, 14.5, 0.8); x.fill();
+      rr(13, 9.5, 12.5, 13.5, 2.6); x.fill();
+      rr(14.4, 22, 2.6, 3.6, 0.9); x.fill();
+      rr(21.5, 22, 2.6, 3.6, 0.9); x.fill();
+      x.fillStyle = bg; rr(15, 11.5, 8.5, 5.6, 1.2); x.fill();
+      return { width: W, height: W, data: new Uint8Array(x.getImageData(0, 0, W, W).data.buffer) };
+    }
+    ml.on("styleimagemissing", (e) => {
+      if (!e.id || !e.id.startsWith(STOP_IMG) || ml.hasImage(e.id)) return;
+      const [bg, fg] = e.id.slice(STOP_IMG.length).split("|");
+      ml.addImage(e.id, stopImage(bg, fg), { pixelRatio: 2 });
+    });
+    // Tamaño como en app.js (sizeFor, en la escala de Leaflet): 12 px hasta el 12, 16, 20, 26 y 30
+    // desde el 16; las de la línea abierta, 4 px más. La imagen (38 px) es el icono de 32 + márgenes.
+    const sizeAt = (n) => ["/", ["+", n, ["*", ["get", "big"], 4]], 32];
+    const STOP_SIZE = ["step", ["zoom"], sizeAt(12), 13 - ZOFF, sizeAt(16), 14 - ZOFF, sizeAt(20), 15 - ZOFF, sizeAt(26), 16 - ZOFF, sizeAt(30)];
+    function stopLayer(o2) {
+      const SRC = `${PV}stops`, LID = `${PV}stops`;
+      const anchor = { z: 600, seq: 1e9, layers: [] };
+      anchors.push(anchor);
+      let list = [], look = null, hidden = false;
+      const byId = new Map();
+      const data = () => ({ type: "FeatureCollection", features: list.map((st) => {
+        const l = look(st);
+        return { type: "Feature", properties: { id: st.id, img: `${STOP_IMG}${l.bg}|${l.fg}`, big: l.big ? 1 : 0, op: l.op, sort: l.sort || 0 },
+          geometry: { type: "Point", coordinates: [st.ll[1], st.ll[0]] } };
+      }) });
+      const push = () => ready(() => { const src = ml.getSource(SRC); if (src && look) src.setData(data()); });
+      ready(() => {
+        if (!ml.getSource(SRC)) ml.addSource(SRC, { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+        if (!ml.getLayer(LID)) {
+          // encima de los trazos (como el panel de marcadores de Leaflet), debajo de los marcadores
+          const later = groups.filter((h) => h.z > 600 && h.layers.length).sort((a, b2) => a.z - b2.z || a.seq - b2.seq);
+          ml.addLayer({ id: LID, type: "symbol", source: SRC,
+            layout: { "icon-image": ["get", "img"], "icon-size": STOP_SIZE, "icon-allow-overlap": true, "icon-ignore-placement": true,
+              "symbol-sort-key": ["get", "sort"], visibility: hidden ? "none" : "visible" },
+            paint: { "icon-opacity": ["get", "op"] } }, later.length ? later[0].layers[0] : undefined);
+          anchor.layers = [LID];
+        }
+        if (look) push();
+      });
+      ml.on("style.load", push);
+      // Tocar: la de encima. Marca el toque para que no lo atiendan también los demás manejadores.
+      ml.on("click", LID, (e) => {
+        if (hidden || !e.features || !e.features.length) return;
+        const st = byId.get(e.features[0].properties.id);
+        if (!st) return;
+        if (e.originalEvent) e.originalEvent._stopHit = true;
+        o2.onClick(st);
+      });
+      if (o2.hover) {
+        ml.on("mousemove", LID, (e) => {
+          const st = !hidden && e.features && e.features.length && byId.get(e.features[0].properties.id);
+          ml.getCanvas().style.cursor = st ? "pointer" : "";
+          box.title = st && o2.title ? o2.title(st) : "";
+        });
+        ml.on("mouseleave", LID, () => { ml.getCanvas().style.cursor = ""; box.title = ""; });
+      }
+      return {
+        set(items, fn) { list = items; look = fn; byId.clear(); items.forEach((st) => byId.set(st.id, st)); push(); return this; },
+        update() { push(); return this; },
+        hide(h) {
+          if (h === hidden) return this;
+          hidden = h;
+          ready(() => { if (ml.getLayer(LID)) ml.setLayoutProperty(LID, "visibility", h ? "none" : "visible"); });
+          return this;
+        },
+      };
+    }
 
     // ----- Marcadores (elementos de la página, como los de Leaflet) -----
     function iconEl(d) {
@@ -572,6 +662,7 @@
       },
       marker,
       canvasPane,
+      stopLayer,
       popup(o2) {
         const p = new maplibregl.Popup({ closeButton: false, className: o2.className || "", maxWidth: "none", offset: 10 });
         return {

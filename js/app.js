@@ -250,8 +250,10 @@
     if (s.look.op !== op) { m.setOpacity(op); s.look.op = op; }
     if (s.look.z !== z) { m.setZIndexOffset(z); s.look.z = z; }
   }
+  let stopLayer = null;   // capa nativa de paradas del mapa nuevo (se crea más abajo, con stopClick)
   function syncStops() {
     if (!stops.length) return;
+    if (stopLayer) { if (!stopLayer.ready) { stopLayer.ready = true; stopLayer.set(stops, stopLook); } return; }
     // Alejado (zoom 14 o menos) caben cientos de paradas: van dibujadas en un lienzo (53). Con un
     // marcador por parada, alejar el mapa creaba y cambiaba más de mil elementos de golpe (tirones
     // de hasta medio segundo en un móvil). Las de cerca siguen siendo marcadores (se pueden tocar,
@@ -268,8 +270,8 @@
     drawStopsLow();
   }
   // Volver a pintar todas las paradas visibles (al abrir o cerrar una línea, por ejemplo).
-  const restyleStops = () => { shownStops.forEach(styleStop); drawStopsLow(); };
-  const refreshIcon = (s) => { if (shownStops.has(s)) styleStop(s); else drawStopsLow(); };
+  const restyleStops = () => { if (stopLayer) { stopLayer.update(); return; } shownStops.forEach(styleStop); drawStopsLow(); };
+  const refreshIcon = (s) => { if (stopLayer) { stopLayer.update(); return; } if (shownStops.has(s)) styleStop(s); else drawStopsLow(); };
 
   // ---------- Paradas en un lienzo, con el mapa alejado ----------
   const STOP_DOM_ZOOM = 15;
@@ -300,6 +302,7 @@
     return e.bmp;
   }
   function drawStopsLow() {
+    if (stopLayer) return;   // mapa nuevo: las paradas son una capa del mapa
     const ctx = stopCanvas.getContext("2d");
     // El lienzo sobresale un cuarto de pantalla por cada lado, para que al arrastrar no se vean
     // huecos hasta que se suelta el mapa.
@@ -343,6 +346,17 @@
     return null;
   }
   const stopClick = (s) => { if (tripOpen()) tripPickStop(s); else navigate(s.id, { replace: !!current }); };
+  // Con el mapa nuevo (MapLibre, fase 2), todas las paradas son una sola capa del mapa: no se crean
+  // ni quitan marcadores al moverse, ni hace falta el lienzo de las lejanas. Mismo aspecto que
+  // iconFor(): roja, oscura si es favorita y, con una línea abierta, las suyas de su color y algo
+  // más grandes y las demás casi transparentes; encima, las de la línea y las favoritas.
+  stopLayer = map.stopLayer ? map.stopLayer({ onClick: stopClick, hover: canHover, title: (s) => `${s.name} (${s.id})` }) : null;
+  function stopLook(s) {
+    const l = active && lines && lines[active.code];
+    const inLine = !!(l && active.stops.has(s.id)), fav = favStop(s.id);
+    return { bg: inLine ? l.color : fav ? "#13222C" : "#D3202F", fg: inLine ? l.texto : "#FFFFFF", big: inLine,
+      op: !active || active.stops.has(s.id) ? 1 : 0.12, sort: (inLine ? 2 : 0) + (fav ? 1 : 0) };
+  }
   // Va antes que los demás toques del mapa: si se toca una parada dibujada, se abre y nada más.
   map.on("click", (e) => {
     if (map.getZoom() >= STOP_DOM_ZOOM || !stopHits.length) return;
@@ -353,7 +367,7 @@
   });
   if (canHover) {
     map.on("mousemove", (e) => {
-      if (map.getZoom() >= STOP_DOM_ZOOM) return;
+      if (stopLayer || map.getZoom() >= STOP_DOM_ZOOM) return;
       const s = stopAt(e.containerPoint);
       map.getContainer().classList.toggle("on-stop", !!s);
       map.getContainer().title = s ? `${s.name} (${s.id})` : "";
@@ -371,6 +385,7 @@
     // dibujado, solo se ven las paradas de ese viaje (las dibuja drawTrip con el color de su línea).
     map.getContainer().classList.toggle("hide-stops", !!active && map.getZoom() < LINE_STOPS_ZOOM);
     map.getContainer().classList.toggle("trip-stops", tripRouteOn);
+    if (stopLayer) stopLayer.hide((!!active && map.getZoom() < LINE_STOPS_ZOOM) || tripRouteOn);
     drawStopsLow();
     drawNums();   // los números de portal se ocultan con una línea o un viaje dibujados
   }
