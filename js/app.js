@@ -173,105 +173,27 @@
   }
 
   // ---------- Mapa ----------
-  const map = L.map("map", { zoomControl: false, preferCanvas: true, attributionControl: true })
-    .setView(VIGO, 14);
-  map.attributionControl.setPrefix(false);
-  if (isDesktop()) L.control.zoom({ position: "topleft" }).addTo(map);
+  // Todo lo del mapa pasa por js/mapa.js (PV_MAPA, el "enchufe" para poder cambiar de motor).
+  const map = window.PV_MAPA.create("map", { center: VIGO, zoom: 14, zoomControl: isDesktop() });
+  // Para las capturas de prueba (tools/capturas_mapa.py): mover el mapa sin animación.
+  window.__pvTest = { view: (ll, z) => map.setView(ll, z, { animate: false }), point: (ll) => { const p = map.latLngToContainerPoint(ll); return [p.x, p.y]; } };
 
-  // Mapa base (33): OpenFreeMap (gratuito y sin clave), siempre Positron (claro), también con el
-  // móvil en modo oscuro: Fiord apenas se veía (decisión del usuario, 27/10). Es vectorial: lo pinta
-  // MapLibre debajo de Leaflet con su complemento oficial (vendor/maplibre), que se descarga aparte
-  // para no retrasar la web. Todo lo demás del mapa sigue en Leaflet. Si el móvil no tiene WebGL, o OpenFreeMap no carga en BASE_TIMEOUT, se usa el mapa
-  // de OpenStreetMap de siempre (exige la cabecera Referer).
-  const BASE_TIMEOUT = 8000;
+  // Mapa base (33): OpenFreeMap (gratuito y sin clave), siempre Positron (claro) por defecto; si no
+  // hay WebGL o no carga, el de OpenStreetMap de siempre (lo resuelve js/mapa.js).
   // Mapa de fondo (58): claro (Positron, por defecto), oscuro (estilo "dark" de OpenFreeMap; si no
   // carga, "fiord") o satélite (ortofoto PNOA del IGN, gratis y sin claves). Se recuerda en el móvil.
   const LAYER_KEY = "pv:capa";
-  const OFM = (n) => `https://tiles.openfreemap.org/styles/${n}`;
   let baseLayer = "light";
   try { baseLayer = ["light", "dark", "sat"].includes(localStorage.getItem(LAYER_KEY)) ? localStorage.getItem(LAYER_KEY) : "light"; } catch { /* sin almacenamiento */ }
-  const OFM_STYLE = OFM(baseLayer === "dark" ? "dark" : "positron");
-  const PNOA_ATTR = 'Ortofoto: <a href="https://pnoa.ign.es/">PNOA</a> cedido por © <a href="https://www.ign.es/">IGN</a>';
-  let satLayer = null;
   function setBaseLayer(kind) {
     baseLayer = kind;
     try { localStorage.setItem(LAYER_KEY, kind); } catch { /* sin almacenamiento */ }
-    const box = map.getContainer();
-    box.classList.toggle("sat-base", kind === "sat");
-    box.classList.toggle("dark-base", kind === "dark");
-    if (kind === "sat") {
-      if (!satLayer) satLayer = L.tileLayer("https://www.ign.es/wmts/pnoa-ma?service=WMTS&request=GetTile&version=1.0.0&format=image/jpeg&layer=OI.OrthoimageCoverage&style=default&tilematrixset=GoogleMapsCompatible&TileMatrix={z}&TileRow={y}&TileCol={x}", {
-        maxNativeZoom: 19, maxZoom: 20, attribution: PNOA_ATTR,
-      });
-      if (!map.hasLayer(satLayer)) satLayer.addTo(map);
-      satLayer.bringToBack();
-      if (glLayer && glLayer.getContainer && glLayer.getContainer()) glLayer.getContainer().style.visibility = "hidden";
-      if (osmLayer && map.hasLayer(osmLayer)) map.removeLayer(osmLayer);
-      return;
-    }
-    if (satLayer && map.hasLayer(satLayer)) map.removeLayer(satLayer);
-    if (glLayer) {
-      if (glLayer.getContainer && glLayer.getContainer()) glLayer.getContainer().style.visibility = "";
-      const gl = glLayer.getMaplibreMap();
-      glReady = false;
-      gl.setStyle(OFM(kind === "dark" ? "dark" : "positron"));
-      gl.once("styledata", () => { glReady = true; });
-    } else if (osmLayer && !map.hasLayer(osmLayer)) osmLayer.addTo(map);
+    map.setBase(kind);
   }
-  const OFM_ATTR = '<a href="https://openfreemap.org/">OpenFreeMap</a> © <a href="https://www.openmaptiles.org/">OpenMapTiles</a>, datos de <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
-  let osmLayer = null, glLayer = null, glReady = false;
-  function useOSM() {
-    if (glLayer) { map.removeLayer(glLayer); glLayer = null; }
-    map.getContainer().classList.remove("gl-base");
-    if (!osmLayer) osmLayer = L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      maxZoom: 19, referrerPolicy: "strict-origin-when-cross-origin",
-      attribution: '© <a href="https://www.openstreetmap.org/copyright">Colaboradores de OpenStreetMap</a>',
-    });
-    if (!map.hasLayer(osmLayer) && baseLayer !== "sat") osmLayer.addTo(map);
-  }
-  function hasWebGL() {
-    try { const c = document.createElement("canvas"); return !!(window.WebGL2RenderingContext && c.getContext("webgl2")) || !!c.getContext("webgl"); }
-    catch { return false; }
-  }
-  const loadScript = (src) => new Promise((ok, ko) => {
-    const el = document.createElement("script");
-    el.src = src; el.onload = ok; el.onerror = ko;
-    document.head.appendChild(el);
-  });
-  async function startBase() {
-    try { localStorage.removeItem("pv:mapa"); } catch { /* del interruptor de prueba del 27/10 */ }
-    if (!hasWebGL()) { useOSM(); return; }
-    const timer = setTimeout(() => { if (!glReady) useOSM(); }, BASE_TIMEOUT);
-    try {
-      const css = document.createElement("link");
-      css.rel = "stylesheet"; css.href = "vendor/maplibre/maplibre-gl.css";
-      document.head.appendChild(css);
-      await loadScript("vendor/maplibre/maplibre-gl.js");
-      await loadScript("vendor/maplibre/leaflet-maplibre-gl.js");
-      if (osmLayer && map.hasLayer(osmLayer)) { clearTimeout(timer); return; }   // ya se pasó a OpenStreetMap
-      glLayer = L.maplibreGL({ style: OFM_STYLE, attributionControl: { customAttribution: OFM_ATTR } }).addTo(map);
-      const gl = glLayer.getMaplibreMap();
-      gl.once("load", () => {
-        glReady = true;
-        clearTimeout(timer);
-        map.getContainer().classList.add("gl-base");
-      });
-      // Sin el estilo (OpenFreeMap caído o sin red), a OpenStreetMap; los fallos sueltos de una
-      // tesela una vez cargado el mapa no cambian nada.
-      gl.on("error", () => {
-        // Sin el estilo oscuro de OpenFreeMap, su otro estilo oscuro ("fiord").
-        if (baseLayer === "dark" && !glReady && !gl._pvFiord) { gl._pvFiord = true; gl.setStyle(OFM("fiord")); return; }
-        if (!glReady) { clearTimeout(timer); useOSM(); }
-      });
-      if (baseLayer === "sat") setBaseLayer("sat");
-    } catch {
-      clearTimeout(timer);
-      useOSM();
-    }
-  }
-  startBase();
-  map.attributionControl.addAttribution('Portales: <a href="https://datos.vigo.org/">Concello de Vigo</a>, <a href="https://www.sedecatastro.gob.es/">D. G. del Catastro</a>');
-  map.attributionControl.addAttribution('Relieve: <a href="https://www.ign.es/">© IGN</a>');
+  try { localStorage.removeItem("pv:mapa"); } catch { /* del interruptor de prueba del 27/10 */ }
+  map.startBase(baseLayer);
+  map.addAttribution('Portales: <a href="https://datos.vigo.org/">Concello de Vigo</a>, <a href="https://www.sedecatastro.gob.es/">D. G. del Catastro</a>');
+  map.addAttribution('Relieve: <a href="https://www.ign.es/">© IGN</a>');
 
   // Abierta como archivo (file://) no hay web de origen y OpenStreetMap bloquea el mapa.
   if (location.protocol === "file:") {
@@ -281,7 +203,6 @@
   const css = getComputedStyle(document.documentElement);
   const RED = css.getPropertyValue("--bus").trim() || "#D3202F";
   const INK = css.getPropertyValue("--ink").trim() || "#13222C";
-  const renderer = L.canvas({ padding: 0.3, tolerance: 6 });
 
   // Icono de parada (señal con un autobús). Rojo normal, azul ría en favoritas
   // y, con una línea elegida, del color oficial de esa línea.
@@ -299,12 +220,8 @@
     const size = sizeFor(z) + (l && active.stops.has(s.id) ? 4 : 0), k = `${bg}|${fg}|${size}`;
     if (!iconCache.has(k)) {
       const full = Math.round(size * (32 + 2 * STOP_PAD) / 32);
-      const icon = L.icon({
-        iconUrl: `data:image/svg+xml,${encodeURIComponent(stopSvg(bg, fg, size))}`,
-        iconSize: [full, full], iconAnchor: [full / 2, full / 2], className: "stop-icon",
-      });
-      icon.key = k;
-      iconCache.set(k, icon);
+      iconCache.set(k, { url: `data:image/svg+xml,${encodeURIComponent(stopSvg(bg, fg, size))}`,
+        size: [full, full], anchor: [full / 2, full / 2], className: "stop-icon", key: k });
     }
     return iconCache.get(k);
   }
@@ -317,10 +234,10 @@
   let shownStops = new Set();
   function stopMarker(s) {
     if (!s.marker) {
-      s.marker = L.marker(s.ll, { icon: iconFor(s, map.getZoom()), keyboard: false, alt: s.name })
-        .on("click", () => stopClick(s));
-      if (canHover) s.marker.bindTooltip(() => `${esc(s.name)} (${esc(s.id)})`, { direction: "top", offset: [0, -6] });
-      s.look = { icon: s.marker.options.icon.key, op: 1, z: 0 };
+      const icon = iconFor(s, map.getZoom());
+      s.marker = map.marker(s.ll, { icon, alt: s.name }).on("click", () => stopClick(s));
+      if (canHover) s.marker.tooltip(() => `${esc(s.name)} (${esc(s.id)})`, { direction: "top", offset: [0, -6] });
+      s.look = { icon: icon.key, op: 1, z: 0 };
     }
     return s.marker;
   }
@@ -346,7 +263,7 @@
       for (const s of stops) if (b.contains(s.ll)) next.add(s);
     }
     shownStops.forEach((s) => { if (!next.has(s)) s.marker.remove(); });
-    next.forEach((s) => { styleStop(s); if (!shownStops.has(s)) s.marker.addTo(map); });
+    next.forEach((s) => { styleStop(s); if (!shownStops.has(s)) s.marker.show(); });
     shownStops = next;
     drawStopsLow();
   }
@@ -357,9 +274,8 @@
   // ---------- Paradas en un lienzo, con el mapa alejado ----------
   const STOP_DOM_ZOOM = 15;
   const STOP_CANVAS_PAD = 0.25;
-  map.createPane("stopsLow").style.zIndex = 590;   // donde irían los marcadores (600), justo debajo
-  map.getPane("stopsLow").style.pointerEvents = "none";
-  const stopCanvas = L.DomUtil.create("canvas", "stop-canvas", map.getPane("stopsLow"));
+  const stopPane = map.canvasPane("stopsLow", 590, "stop-canvas");   // donde irían los marcadores (600), justo debajo
+  const stopCanvas = stopPane.canvas;
   const stopImgs = new Map();   // clave del icono → imagen ya cargada
   let stopHits = [];            // { x, y, r, s } en coordenadas del contenedor
   const stopsLowHidden = () => tripRouteOn || !!active;   // con una línea alejada se ocultan (LINE_STOPS_ZOOM)
@@ -371,14 +287,14 @@
       e = { bmp: null };
       const im = new Image();
       im.onload = () => {
-        const w = icon.options.iconSize[0], dpr = Math.min(2, window.devicePixelRatio || 1);
+        const w = icon.size[0], dpr = Math.min(2, window.devicePixelRatio || 1);
         const c = document.createElement("canvas");
         c.width = c.height = Math.ceil(w * dpr);
         c.getContext("2d").drawImage(im, 0, 0, c.width, c.height);
         e.bmp = c;
         drawStopsLow();
       };
-      im.src = icon.options.iconUrl;
+      im.src = icon.url;
       stopImgs.set(icon.key, e);
     }
     return e.bmp;
@@ -394,7 +310,7 @@
       stopCanvas.width = W * dpr; stopCanvas.height = Hh * dpr;
       stopCanvas.style.width = `${W}px`; stopCanvas.style.height = `${Hh}px`;
     }
-    L.DomUtil.setPosition(stopCanvas, map.containerPointToLayerPoint([-mx, -my]));
+    stopPane.place(mx, my);
     stopCanvas.style.display = "";
     ctx.setTransform(dpr, 0, 0, dpr, mx * dpr, my * dpr);   // dibujo en coordenadas del contenedor
     ctx.clearRect(-mx, -my, W, Hh);
@@ -411,7 +327,7 @@
     const all = stopHits.concat(later);
     stopHits = [];
     for (const { s, icon } of all) {
-      const p = map.latLngToContainerPoint(s.ll), w = icon.options.iconSize[0];
+      const p = map.latLngToContainerPoint(s.ll), w = icon.size[0];
       const im = stopImg(icon);
       if (im) ctx.drawImage(im, p.x - w / 2, p.y - w / 2, w, w);
       stopHits.push({ x: p.x, y: p.y, r: sizeFor(z) / 2 + 4, s });
@@ -443,9 +359,9 @@
       map.getContainer().title = s ? `${s.name} (${s.id})` : "";
     });
   }
-  const lineGroup = L.layerGroup().addTo(map);
+  const lineGroup = map.group();
 
-  const selRing = L.circleMarker(VIGO, { renderer, radius: 22, weight: 3, color: RED, fill: false, interactive: false });
+  const selRing = map.circle(VIGO, { radius: 22, weight: 3, color: RED, fill: false });
   let meMarker = null;
 
   // Con una línea elegida y el mapa alejado, las paradas se ocultan para que se vea bien el recorrido.
@@ -476,8 +392,8 @@
     // En móvil se usa la altura final del panel, no la de mitad de animación.
     const st = panel.dataset.state;
     const h = st === "full" ? innerHeight - 56 : st === "stop" ? innerHeight * 0.64 : st === "min" ? 92 : Math.max(260, innerHeight * 0.46);
-    const shift = isDesktop() ? L.point(-panel.getBoundingClientRect().right / 2, 0) : L.point(0, h / 2);
-    map.setView(map.unproject(p.add(shift), z), z, { animate: true });
+    const shift = isDesktop() ? { x: -panel.getBoundingClientRect().right / 2, y: 0 } : { x: 0, y: h / 2 };
+    map.setView(map.unproject({ x: p.x + shift.x, y: p.y + shift.y }, z), z, { animate: true });
   }
 
   // ---------- Datos ----------
@@ -900,8 +816,8 @@
       return ll;
     }
     me = ll;
-    const icon = L.divIcon({ className: "", html: '<div class="me-dot"></div>', iconSize: [18, 18] });
-    if (meMarker) meMarker.setLatLng(me); else meMarker = L.marker(me, { icon, interactive: false, keyboard: false }).addTo(map);
+    if (meMarker) meMarker.setLatLng(me);
+    else meMarker = map.marker(me, { icon: { className: "", html: '<div class="me-dot"></div>', size: [18, 18] }, interactive: false }).show();
     return ll;
   }
   function startWatch() {
@@ -1083,7 +999,7 @@
     active = null;
     stopTrack();
     stopFleet();
-    lineGroup.clearLayers();
+    lineGroup.clear();
     selRing.remove();
     updateStopVisibility();
     restyleStops();
@@ -1091,7 +1007,7 @@
 
   function drawLine() {
     const l = lines[active.code];
-    lineGroup.clearLayers();
+    lineGroup.clear();
     // Solo el sentido elegido: su trazado y sus paradas.
     const dir = l.sentidos[active.dir];
     const v = active.variant && active.variant.main ? active.variant : null;
@@ -1108,16 +1024,16 @@
     // Ramales (solo algunos viajes): trazo continuo más fino, debajo del recorrido principal.
     (dir.ramales || []).forEach((r, k) => {
       const rp = decodePolyline(r);
-      L.polyline(rp, { renderer, color: "#13222C", weight: 7, opacity: 0.25, interactive: false }).addTo(lineGroup);
-      L.polyline(rp, { renderer, color: "#FFFFFF", weight: 6, opacity: 1, interactive: false }).addTo(lineGroup);
-      L.polyline(rp, { renderer, color: l.color, weight: 3.5, opacity: 0.9, interactive: false, lineCap: "round" }).addTo(lineGroup);
+      lineGroup.line(rp, { color: "#13222C", weight: 7, opacity: 0.25 });
+      lineGroup.line(rp, { color: "#FFFFFF", weight: 6, opacity: 1 });
+      lineGroup.line(rp, { color: l.color, weight: 3.5, opacity: 0.9, lineCap: "round" });
     });
     lineStroke(decodePolyline(dir.trazado), l.color);
   }
   function thinStroke(rp, color) {
-    L.polyline(rp, { renderer, color: "#13222C", weight: 7, opacity: 0.25, interactive: false }).addTo(lineGroup);
-    L.polyline(rp, { renderer, color: "#FFFFFF", weight: 6, opacity: 1, interactive: false }).addTo(lineGroup);
-    L.polyline(rp, { renderer, color, weight: 3.5, opacity: 0.9, interactive: false, lineCap: "round" }).addTo(lineGroup);
+    lineGroup.line(rp, { color: "#13222C", weight: 7, opacity: 0.25 });
+    lineGroup.line(rp, { color: "#FFFFFF", weight: 6, opacity: 1 });
+    lineGroup.line(rp, { color, weight: 3.5, opacity: 0.9, lineCap: "round" });
   }
   // Paradas de una variante (los viajes de esa línea y sentido con un letrero), del horario: la
   // secuencia del recorrido con más viajes que pasa por la parada de origen; las de sus otros
@@ -1143,9 +1059,9 @@
     }).catch(() => {});
   }
   function lineStroke(pts, color) {
-    L.polyline(pts, { renderer, color: "#13222C", weight: 11, opacity: 0.35, interactive: false }).addTo(lineGroup);
-    L.polyline(pts, { renderer, color: "#FFFFFF", weight: 9, opacity: 1, interactive: false }).addTo(lineGroup);
-    L.polyline(pts, { renderer, color, weight: 6, opacity: 1, interactive: false, lineCap: "round" }).addTo(lineGroup);
+    lineGroup.line(pts, { color: "#13222C", weight: 11, opacity: 0.35 });
+    lineGroup.line(pts, { color: "#FFFFFF", weight: 9, opacity: 1 });
+    lineGroup.line(pts, { color, weight: 6, opacity: 1, lineCap: "round" });
   }
   // Trazados (-1 principal, k ramal k) que hace un bus con este letrero, o null si no se sabe.
   function branchesOf(d, ruta) {
@@ -1174,7 +1090,7 @@
     const opts = isDesktop()
       ? { paddingTopLeft: [r.right + 24, 24], paddingBottomRight: [24, 24] }
       : { paddingTopLeft: [16, 16], paddingBottomRight: [16, panelCover() + 16] };
-    map.fitBounds(L.latLngBounds(pts), { ...opts, maxZoom });
+    map.fitPoints(pts, { ...opts, maxZoom });
   }
 
   function fitLine() {
@@ -1217,7 +1133,7 @@
       const origin = from && byId.get(from);
       // Desde una parada: un poco más alejado que la ficha, pero sin encuadrar la línea entera;
       // el usuario aleja el mapa si quiere verla completa.
-      if (origin) { focusOn(origin.ll, LINE_STOPS_ZOOM); selRing.setLatLng(origin.ll).addTo(map); }
+      if (origin) { focusOn(origin.ll, LINE_STOPS_ZOOM); selRing.setLatLng(origin.ll).show(); }
       else fitLine();
       startTrack();
       startFleet();
@@ -1333,7 +1249,7 @@
       const s = byId.get(tr.stop);
       const frame = () => { if (track === tr && s && !inView(b.ll)) fitPoints([b.ll, s.ll], LINE_STOPS_ZOOM); };
       // Si el mapa aún se está moviendo hacia la parada, se espera a que termine.
-      if (map._animatingZoom || (map._panAnim && map._panAnim._inProgress)) map.once("moveend", frame); else frame();
+      if (map.isMoving()) map.once("moveend", frame); else frame();
     }
   }
 
@@ -1350,14 +1266,14 @@
   // Bus en vivo en el mapa: destacado (anillo y pulso del color de la línea) y, a su lado, lo que
   // le falta para llegar a la parada. Lo usan la línea abierta desde una parada y Cómo llegar.
   function busMarker(color, texto, ll) {
-    return L.marker(ll, { keyboard: false, interactive: false, zIndexOffset: 900, icon: L.divIcon({
-      className: "bus-pin", iconSize: [40, 40], iconAnchor: [20, 20],
+    return map.marker(ll, { interactive: false, zIndexOffset: 900, icon: {
+      className: "bus-pin", size: [40, 40], anchor: [20, 20],
       html: `<span class="bus-dot" style="--lc:${color};--lt:${texto}"><span class="bus-arrow"></span>${BUS_ICON}</span><span class="bus-eta" style="--lc:${color};--lt:${texto}"></span>`,
-    }) });
+    } });
   }
   function placeBus(marker, s, est, at) {
     marker.setLatLng(s.ll);
-    if (!map.hasLayer(marker)) marker.addTo(map);
+    marker.show();
     const el = marker.getElement();
     if (!el) return;
     el.querySelector(".bus-arrow").style.transform = `rotate(${Math.round(s.bearing)}deg)`;
@@ -1624,7 +1540,7 @@
     document.title = `${s.name} · ${APP_NAME}`;
     if (repaint) return;           // solo volver a escribir los textos (cambio de idioma)
     if (!isDesktop()) panel.dataset.state = "stop";
-    selRing.setLatLng(s.ll).addTo(map);
+    selRing.setLatLng(s.ll).show();
     focusOn(s.ll);
     loadArrivals(true);
     // Horarios publicados (para el horario previsto y el retraso): en segundo plano.
@@ -1886,7 +1802,7 @@
     panel.dataset.screen = "sched";
     $("#sched-meta").textContent = `${line ? `${t("line_n", { code: line })} · ` : ""}${s.name} · ${t("stop_lc", { id })}`;
     if (!isDesktop()) panel.dataset.state = "full";
-    selRing.setLatLng(s.ll).addTo(map);
+    selRing.setLatLng(s.ll).show();
     renderSched();
   }
   function renderSched() {
@@ -2379,7 +2295,7 @@
   // ---------- Dirección (calle y número) ----------
   // En la dirección web: #dir/<lat,lon>~<Calle, número>[~a] ("~a": posición aproximada).
   const PIN_SVG = '<svg viewBox="0 0 34 44" aria-hidden="true"><path d="M17 42s-14-13.2-14-24.5a14 14 0 0 1 28 0C31 28.8 17 42 17 42z" fill="#D3202F" stroke="#fff" stroke-width="2.5"/><circle cx="17" cy="17.5" r="5" fill="#fff"/></svg>';
-  const placeIcon = L.divIcon({ className: "place-pin", html: PIN_SVG, iconSize: [34, 44], iconAnchor: [17, 42] });
+  const placeIcon = { className: "place-pin", html: PIN_SVG, size: [34, 44], anchor: [17, 42] };
   let placeMarker = null;
   let place = null;   // { ll, label, approx }
 
@@ -2411,8 +2327,8 @@
       </button>`;
       return li;
     }));
-    if (!placeMarker) placeMarker = L.marker(place.ll, { icon: placeIcon, keyboard: false, interactive: false, zIndexOffset: 1200 });
-    placeMarker.setLatLng(place.ll).addTo(map);
+    if (!placeMarker) placeMarker = map.marker(place.ll, { icon: placeIcon, interactive: false, zIndexOffset: 1200 });
+    placeMarker.setLatLng(place.ll).show();
     if (!same) {
       if (!isDesktop()) panel.dataset.state = "stop";
       focusOn(place.ll, Math.max(map.getZoom(), PLACE_ZOOM));
@@ -2543,9 +2459,8 @@
   // Mismo zoom desde el que el mapa de OpenStreetMap empieza a pintar sus números de portal (17).
   const NUM_ZOOM = 18;     // uno más que el mapa base (17), para no cargar tanto la vista
   const PLACE_ZOOM = 18;   // al abrir una dirección
-  map.createPane("nums").style.zIndex = 450;   // encima de los trazados, debajo de las paradas
-  map.getPane("nums").style.pointerEvents = "none";
-  const numCanvas = L.DomUtil.create("canvas", "num-canvas", map.getPane("nums"));
+  const numPane = map.canvasPane("nums", 450, "num-canvas");   // encima de los trazados, debajo de las paradas
+  const numCanvas = numPane.canvas;
   let numHits = [];   // { x, y, w, h, pt } en coordenadas del mapa (contenedor)
   const numsOn = () => map.getZoom() >= NUM_ZOOM && !tripRouteOn && !active;
 
@@ -2557,7 +2472,7 @@
       numCanvas.width = size.x * dpr; numCanvas.height = size.y * dpr;
       numCanvas.style.width = `${size.x}px`; numCanvas.style.height = `${size.y}px`;
     }
-    L.DomUtil.setPosition(numCanvas, map.containerPointToLayerPoint([0, 0]));
+    numPane.place(0, 0);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, size.x, size.y);
     drawVertical(ctx);
@@ -2673,11 +2588,10 @@
   // con "p1234" para una parada y "lat,lon" para un punto. La ruta se calcula en el propio
   // dispositivo con la red peatonal de OpenStreetMap (js/peaton.js), sin servicios externos.
   const trip = { a: null, b: null, editing: null, picking: null, sel: null, when: null, whenMode: "dep" };   // sel: opción abierta; when: hora elegida (Date) o null = ahora; whenMode: "dep" salir a esa hora, "arr" llegar a esa hora
-  const tripLayer = L.layerGroup().addTo(map);
+  const tripLayer = map.group();
   // Recorrido que le queda al bus en vivo hasta la parada de subida: en su propio panel, debajo de
   // los tramos del viaje (así no tapa la parada de subida).
-  map.createPane("tripTail").style.zIndex = 390;
-  const tailRenderer = L.canvas({ padding: 0.3, pane: "tripTail" });
+  const tailLayer = map.group("tripTail", 390);
   const tripPins = {};
   let tripSeq = 0;
   let lastTrip = null;
@@ -2713,7 +2627,7 @@
   // Diccionario de calles y portales (js/direcciones.js); se descarga al abrir "Cómo llegar".
   let dirData = null;
   const ensureDir = () => window.PV_DIR.load().then((d) => (dirData = d));
-  const pinIcon = (w) => L.divIcon({ className: "trip-pin", html: `<span class="pin pin-${w}">${w.toUpperCase()}</span>`, iconSize: [28, 28], iconAnchor: [14, 14] });
+  const pinIcon = (w) => ({ className: "trip-pin", html: `<span class="pin pin-${w}">${w.toUpperCase()}</span>`, size: [28, 28], anchor: [14, 14] });
 
   function openTrip(b) {
     if (!trip.a && me && !farFromVigo(me)) trip.a = { kind: "me", ll: me };
@@ -2756,7 +2670,7 @@
     trip.sel = null;
     lastTrip = null;
     stopTripLive();
-    tripLayer.clearLayers();
+    tripLayer.clear();
     Object.values(tripPins).forEach((m) => m.remove());
     tripRouteOn = false;
     updateStopVisibility();
@@ -2768,12 +2682,7 @@
   // rechaza el punto si queda a más de FAR_STREET_M de cualquier calle.
   const FAR_STREET_M = 150;
   function waterAt(ll) {
-    if (!glReady || !glLayer) return null;
-    try {
-      const gl = glLayer.getMaplibreMap();
-      const top = gl.queryRenderedFeatures(gl.project([ll[1], ll[0]])).find((f) => f.layer && f.layer.type === "fill");
-      return !!top && top.sourceLayer === "water";
-    } catch { return null; }
+    return map.waterAt(ll);
   }
   // true si el punto vale como origen o destino; si no, avisa.
   async function onLand(ll) {
@@ -2841,10 +2750,10 @@
       const p = trip[w];
       if (p && tripOpen()) {
         if (!tripPins[w]) {
-          tripPins[w] = L.marker(p.ll, { icon: pinIcon(w), draggable: true, keyboard: false, zIndexOffset: 1000 })
-            .on("dragend", (e) => { const ll = e.target.getLatLng(); setEnd(w, { kind: "map", ll: [ll.lat, ll.lng] }); });
+          tripPins[w] = map.marker(p.ll, { icon: pinIcon(w), draggable: true, zIndexOffset: 1000 })
+            .on("dragend", (e) => { const ll = e.latlng; setEnd(w, { kind: "map", ll: [ll.lat, ll.lng] }); });
         }
-        tripPins[w].setLatLng(p.ll).addTo(map);
+        tripPins[w].setLatLng(p.ll).show();
       } else if (tripPins[w]) tripPins[w].remove();
     });
   }
@@ -3029,7 +2938,7 @@
   async function computeTrip(fit) {
     const seq = ++tripSeq;
     stopTripLive();
-    tripLayer.clearLayers();
+    tripLayer.clear();
     lastTrip = null;
     tripRouteOn = false;
     updateStopVisibility();
@@ -3585,15 +3494,15 @@
     out.push(lls[leg.to]);                   // hasta la propia parada
     return out;
   }
-  const walkStyle = (pts) => [
-    L.polyline(pts, { renderer, color: "#FFFFFF", weight: 10, opacity: 0.95, interactive: false, lineCap: "round", lineJoin: "round" }),
-    L.polyline(pts, { renderer, color: "#1C6FA8", weight: 6, opacity: 1, interactive: false, lineCap: "round", lineJoin: "round", dashArray: "0.1 10" }),
-  ];
+  const walkStyle = (pts) => {
+    tripLayer.line(pts, { color: "#FFFFFF", weight: 10, opacity: 0.95, lineCap: "round", lineJoin: "round" });
+    tripLayer.line(pts, { color: "#1C6FA8", weight: 6, opacity: 1, lineCap: "round", lineJoin: "round", dashArray: "0.1 10" });
+  };
 
   // Dibuja la opción elegida (o la primera de la lista) y sus buses en camino.
   function drawTrip(fit) {
     const lt = lastTrip;
-    tripLayer.clearLayers();
+    tripLayer.clear();
     tripBuses.forEach((b) => { if (b.marker) b.marker.remove(); if (b.tail) b.tail.forEach((x) => x.remove()); });
     tripBuses = [];
     clearInterval(tripTick);
@@ -3605,10 +3514,10 @@
     if (shown === "walk") {
       if (!lt.walk) { if (fit) fitPoints(all, 17); return; }
       const r = lt.walk.r;
-      const thin = { renderer, color: "#1C6FA8", weight: 2.5, opacity: 0.8, dashArray: "3 6", interactive: false };
-      if (r.offFrom > 4) L.polyline([trip.a.ll, r.from], thin).addTo(tripLayer);
-      if (r.offTo > 4) L.polyline([r.to, trip.b.ll], thin).addTo(tripLayer);
-      walkStyle(r.coords).forEach((p) => p.addTo(tripLayer));
+      const thin = { color: "#1C6FA8", weight: 2.5, opacity: 0.8, dashArray: "3 6" };
+      if (r.offFrom > 4) tripLayer.line([trip.a.ll, r.from], thin);
+      if (r.offTo > 4) tripLayer.line([r.to, trip.b.ll], thin);
+      walkStyle(r.coords);
       if (fit) fitPoints([...r.coords, ...all], 17);
       return;
     }
@@ -3622,22 +3531,22 @@
       const to = k === j.legs.length - 1 ? trip.b.ll : llOf(j.legs[k + 1].board);
       if (l.m < 8) return;
       const pts = walkPath(from, to);
-      walkStyle(pts).forEach((p) => p.addTo(tripLayer));
+      walkStyle(pts);
       all.push(...pts);
     });
     j.legs.forEach((l) => {
       if (l.type !== "bus") return;
       const ln = lines[l.line];
       const pts = busPath(l);
-      L.polyline(pts, { renderer, color: "#13222C", weight: 11, opacity: 0.35, interactive: false }).addTo(tripLayer);
-      L.polyline(pts, { renderer, color: "#FFFFFF", weight: 9, opacity: 1, interactive: false }).addTo(tripLayer);
-      L.polyline(pts, { renderer, color: ln.color, weight: 6, opacity: 1, interactive: false, lineCap: "round" }).addTo(tripLayer);
+      tripLayer.line(pts, { color: "#13222C", weight: 11, opacity: 0.35 });
+      tripLayer.line(pts, { color: "#FFFFFF", weight: 9, opacity: 1 });
+      tripLayer.line(pts, { color: ln.color, weight: 6, opacity: 1, lineCap: "round" });
       // Paradas del tramo: las intermedias, pequeñas; la de subida y la de bajada, más grandes.
       const pt = plan.pats[l.pat];
       for (let k = l.from + 1; k < l.to; k++) {
-        L.circleMarker(llOf(pt.p[k]), { renderer, radius: 3.5, weight: 2.5, color: ln.color, fillColor: "#FFFFFF", fillOpacity: 1, interactive: false }).addTo(tripLayer);
+        tripLayer.circle(llOf(pt.p[k]), { radius: 3.5, weight: 2.5, color: ln.color, fillColor: "#FFFFFF", fillOpacity: 1 });
       }
-      [l.board, l.alight].forEach((i) => L.circleMarker(llOf(i), { renderer, radius: 6.5, weight: 4, color: ln.color, fillColor: "#FFFFFF", fillOpacity: 1, interactive: false }).addTo(tripLayer));
+      [l.board, l.alight].forEach((i) => tripLayer.circle(llOf(i), { radius: 6.5, weight: 4, color: ln.color, fillColor: "#FFFFFF", fillOpacity: 1 }));
       all.push(...pts);
       // Bus en camino hacia la parada de subida (con dato en vivo).
       if (l.live && isFinite(Number(l.live.metros))) {
@@ -3686,10 +3595,9 @@
         : [...BUS.slice(sh, s.d, sh.length), ...BUS.slice(sh, 0, b.loc.along)];   // circular: termina la vuelta
       if (!b.tail) {
         b.tail = [
-          L.polyline(pts, { renderer: tailRenderer, color: "#FFFFFF", weight: 8, opacity: 0.9, interactive: false, lineCap: "round", lineJoin: "round" }),
-          L.polyline(pts, { renderer: tailRenderer, color: b.color, weight: 5, opacity: 0.45, interactive: false, lineCap: "round", lineJoin: "round" }),
+          tailLayer.line(pts, { color: "#FFFFFF", weight: 8, opacity: 0.9, lineCap: "round", lineJoin: "round" }),
+          tailLayer.line(pts, { color: b.color, weight: 5, opacity: 0.45, lineCap: "round", lineJoin: "round" }),
         ];
-        b.tail.forEach((x) => x.addTo(map));
       } else b.tail.forEach((x) => x.setLatLngs(pts));
     });
   }
@@ -3733,7 +3641,7 @@
   // ---------- "Desde aquí / Hasta aquí" en cualquier punto del mapa (32) ----------
   // Móvil: mantener pulsado; ordenador: botón derecho. Un menú pequeño en ese punto (con la
   // dirección si hay un portal a menos de 40 m) para usarlo como origen o destino de Cómo llegar.
-  const hereMenu = L.popup({ closeButton: false, className: "here-pop", autoPanPaddingTopLeft: [16, 16], autoPanPaddingBottomRight: [16, 16] });
+  const hereMenu = map.popup({ closeButton: false, className: "here-pop", autoPanPaddingTopLeft: [16, 16], autoPanPaddingBottomRight: [16, 16] });
   let herePoint = null;
   function nearestAddr(ll) {
     if (!dirData) return null;
@@ -3751,21 +3659,22 @@
     const fill = () => {
       herePoint = nearestAddr(ll) || { kind: "map", ll };
       herePoint.at = ll;
-      const box = L.DomUtil.create("div", "here");
+      const box = document.createElement("div");
+      box.className = "here";
       box.innerHTML = `<small>${esc(herePoint.kind === "addr" ? herePoint.label : t("map_point"))}</small>
         <button type="button" data-here="a"><span class="pin pin-a">A</span>${esc(t("here_from"))}</button>
         <button type="button" data-here="b"><span class="pin pin-b">B</span>${esc(t("here_to"))}</button>`;
-      L.DomEvent.disableClickPropagation(box);
+      map.stopClicks(box);
       box.addEventListener("click", (e) => { const b = e.target.closest("[data-here]"); if (b) useHere(b.dataset.here); });
       hereMenu.setLatLng(latlng).setContent(box);
-      if (!map.hasLayer(hereMenu)) hereMenu.openOn(map);
+      hereMenu.open();
     };
     fill();
-    if (!dirData) ensureDir().then(() => { if (map.hasLayer(hereMenu) && herePoint && herePoint.at === ll) fill(); }).catch(() => {});
+    if (!dirData) ensureDir().then(() => { if (hereMenu.isOpen() && herePoint && herePoint.at === ll) fill(); }).catch(() => {});
   }
   function useHere(which) {
     const p = herePoint && { kind: herePoint.kind, ll: herePoint.ll, label: herePoint.label };
-    map.closePopup(hereMenu);
+    hereMenu.close();
     if (!p) return;
     if (p.kind !== "addr") delete p.label;
     if (tripOpen()) { setEnd(which, p); return; }
