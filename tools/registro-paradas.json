@@ -1,0 +1,1024 @@
+{
+ "generado": "tools/elegir_paradas_registro.js",
+ "fecha_datos": "2026-10-29",
+ "paradas": [
+  {
+   "id": "330",
+   "motivos": [
+    "ramal 10|0 (CEMITERIO DE TEIS)",
+    "ramal 10|1 (SAMIL - VAO - SAIANS)"
+   ]
+  },
+  {
+   "id": "430",
+   "motivos": [
+    "ramal 9B|1 (BOUZAS por BEIRAMAR)"
+   ]
+  },
+  {
+   "id": "570",
+   "motivos": [
+    "ramal 12A|1 (MUIÑOS - SAIANS)"
+   ]
+  },
+  {
+   "id": "740",
+   "motivos": [
+    "ramal 27|1 (BEADE por AVDA. CASTRELOS / BEADE por PRESAS)"
+   ]
+  },
+  {
+   "id": "840",
+   "motivos": [
+    "tronco 4A|0"
+   ]
+  },
+  {
+   "id": "860",
+   "motivos": [
+    "ramal 9B|0 (RABADEIRA por RINXELA)"
+   ]
+  },
+  {
+   "id": "910",
+   "motivos": [
+    "ramal 4A|0 (POULO - ARAGÓN por URZÁIZ)"
+   ]
+  },
+  {
+   "id": "1130",
+   "motivos": [
+    "ramal 28|1 (BERBES - BOUZAS)"
+   ]
+  },
+  {
+   "id": "1150",
+   "motivos": [
+    "ramal 28|1 (URZAIZ - BERBES)"
+   ]
+  },
+  {
+   "id": "1250",
+   "motivos": [
+    "ramal PSA 1|0 (1 STELLANTIS)"
+   ]
+  },
+  {
+   "id": "1310",
+   "motivos": [
+    "tronco 10|0"
+   ]
+  },
+  {
+   "id": "1380",
+   "motivos": [
+    "ramal U1|0 (UNIVERSIDADE)"
+   ]
+  },
+  {
+   "id": "1390",
+   "motivos": [
+    "tronco 7|0"
+   ]
+  },
+  {
+   "id": "1400",
+   "motivos": [
+    "tronco 17|1",
+    "tronco 27|1",
+    "tronco H2|0",
+    "tronco H|0",
+    "tronco PTL|0",
+    "tronco U1|0"
+   ]
+  },
+  {
+   "id": "1530",
+   "motivos": [
+    "ramal 15B|0 (XESTOSO por HOSPITAL / XESTOSO)",
+    "ramal 15C|0 (XESTOSO por HOSPITAL / XESTOSO - UNIVERSIDADE / XESTOSO)"
+   ]
+  },
+  {
+   "id": "1550",
+   "motivos": [
+    "ramal 15A|0 (R. NIETO - CABRAL)"
+   ]
+  },
+  {
+   "id": "1850",
+   "motivos": [
+    "ramal 4A|1 (COIA - MUIÑOS por CAMELIAS)",
+    "ramal C3d|1 (COIA - SAMIL por P. AMERICA / BOUZAS - SAMIL por P. AMERICA)",
+    "ramal C3i|1 (BOUZAS - SAMIL por G. BARBON / COIA - SAMIL por G. BARBON)"
+   ]
+  },
+  {
+   "id": "1860",
+   "motivos": [
+    "caso C3i",
+    "tronco 15A|1"
+   ]
+  },
+  {
+   "id": "1880",
+   "motivos": [
+    "caso C3i",
+    "tronco 15A|0"
+   ]
+  },
+  {
+   "id": "2030",
+   "motivos": [
+    "ramal H2|1 (P.ESPAÑA- ESPINO por AV.MADRID)"
+   ]
+  },
+  {
+   "id": "2260",
+   "motivos": [
+    "ramal 11|0 (CABRAL por STA MARINA)"
+   ]
+  },
+  {
+   "id": "2500",
+   "motivos": [
+    "ramal 6|0 (REMATA BEADE (IGREXA))"
+   ]
+  },
+  {
+   "id": "2830",
+   "motivos": [
+    "ramal C3d|1 (BOUZAS por PRAZA AMERICA)"
+   ]
+  },
+  {
+   "id": "2950",
+   "motivos": [
+    "ramal 12B|1 (HOSPITAL ALVARO CUNQUEIRO)"
+   ]
+  },
+  {
+   "id": "3150",
+   "motivos": [
+    "ramal 7|0 (ZAMANS por CAMELIAS / S. COSME - ZAMANS por CAMELIAS)"
+   ]
+  },
+  {
+   "id": "3170",
+   "motivos": [
+    "tronco 18A|1"
+   ]
+  },
+  {
+   "id": "3230",
+   "motivos": [
+    "ramal 9B|1 (COLÓN)",
+    "ramal A|1 (1 P.E.FADRIQUE por TORRECED / PORTO - UNIVERSIDADE / REMATA EN FRAGOSO / H. ALV. CUNQUEIRO - PORTO)"
+   ]
+  },
+  {
+   "id": "3240",
+   "motivos": [
+    "ramal A|1 (PORTO - UNIVERSIDADE / REMATA EN FRAGOSO / H. ALV. CUNQUEIRO - PORTO / UNIVERSIDADE)"
+   ]
+  },
+  {
+   "id": "3380",
+   "motivos": [
+    "tronco 6|0"
+   ]
+  },
+  {
+   "id": "3420",
+   "motivos": [
+    "ramal 7|0 (ZAMANS por CAMELIAS / SOBREIRA por CAMELIAS / SEOANE por CAMELIAS / S. COSME - ZAMANS por CAMELIAS / CTRIO. VALADARES por CAMELIAS)"
+   ]
+  },
+  {
+   "id": "3540",
+   "motivos": [
+    "ramal 29|1 (FRAGOSELO / S. ANDRES IGREXA - FRAGOSELO)"
+   ]
+  },
+  {
+   "id": "3572",
+   "motivos": [
+    "ramal 14|0 (CHANS por SEGADE)"
+   ]
+  },
+  {
+   "id": "3580",
+   "motivos": [
+    "ramal 14|0 (MOLEDO - CHANS)"
+   ]
+  },
+  {
+   "id": "3590",
+   "motivos": [
+    "tronco 6|1",
+    "ramal 14|1 (GRAN VIA / GARCÍA BARBÓN)"
+   ]
+  },
+  {
+   "id": "3860",
+   "motivos": [
+    "ramal A|1 (P. ESPAÑA)"
+   ]
+  },
+  {
+   "id": "3930",
+   "motivos": [
+    "ramal 27|1 (BEADE por AVDA. CASTRELOS)"
+   ]
+  },
+  {
+   "id": "3980",
+   "motivos": [
+    "ramal U2|0 (UNIVERSIDADE)"
+   ]
+  },
+  {
+   "id": "4020",
+   "motivos": [
+    "tronco 29|0"
+   ]
+  },
+  {
+   "id": "4080",
+   "motivos": [
+    "ramal 7|0 (ZAMANS por CAMELIAS / SEOANE por CAMELIAS / S. COSME - ZAMANS por CAMELIAS)"
+   ]
+  },
+  {
+   "id": "4220",
+   "motivos": [
+    "ramal 18A|0 (POULEIRA por MIRAFLORES)"
+   ]
+  },
+  {
+   "id": "4550",
+   "motivos": [
+    "ramal 15C|0 (XESTOSO - UNIVERSIDADE)"
+   ]
+  },
+  {
+   "id": "4840",
+   "motivos": [
+    "tronco U2|0"
+   ]
+  },
+  {
+   "id": "4940",
+   "motivos": [
+    "ramal 9B|1 (COLÓN / BOUZAS por BEIRAMAR)"
+   ]
+  },
+  {
+   "id": "5120",
+   "motivos": [
+    "tronco 18B|1",
+    "tronco 18H|1",
+    "tronco 27|0"
+   ]
+  },
+  {
+   "id": "5180",
+   "motivos": [
+    "ramal 15A|0 (R. NIETO - CAEIRO)"
+   ]
+  },
+  {
+   "id": "5320",
+   "motivos": [
+    "ramal 11|0 (CABRAL por VIA TRANVIA / CABRAL por STA MARINA)"
+   ]
+  },
+  {
+   "id": "5430",
+   "motivos": [
+    "ramal PSA 1|0 (1 STELLANTIS)"
+   ]
+  },
+  {
+   "id": "5520",
+   "motivos": [
+    "ramal 28|1 (URZAIZ - BERBES / BERBES - BOUZAS)"
+   ]
+  },
+  {
+   "id": "5560",
+   "motivos": [
+    "ramal A|1 (PORTO - UNIVERSIDADE)"
+   ]
+  },
+  {
+   "id": "5570",
+   "motivos": [
+    "ramal 5B|1 (NAVIA por CASTELAO)"
+   ]
+  },
+  {
+   "id": "5610",
+   "motivos": [
+    "ramal 5B|1 (NAVIA por CASTELAO)"
+   ]
+  },
+  {
+   "id": "5630",
+   "motivos": [
+    "tronco 13|0",
+    "tronco 29|0",
+    "tronco H2|1"
+   ]
+  },
+  {
+   "id": "5650",
+   "motivos": [
+    "ramal 16|1 (GRAN VIA - COLON)"
+   ]
+  },
+  {
+   "id": "5670",
+   "motivos": [
+    "tronco TUR|0"
+   ]
+  },
+  {
+   "id": "5740",
+   "motivos": [
+    "ramal H2|0 (HOSPITAL ALVARO CUNQUEIRO)"
+   ]
+  },
+  {
+   "id": "6050",
+   "motivos": [
+    "ramal 17|1 (FREIXO)"
+   ]
+  },
+  {
+   "id": "6260",
+   "motivos": [
+    "ramal 17|1 (MATAMÁ)"
+   ]
+  },
+  {
+   "id": "6290",
+   "motivos": [
+    "ramal 12A|1 (MUIÑOS)"
+   ]
+  },
+  {
+   "id": "6450",
+   "motivos": [
+    "ramal C3d|0 (CHAPELA por GARCIA BARBON / BOUZAS - CHAPELA por G. BARBON)",
+    "ramal C3i|0 (CHAPELA por TRAVESIA DE VIGO / BOUZAS - CHAPELA por TRV. VIGO)"
+   ]
+  },
+  {
+   "id": "6460",
+   "motivos": [
+    "ramal C3i|1 (BOUZAS - SAMIL por G. BARBON / BOUZAS por GARCIA BARBON)"
+   ]
+  },
+  {
+   "id": "6550",
+   "motivos": [
+    "ramal 29|0 (PRAZA ESPAÑA)"
+   ]
+  },
+  {
+   "id": "6570",
+   "motivos": [
+    "ramal 28|1 (PIZARRO / HOSPITAL XERAL)"
+   ]
+  },
+  {
+   "id": "6650",
+   "motivos": [
+    "ramal C3d|0 (CHAPELA por GARCIA BARBON / COIA - CHAPELA por G. BARBON)",
+    "ramal C3i|0 (CHAPELA por TRAVESIA DE VIGO / COIA - CHAPELA por TRV. VIGO)"
+   ]
+  },
+  {
+   "id": "6860",
+   "motivos": [
+    "caso C3i",
+    "tronco 10|1",
+    "tronco A|1",
+    "tronco C3i|1",
+    "tronco H1|0",
+    "tronco N1|1",
+    "ramal 5B|1 (NAVIA por CASTELAO)"
+   ]
+  },
+  {
+   "id": "6940",
+   "motivos": [
+    "tronco 10|1",
+    "tronco 11|1",
+    "tronco 12A|1",
+    "tronco 29|1",
+    "tronco 5B|1",
+    "ramal 10|0 (P. AMÉRICA)",
+    "ramal 12B|1 (REMATA EN PORTANET)"
+   ]
+  },
+  {
+   "id": "6955",
+   "motivos": [
+    "tronco 13|1",
+    "tronco 18B|0",
+    "ramal 12A|0 (HOSPITAL MEIXOEIRO)",
+    "ramal 29|0 (PRAZA ESPAÑA)"
+   ]
+  },
+  {
+   "id": "6960",
+   "motivos": [
+    "ramal 27|0 (PRAZA DO REI)"
+   ]
+  },
+  {
+   "id": "6970",
+   "motivos": [
+    "ramal 10|0 (CEMITERIO DE TEIS)",
+    "ramal C1|0 (PRAZA AMÉRICA)"
+   ]
+  },
+  {
+   "id": "6990",
+   "motivos": [
+    "ramal A|1 (1 P.E.FADRIQUE por TORRECED)"
+   ]
+  },
+  {
+   "id": "7040",
+   "motivos": [
+    "ramal 18A|0 (SARDOMA por MANTELAS)"
+   ]
+  },
+  {
+   "id": "7060",
+   "motivos": [
+    "tronco 14|0"
+   ]
+  },
+  {
+   "id": "7070",
+   "motivos": [
+    "tronco 14|1"
+   ]
+  },
+  {
+   "id": "7130",
+   "motivos": [
+    "ramal 27|1 (BEADE por AVDA. CASTRELOS / BEADE por PRESAS)"
+   ]
+  },
+  {
+   "id": "7250",
+   "motivos": [
+    "tronco 31|1",
+    "tronco H3|1"
+   ]
+  },
+  {
+   "id": "7340",
+   "motivos": [
+    "tronco 25|0"
+   ]
+  },
+  {
+   "id": "7410",
+   "motivos": [
+    "ramal C3i|1 (BOUZAS por GARCIA BARBON)"
+   ]
+  },
+  {
+   "id": "7490",
+   "motivos": [
+    "tronco 14|0"
+   ]
+  },
+  {
+   "id": "7700",
+   "motivos": [
+    "ramal 9B|0 (RABADEIRA por S. CRISTOBO)"
+   ]
+  },
+  {
+   "id": "8100",
+   "motivos": [
+    "ramal 7|0 (SEOANE por CAMELIAS)"
+   ]
+  },
+  {
+   "id": "8220",
+   "motivos": [
+    "ramal A|1 (PORTO - UNIVERSIDADE)"
+   ]
+  },
+  {
+   "id": "8282",
+   "motivos": [
+    "ramal 14|1 (GARCÍA BARBÓN)"
+   ]
+  },
+  {
+   "id": "8430",
+   "motivos": [
+    "ramal C3d|1 (BOUZAS por PRAZA AMERICA / BOUZAS - SAMIL por P. AMERICA)"
+   ]
+  },
+  {
+   "id": "8560",
+   "motivos": [
+    "tronco 31|0",
+    "tronco H3|0"
+   ]
+  },
+  {
+   "id": "8610",
+   "motivos": [
+    "tronco 11|0",
+    "tronco 15A|0",
+    "tronco 23|0",
+    "tronco 25|0",
+    "tronco 28|0",
+    "tronco 9B|0",
+    "tronco C3i|0"
+   ]
+  },
+  {
+   "id": "8630",
+   "motivos": [
+    "tronco 15A|1",
+    "tronco 15B|1",
+    "tronco 15C|1",
+    "tronco 23|1",
+    "tronco 25|1",
+    "tronco 28|1",
+    "tronco 9B|1",
+    "tronco C3d|1",
+    "tronco PSA 1|0"
+   ]
+  },
+  {
+   "id": "8670",
+   "motivos": [
+    "ramal U1|0 (UNIVERSIDADE)"
+   ]
+  },
+  {
+   "id": "8700",
+   "motivos": [
+    "ramal A|1 (PORTO - UNIVERSIDADE)"
+   ]
+  },
+  {
+   "id": "8720",
+   "motivos": [
+    "ramal 15C|0 (XESTOSO - UNIVERSIDADE)",
+    "ramal U1|0 (UNIVERSIDADE)",
+    "ramal U2|0 (UNIVERSIDADE)"
+   ]
+  },
+  {
+   "id": "8740",
+   "motivos": [
+    "ramal U2|0 (UNIVERSIDADE)"
+   ]
+  },
+  {
+   "id": "8750",
+   "motivos": [
+    "ramal 28|1 (URZAIZ - BERBES / BERBES - BOUZAS / URZAIZ - AREAL)"
+   ]
+  },
+  {
+   "id": "8770",
+   "motivos": [
+    "tronco 16|1",
+    "tronco 17|0",
+    "tronco 24|1",
+    "tronco 4A|1",
+    "tronco 4C|1",
+    "tronco 5A|1",
+    "tronco 6|0",
+    "tronco A|1",
+    "tronco N4|1",
+    "tronco PSA 4|0",
+    "ramal 12B|1 (HOSPITAL ALVARO CUNQUEIRO)",
+    "ramal 14|1 (GARCÍA BARBÓN)",
+    "ramal N1|0 (URZAIZ - T.VIGO)"
+   ]
+  },
+  {
+   "id": "8880",
+   "motivos": [
+    "tronco 12A|0",
+    "tronco 12B|0",
+    "tronco 5B|0",
+    "tronco N1|0",
+    "ramal 27|0 (RABADEIRA)"
+   ]
+  },
+  {
+   "id": "9020",
+   "motivos": [
+    "ramal 15C|0 (XESTOSO por HOSPITAL / XESTOSO / XESTOSO - HOSPITAL)"
+   ]
+  },
+  {
+   "id": "9040",
+   "motivos": [
+    "ramal 15B|1 (SAMIL por BERBES)",
+    "ramal 15C|1 (SAMIL por T. ALONSO)"
+   ]
+  },
+  {
+   "id": "10061",
+   "motivos": [
+    "tronco 17|0"
+   ]
+  },
+  {
+   "id": "14105",
+   "motivos": [
+    "tronco A|0",
+    "tronco A|1",
+    "tronco U1|1",
+    "tronco U2|1"
+   ]
+  },
+  {
+   "id": "14108",
+   "motivos": [
+    "ramal 15B|0 (XESTOSO por HOSPITAL / POUSO - XESTOSO)"
+   ]
+  },
+  {
+   "id": "14117",
+   "motivos": [
+    "ramal H2|1 (P.ESPAÑA - G.ESPINO por P.RICO)"
+   ]
+  },
+  {
+   "id": "14122",
+   "motivos": [
+    "ramal PSA 4|0 (4 STELLANTIS por CAMELIAS)"
+   ]
+  },
+  {
+   "id": "14123",
+   "motivos": [
+    "ramal 11|0 (R.NIETO-GRILEIRA)",
+    "ramal 4A|1 (COIA por CAMELIAS)",
+    "ramal C3d|1 (COIA por PRAZA AMERICA)",
+    "ramal C3i|1 (COIA por GARCIA BARBON)"
+   ]
+  },
+  {
+   "id": "14124",
+   "motivos": [
+    "caso C3i"
+   ]
+  },
+  {
+   "id": "14125",
+   "motivos": [
+    "caso C3i",
+    "tronco C3i|1",
+    "ramal C3d|1 (COIA por PRAZA AMERICA / COIA - SAMIL por P. AMERICA)"
+   ]
+  },
+  {
+   "id": "14137",
+   "motivos": [
+    "ramal 29|0 (PRAZA ESPAÑA)"
+   ]
+  },
+  {
+   "id": "14138",
+   "motivos": [
+    "ramal 15B|1 (SAMIL por BERBES)",
+    "ramal 15C|0 (XESTOSO por HOSPITAL / XESTOSO - HOSPITAL)"
+   ]
+  },
+  {
+   "id": "14150",
+   "motivos": [
+    "ramal 14|1 (GRAN VIA)"
+   ]
+  },
+  {
+   "id": "14164",
+   "motivos": [
+    "caso C3i"
+   ]
+  },
+  {
+   "id": "14169",
+   "motivos": [
+    "tronco C1|0"
+   ]
+  },
+  {
+   "id": "14203",
+   "motivos": [
+    "ramal 11|0 (CABRAL por VIA TRANVIA / R.NIETO-GRILEIRA)"
+   ]
+  },
+  {
+   "id": "14212",
+   "motivos": [
+    "ramal 7|0 (CTRIO. VALADARES por CAMELIAS)"
+   ]
+  },
+  {
+   "id": "14232",
+   "motivos": [
+    "tronco 9B|0"
+   ]
+  },
+  {
+   "id": "14236",
+   "motivos": [
+    "ramal 12B|0 (HOSPITAL MEIXOEIRO)"
+   ]
+  },
+  {
+   "id": "14256",
+   "motivos": [
+    "ramal 16|1 (ESTACION TREN (GUIXAR))"
+   ]
+  },
+  {
+   "id": "14264",
+   "motivos": [
+    "tronco 12B|1",
+    "tronco 15B|0",
+    "tronco 15C|0",
+    "tronco 16|0",
+    "tronco 18A|0",
+    "tronco 24|0",
+    "tronco 4A|0",
+    "tronco 4C|0",
+    "tronco 5A|0",
+    "tronco A|0",
+    "tronco N4|0"
+   ]
+  },
+  {
+   "id": "14273",
+   "motivos": [
+    "ramal 11|1 (SAN MIGUEL por FLORIDA)"
+   ]
+  },
+  {
+   "id": "14277",
+   "motivos": [
+    "ramal 17|0 (RÍOS - A GUÍA / RÍOS - A GUIA)"
+   ]
+  },
+  {
+   "id": "14291",
+   "motivos": [
+    "ramal 12B|1 (HOSPITAL ALVARO CUNQUEIRO / REMATA PEREIRO)",
+    "ramal 15B|0 (XESTOSO por HOSPITAL / POUSO - XESTOSO / XESTOSO)",
+    "ramal 15C|0 (XESTOSO por HOSPITAL / XESTOSO - UNIVERSIDADE / XESTOSO / XESTOSO - HOSPITAL)"
+   ]
+  },
+  {
+   "id": "14296",
+   "motivos": [
+    "ramal 28|0 (SAN PAIO - VIGONATURE)"
+   ]
+  },
+  {
+   "id": "14328",
+   "motivos": [
+    "tronco PSA 1|1"
+   ]
+  },
+  {
+   "id": "14335",
+   "motivos": [
+    "ramal 31|1 (SAN LORENZO)"
+   ]
+  },
+  {
+   "id": "14337",
+   "motivos": [
+    "tronco PSA 4|0"
+   ]
+  },
+  {
+   "id": "14345",
+   "motivos": [
+    "ramal 28|1 (URZAIZ - BERBES / PIZARRO / BERBES - BOUZAS / URZAIZ - AREAL)"
+   ]
+  },
+  {
+   "id": "14353",
+   "motivos": [
+    "ramal 28|0 (SAN PAIO - VIGONATURE / SAN PAIO-RABADEIRA)"
+   ]
+  },
+  {
+   "id": "14395",
+   "motivos": [
+    "ramal 15B|0 (XESTOSO por HOSPITAL / POUSO - XESTOSO)"
+   ]
+  },
+  {
+   "id": "14892",
+   "motivos": [
+    "tronco C1|0",
+    "tronco H1|1"
+   ]
+  },
+  {
+   "id": "14894",
+   "motivos": [
+    "tronco 7|1",
+    "ramal 7|0 (REMATA EN PORTANET)"
+   ]
+  },
+  {
+   "id": "14896",
+   "motivos": [
+    "ramal 28|0 (SAN PAIO)"
+   ]
+  },
+  {
+   "id": "14905",
+   "motivos": [
+    "ramal 9B|1 (COLÓN)"
+   ]
+  },
+  {
+   "id": "15002",
+   "motivos": [
+    "tronco PTL|1"
+   ]
+  },
+  {
+   "id": "20018",
+   "motivos": [
+    "ramal 7|0 (S. COSME - ZAMANS por CAMELIAS)"
+   ]
+  },
+  {
+   "id": "20020",
+   "motivos": [
+    "tronco 7|0"
+   ]
+  },
+  {
+   "id": "20029",
+   "motivos": [
+    "ramal 28|0 (SAN PAIO-RABADEIRA)"
+   ]
+  },
+  {
+   "id": "20044",
+   "motivos": [
+    "ramal C1|0 (PRAZA AMÉRICA)"
+   ]
+  },
+  {
+   "id": "20057",
+   "motivos": [
+    "ramal 5B|1 (NAVIA por CASTELAO)"
+   ]
+  },
+  {
+   "id": "20076",
+   "motivos": [
+    "ramal C1|0 (PRAZA AMÉRICA)"
+   ]
+  },
+  {
+   "id": "20082",
+   "motivos": [
+    "ramal 11|1 (SAN MIGUEL por FLORIDA / REMATA ESTR. CAMPOSANCOS 28 / REMATA XURELA)"
+   ]
+  },
+  {
+   "id": "20085",
+   "motivos": [
+    "tronco 27|1"
+   ]
+  },
+  {
+   "id": "20094",
+   "motivos": [
+    "ramal 18A|0 (SARDOMA por MANTELAS / POULEIRA por MIRAFLORES)"
+   ]
+  },
+  {
+   "id": "20099",
+   "motivos": [
+    "ramal C3i|1 (COIA por GARCIA BARBON / COIA - SAMIL por G. BARBON)"
+   ]
+  },
+  {
+   "id": "20107",
+   "motivos": [
+    "ramal 27|1 (BEADE por PRESAS)",
+    "ramal 6|0 (H. A. CUNQUEIRO por J. FUENTE)"
+   ]
+  },
+  {
+   "id": "20111",
+   "motivos": [
+    "ramal 27|1 (H. A. CUNQUEIRO-BEADE)",
+    "ramal 6|0 (H. A. CUNQUEIRO por J. FUENTE)"
+   ]
+  },
+  {
+   "id": "20116",
+   "motivos": [
+    "ramal 27|1 (BEADE por AVDA. CASTRELOS)"
+   ]
+  },
+  {
+   "id": "20125",
+   "motivos": [
+    "ramal 12B|0 (HOSPITAL MEIXOEIRO)"
+   ]
+  },
+  {
+   "id": "20127",
+   "motivos": [
+    "tronco 18H|0",
+    "ramal A|1 (H. ALV. CUNQUEIRO - PORTO)"
+   ]
+  },
+  {
+   "id": "20139",
+   "motivos": [
+    "ramal 29|1 (CASAS - S. ANDRES IGREXA / S. ANDRES IGREXA - FRAGOSELO)"
+   ]
+  },
+  {
+   "id": "20141",
+   "motivos": [
+    "ramal 15C|0 (XESTOSO por HOSPITAL)"
+   ]
+  },
+  {
+   "id": "20146",
+   "motivos": [
+    "ramal 28|1 (URZAIZ - AREAL)",
+    "ramal A|1 (GARCÍA BARBÓN)"
+   ]
+  },
+  {
+   "id": "20156",
+   "motivos": [
+    "ramal 15C|0 (XESTOSO - UNIVERSIDADE)"
+   ]
+  },
+  {
+   "id": "20160",
+   "motivos": [
+    "ramal 7|0 (SOBREIRA por CAMELIAS)"
+   ]
+  },
+  {
+   "id": "20172",
+   "motivos": [
+    "ramal 12B|1 (HOSPITAL ALVARO CUNQUEIRO)",
+    "ramal U1|0 (UNIVERSIDADE)"
+   ]
+  },
+  {
+   "id": "20193",
+   "motivos": [
+    "caso C3i",
+    "ramal A|1 (1 P.E.FADRIQUE por TORRECED / PORTO - UNIVERSIDADE / REMATA EN FRAGOSO / H. ALV. CUNQUEIRO - PORTO)"
+   ]
+  },
+  {
+   "id": "20195",
+   "motivos": [
+    "caso C3i"
+   ]
+  },
+  {
+   "id": "20198",
+   "motivos": [
+    "tronco 10|0",
+    "tronco C3d|0"
+   ]
+  },
+  {
+   "id": "20203",
+   "motivos": [
+    "ramal 14|1 (GARCÍA BARBÓN)"
+   ]
+  }
+ ]
+}
