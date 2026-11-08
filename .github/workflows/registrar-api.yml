@@ -1,7 +1,7 @@
 # Registro temporal de la API de tiempos en vivo (tarea 75: ramales y letreros, p. ej. la C3i).
 # Consulta en bucle las paradas de tools/registro-paradas.json (tronco de cada línea y paradas
 # justo después de cada separación de ramales) y guarda las respuestas, junto con el GTFS del día,
-# como artefacto de la ejecución (30 días). Solo lee: no toca main ni abre avisos.
+# en la rama prueba-concello (registro/<día>/). No toca main ni la web ni abre avisos.
 # TEMPORAL: borrar este archivo (y tools/registrar_api.py, elegir_paradas_registro.js y
 # registro-paradas.json si ya no hacen falta) después del domingo 15/11/2026.
 name: Registrar la API de Vitrasa (temporal)
@@ -19,7 +19,7 @@ on:
         description: "Minutos de registro"
         default: "330"
 permissions:
-  contents: read
+  contents: write   # solo para guardar el registro en la rama prueba-concello
 concurrency:
   group: registrar-api
   cancel-in-progress: false   # si se solapan, la siguiente espera a que acabe la anterior
@@ -53,10 +53,30 @@ jobs:
           print(f"**{n} consultas**, {err} con error; {len(lin)} líneas y {len(letreros)} letreros distintos vistos.")
           EOF
 
-      - name: Subir el registro como artefacto
+      # A la rama prueba-concello (no a main): los artefactos no se pueden descargar desde la sesión
+      # de Claude, git sí. El GTFS solo se guarda una vez por versión (nombre con su md5).
+      - name: Guardar el registro en la rama prueba-concello
         if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: registro-api-${{ github.run_id }}
-          path: registro/
-          retention-days: 30
+        run: |
+          set -e
+          dia=$(date -u +%Y-%m-%d)
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch --depth 1 origin prueba-concello
+          git worktree add /tmp/rama FETCH_HEAD
+          mkdir -p "/tmp/rama/registro/$dia"
+          gzip -9 -c registro/api.jsonl > "/tmp/rama/registro/$dia/api-${GITHUB_RUN_ID}.jsonl.gz"
+          cp registro/commit.txt "/tmp/rama/registro/$dia/commit-${GITHUB_RUN_ID}.txt"
+          if [ -f registro/gtfs_vigo.zip ]; then
+            md5=$(md5sum registro/gtfs_vigo.zip | cut -c1-12)
+            [ -f "/tmp/rama/registro/gtfs-$md5.zip" ] || cp registro/gtfs_vigo.zip "/tmp/rama/registro/gtfs-$md5.zip"
+            echo "gtfs-$md5.zip" > "/tmp/rama/registro/$dia/gtfs-${GITHUB_RUN_ID}.txt"
+          fi
+          cd /tmp/rama
+          git add registro
+          git commit -q -m "Registro de la API ${dia} (ejecución ${GITHUB_RUN_ID})"
+          for i in 1 2 3; do
+            git push origin HEAD:prueba-concello && exit 0
+            git pull --rebase -q origin prueba-concello || true
+          done
+          exit 1
