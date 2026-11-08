@@ -174,9 +174,9 @@
 
   // ---------- Mapa ----------
   // Todo lo del mapa pasa por js/mapa.js (PV_MAPA, el "enchufe" para poder cambiar de motor).
-  const map = window.PV_MAPA.create("map", { center: VIGO, zoom: 14, zoomControl: isDesktop() });
+  const map = window.PV_MAPA.create("map", { center: VIGO, zoom: 14, zoomControl: isDesktop(), noMapText: t("map_unavailable") });
   // Para las capturas de prueba (tools/capturas_mapa.py): mover el mapa sin animación.
-  window.__pvTest = { view: (ll, z) => map.setView(ll, z, { animate: false }), point: (ll) => { const p = map.latLngToContainerPoint(ll); return [p.x, p.y]; } };
+  window.__pvTest = { view: (ll, z) => map.setView(ll, z, { animate: false }), point: (ll) => { const p = map.latLngToContainerPoint(ll); return [p.x, p.y]; }, raw: () => map.raw || null };
 
   // Mapa base (33): OpenFreeMap (gratuito y sin clave), siempre Positron (claro) por defecto; si no
   // hay WebGL o no carga, el de OpenStreetMap de siempre (lo resuelve js/mapa.js).
@@ -3698,7 +3698,7 @@
     const cancel = () => { clearTimeout(timer); timer = null; };
     el.addEventListener("touchstart", (e) => {
       cancel();
-      if (e.touches.length !== 1 || e.target.closest(".leaflet-popup, .leaflet-control")) return;
+      if (e.touches.length !== 1 || e.target.closest(".leaflet-popup, .leaflet-control, .maplibregl-popup, .maplibregl-ctrl")) return;
       x0 = e.touches[0].clientX; y0 = e.touches[0].clientY;
       timer = setTimeout(() => {
         timer = null;

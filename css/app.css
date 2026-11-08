@@ -158,7 +158,10 @@ svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width:
 .place-pin { filter: drop-shadow(0 2px 3px rgba(19, 34, 44, .45)); }
 .place-pin svg { display: block; width: 34px; height: 44px; }
 /* Menú "Desde aquí / Hasta aquí" sobre el mapa */
-.here-pop .leaflet-popup-content-wrapper, .here-pop .leaflet-popup-tip { background: var(--surface); color: var(--ink); box-shadow: var(--shadow); }
+.here-pop .leaflet-popup-content-wrapper, .here-pop .leaflet-popup-tip, .here-pop .maplibregl-popup-content { background: var(--surface); color: var(--ink); box-shadow: var(--shadow); }
+.here-pop .maplibregl-popup-content { border-radius: 12px; padding: 8px; min-width: 170px; }
+.here-pop.maplibregl-popup-anchor-bottom .maplibregl-popup-tip { border-top-color: var(--surface); }
+.here-pop.maplibregl-popup-anchor-top .maplibregl-popup-tip { border-bottom-color: var(--surface); }
 .here-pop .leaflet-popup-content-wrapper { border-radius: 12px; padding: 0; }
 .here-pop .leaflet-popup-content { margin: 8px; min-width: 170px; }
 .here small { display: block; padding: 2px 6px 6px; color: var(--granite); font: 500 13px/1.25 var(--sans); max-width: 230px; }
@@ -551,7 +554,14 @@ button.badge:hover { filter: brightness(1.08); }
 
 /* ---------- Leaflet ---------- */
 .leaflet-container { font-family: var(--sans); }
-.leaflet-control-attribution { font-size: 11px; }
+.leaflet-control-attribution, .maplibregl-ctrl-attrib { font-size: 11px; }
+.ml-map { font-family: var(--sans); }
+.ml-map .maplibregl-ctrl-top-left { top: env(safe-area-inset-top); }
+.pv-marker { line-height: 0; }
+.pv-icon { display: block; }
+.no-map { background: var(--soft, #f3ece8); display: grid; place-items: start center; }
+.no-map-mode #fab-layer { display: none; }
+.no-map-msg { margin: 96px 24px 0; max-width: 34ch; padding: 14px 16px; border-radius: 14px; background: var(--surface); color: var(--ink); box-shadow: var(--sh-md, 0 8px 16px rgba(94,46,50,.2)); font: 500 15px/1.4 var(--sans); text-align: center; }
 .leaflet-top.leaflet-left { top: env(safe-area-inset-top); }
 .leaflet-bar a { color: var(--ink); background: var(--surface); border-color: var(--line); }
 /* Mapa base de OpenStreetMap con sus colores, apenas suavizado para que destaquen las paradas. */
@@ -577,7 +587,7 @@ button.badge:hover { filter: brightness(1.08); }
   .grip { display: none; }
   .locate, .panel[data-state="stop"] ~ .locate { bottom: 32px; right: 20px; }
   .panel[data-state="full"] ~ .locate { display: grid; }
-  .leaflet-top.leaflet-left { left: 422px; }
+  .leaflet-top.leaflet-left, .ml-map .maplibregl-ctrl-top-left { left: 422px; }
 }
 
 /* Próximo bus hacia la parada: tarjeta en el panel e icono sobre el trazado */
@@ -715,7 +725,7 @@ button.badge:hover { filter: brightness(1.08); }
   }
   .panel, .panel[data-state="stop"], .panel[data-state="full"] { left: 112px; border-radius: 18px; box-shadow: var(--sh-lg); }
   .panel[data-screen="fav"] #home, .panel[data-screen="lines"] #home, .panel[data-screen="info"] #info { margin: 0 -20px -14px; padding: 14px 20px 0; border-radius: 22px 22px 18px 18px; }
-  .leaflet-top.leaflet-left { left: 518px; }
+  .leaflet-top.leaflet-left, .ml-map .maplibregl-ctrl-top-left { left: 518px; }
 }
 
 /* ---- Pantallas propias, medidas del mockup (390 px de ancho) ---- */

@@ -369,6 +369,8 @@
   <script src="js/direcciones.js"></script>
   <script src="js/bus.js"></script>
   <script src="js/planificador.js"></script>
+  <!-- Mapa nuevo (MapLibre) solo con ?mapa=nuevo, mientras se prueba (tareas 41 + 47). -->
+  <script>if (/[?&]mapa=nuevo\b/.test(location.search)) document.write('<link rel="stylesheet" href="vendor/maplibre/maplibre-gl.css"><script src="vendor/maplibre/maplibre-gl.js"><\/script>');</script>
   <script src="js/mapa.js"></script>
   <script src="js/app.js"></script>
 </body>
