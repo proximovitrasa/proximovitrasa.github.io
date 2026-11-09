@@ -132,6 +132,9 @@
   let lineRuta = null;            // destino de la fila de llegadas desde la que se abrió la línea
   let active = null;              // línea iluminada: { code, dir, stops, from, fromDir }
   let tripRouteOn = false;        // hay un viaje dibujado en "Cómo llegar"
+  // Red de líneas del mapa nuevo: se enciende y apaga en el menú de capas (se recuerda).
+  let netOn = true;
+  try { netOn = localStorage.getItem("pv:red") !== "0"; } catch {}
 
   // Favoritas (5): paradas (con las líneas que se quieren ver, o todas), direcciones o sitios, y
   // casa y trabajo. Se guardan en este dispositivo; las de antes (una lista de paradas) se pasan solas.
@@ -388,7 +391,7 @@
     if (stopLayer) stopLayer.hide((!!active && map.getZoom() < LINE_STOPS_ZOOM) || tripRouteOn);
     drawStopsLow();
     drawNums();   // los números de portal se ocultan con una línea o un viaje dibujados
-    if (map.showNetwork) map.showNetwork(!active && !tripRouteOn);   // red de líneas (mapa nuevo)
+    if (map.showNetwork) map.showNetwork(netOn && !active && !tripRouteOn);   // red de líneas (mapa nuevo; interruptor en el menú de capas)
   }
 
   map.on("zoomend", () => {
@@ -4075,6 +4078,15 @@
   }
   $("#fab-layer").addEventListener("click", (e) => { e.stopPropagation(); toggleFabLayer(); });
   $("#fab-layer-menu").addEventListener("click", (e) => {
+    const o = e.target.closest("[data-overlay]");
+    if (o) {   // red de líneas: el menú sigue abierto para ver el cambio
+      e.stopPropagation();
+      netOn = !netOn;
+      try { localStorage.setItem("pv:red", netOn ? "1" : "0"); } catch {}
+      o.setAttribute("aria-pressed", netOn);
+      updateStopVisibility();
+      return;
+    }
     const b = e.target.closest("[data-layer]");
     if (!b) return;
     e.stopPropagation();
@@ -4085,6 +4097,10 @@
   document.addEventListener("click", (e) => { if (!e.target.closest("#fab-layer-menu, #fab-layer")) toggleFabLayer(false); });
   document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("#fab-layer-menu").hidden) { toggleFabLayer(false); $("#fab-layer").focus(); } });
   renderLayerSeg();
+  if (map.setNetwork) {
+    document.querySelectorAll("#fab-layer-menu .layer-sep, #fab-layer-menu .layer-overlay").forEach((li) => { li.hidden = false; });
+    $('#fab-layer-menu [data-overlay="red"]').setAttribute("aria-pressed", netOn);
+  }
   if (baseLayer === "sat") setBaseLayer("sat");
   // Bordes del mapa difuminados (mockups): la de abajo sigue a la hoja cuando sube o baja.
   const fadeAt = () => document.documentElement.style.setProperty("--sheet-top", `${Math.round(panel.getBoundingClientRect().top)}px`);

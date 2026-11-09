@@ -1447,4 +1447,10 @@ body:has(.panel:not([data-screen="home"])) .install, body:has(.panel[data-state=
 /* Capas del mapa en la botonera (58): icono de capas apiladas */
 .map-fabs #fab-layer { border-top: 1px solid rgba(255, 255, 255, .25); color: var(--brand-ink); }
 #fab-layer svg { fill: none; stroke: currentColor; stroke-width: 2; }
+#fab-layer-menu .layer-sep { height: 1px; margin: 4px 6px; background: var(--line); }
+#fab-layer-menu .layer-sep[hidden], #fab-layer-menu .layer-overlay[hidden] { display: none; }
+#fab-layer-menu .sw-red { background: #F2F2F0; }
+#fab-layer-menu .sw-red svg { width: 100%; height: 100%; fill: none; stroke-width: 2.2; stroke-linecap: round; display: block; }
+#fab-layer-menu .chk { width: 20px; height: 20px; margin-left: auto; fill: none; stroke: var(--brand); stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; visibility: hidden; }
+#fab-layer-menu [aria-pressed="true"] .chk { visibility: visible; }
 #fab-layer-menu .sw { width: 22px; height: 22px; border-radius: 6px; border: 2px solid #fff; box-shadow: 0 0 0 1px rgba(0, 0, 0, .15); flex: none; display: inline-block; }

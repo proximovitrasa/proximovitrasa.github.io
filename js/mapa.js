@@ -692,10 +692,11 @@
       // 4. Red de líneas, debajo de los nombres de las calles; se desvanece al acercarse.
       if (redData) {
         if (!ml.getSource(`${PV}red`)) ml.addSource(`${PV}red`, { type: "geojson", data: redData });
-        if (!ml.getLayer(`${PV}red`)) ml.addLayer({ id: `${PV}red`, type: "line", source: `${PV}red`, maxzoom: 16 - ZOFF + 0.6,
+        // Se ve de lejos hasta bastante cerca (zoom 17 de Leaflet) y se apaga del todo en el 18.
+        if (!ml.getLayer(`${PV}red`)) ml.addLayer({ id: `${PV}red`, type: "line", source: `${PV}red`, maxzoom: 18 - ZOFF,
           layout: { "line-cap": "round", "line-join": "round", visibility: redOn ? "visible" : "none" },
-          paint: { "line-color": ["get", "c"], "line-width": ["interpolate", ["linear"], ["zoom"], 11, 1, 13, 1.6, 15, 2.6],
-            "line-opacity": ["interpolate", ["linear"], ["zoom"], 11, 0.85, 14, 0.7, 15.5, 0] } },
+          paint: { "line-color": ["get", "c"], "line-width": ["interpolate", ["linear"], ["zoom"], 11, 1, 13, 1.6, 15, 2.6, 17, 3.4],
+            "line-opacity": ["interpolate", ["linear"], ["zoom"], 11, 0.85, 15, 0.8, 16, 0.75, 17, 0] } },
         firstBaseSymbol && ml.getLayer(firstBaseSymbol) ? firstBaseSymbol : firstOurs);
       }
       // 1. Sitios útiles: icono y nombre, encima de los nombres del fondo y debajo de lo nuestro.

@@ -348,6 +348,9 @@
     <li role="option"><button type="button" data-layer="light"><i class="sw sw-light"></i><span data-i18n="layer_light"></span></button></li>
     <li role="option"><button type="button" data-layer="dark"><i class="sw sw-dark"></i><span data-i18n="layer_dark"></span></button></li>
     <li role="option"><button type="button" data-layer="sat"><i class="sw sw-sat"></i><span data-i18n="layer_sat"></span></button></li>
+    <!-- Red de líneas (mapa nuevo): encima de cualquier fondo, se enciende y apaga aparte -->
+    <li class="layer-sep" role="separator" hidden></li>
+    <li class="layer-overlay" role="option" hidden><button type="button" data-overlay="red" aria-pressed="true"><i class="sw sw-red"><svg viewBox="0 0 22 22" aria-hidden="true"><path d="M2 15c5 0 6-9 11-9s5 5 7 5" stroke="#D3202F"/><path d="M2 7c4 0 6 9 10 9s6-3 8-3" stroke="#1F7A4D"/><path d="M8 2c0 6 4 10 4 18" stroke="#FFCC00"/></svg></i><span data-i18n="layer_net"></span><svg class="chk" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></button></li>
   </ul>
   <!-- Pasos de una opción de Cómo llegar (mockup 2): mapa a pantalla completa, compartir y guardar -->
   <button id="map-full" class="map-full" type="button" data-i18n-aria="full_map" data-i18n-title="full_map"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
