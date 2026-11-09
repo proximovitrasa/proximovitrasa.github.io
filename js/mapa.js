@@ -277,12 +277,16 @@
     if (o.zoomControl) ml.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-left");
     // Lo que toca el estilo (fuentes, capas) espera a que esté cargado: al principio y mientras se
     // cambia de fondo, MapLibre no deja añadir nada.
+    // Ojo: isStyleLoaded() también espera a las teselas (puede tardar mucho o no llegar si fallan);
+    // aquí basta con que esté cargada la descripción del estilo.
     const pending = [];
     const run = (f) => { try { f(); } catch (e) { console.error(e); } };
-    const flushPending = () => { if (ml.isStyleLoaded()) pending.splice(0).forEach(run); };
+    const styleReady = () => !!(ml.style && ml.style._loaded);
+    const flushPending = () => { if (styleReady()) pending.splice(0).forEach(run); };
     ml.on("load", flushPending);
+    ml.on("style.load", flushPending);
     ml.on("styledata", flushPending);
-    const ready = (f) => { if (ml.isStyleLoaded()) run(f); else pending.push(f); };
+    const ready = (f) => { if (styleReady()) run(f); else pending.push(f); };
 
     // Atribución: la del fondo (de su estilo) más la nuestra.
     const attrs = [];
@@ -512,11 +516,14 @@
       setAnchor(cur);
       mk.setLngLat(lngLat(ll));
       // Encima de los lienzos propios (z 1–2), como en Leaflet (panel de marcadores 600).
-      const baseZ = 10 + (o2.zIndexOffset || 0);
-      outer.style.zIndex = String(baseZ);
+      // Como Leaflet: por clase (zIndexOffset) y, dentro de cada una, el más al sur encima.
+      const off = o2.zIndexOffset || 0;
+      let extra = 0, lat = toLL(ll).lat;
+      const setZ = () => { outer.style.zIndex = String(10 + (off + extra) * 100 + Math.max(0, Math.round((42.6 - lat) * 1e4))); };
+      setZ();
       let shown = false, clicks = [];
       return {
-        setLatLng(p) { mk.setLngLat(lngLat(p)); return this; },
+        setLatLng(p) { mk.setLngLat(lngLat(p)); const la = toLL(p).lat; if (la !== lat) { lat = la; setZ(); } return this; },
         getLatLng() { const p = mk.getLngLat(); return { lat: p.lat, lng: p.lng }; },
         show() { if (!shown) { mk.addTo(ml); shown = true; } return this; },
         remove() { if (shown) { mk.remove(); shown = false; } return this; },
@@ -533,7 +540,7 @@
           return this;
         },
         setOpacity(op) { inner.style.opacity = op === 1 ? "" : String(op); return this; },
-        setZIndexOffset(z) { outer.style.zIndex = String(baseZ + z); return this; },
+        setZIndexOffset(z) { extra = z; setZ(); return this; },
         on(ev, fn) {
           if (ev === "dragend") mk.on("dragend", () => { const p = mk.getLngLat(); fn({ latlng: { lat: p.lat, lng: p.lng } }); });
           else if (ev === "click") { outer.addEventListener("click", (e) => { e.stopPropagation(); fn(e); }); clicks.push(fn); }

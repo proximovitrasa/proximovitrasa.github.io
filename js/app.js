@@ -176,7 +176,7 @@
   // Todo lo del mapa pasa por js/mapa.js (PV_MAPA, el "enchufe" para poder cambiar de motor).
   const map = window.PV_MAPA.create("map", { center: VIGO, zoom: 14, zoomControl: isDesktop(), noMapText: t("map_unavailable") });
   // Para las capturas de prueba (tools/capturas_mapa.py): mover el mapa sin animación.
-  window.__pvTest = { view: (ll, z) => map.setView(ll, z, { animate: false }), point: (ll) => { const p = map.latLngToContainerPoint(ll); return [p.x, p.y]; }, raw: () => map.raw || null };
+  window.__pvTest = { view: (ll, z) => map.setView(ll, z, { animate: false }), point: (ll) => { const p = map.latLngToContainerPoint(ll); return [p.x, p.y]; }, raw: () => map.raw || null, focus: (ll, z) => focusOn(ll, z, false) };
 
   // Mapa base (33): OpenFreeMap (gratuito y sin clave), siempre Positron (claro) por defecto; si no
   // hay WebGL o no carga, el de OpenStreetMap de siempre (lo resuelve js/mapa.js).
@@ -400,7 +400,7 @@
     syncStops(); if (mode === "near" && !me && !current && !active) renderNear(); });
 
   // Centra un punto en la zona del mapa que no tapa el panel.
-  function focusOn(ll, zoom) {
+  function focusOn(ll, zoom, animate = true) {
     const z = zoom != null ? zoom : Math.max(map.getZoom(), 16);
     const p = map.project(ll, z);
     const panel = $("#panel");
@@ -408,7 +408,7 @@
     const st = panel.dataset.state;
     const h = st === "full" ? innerHeight - 56 : st === "stop" ? innerHeight * 0.64 : st === "min" ? 92 : Math.max(260, innerHeight * 0.46);
     const shift = isDesktop() ? { x: -panel.getBoundingClientRect().right / 2, y: 0 } : { x: 0, y: h / 2 };
-    map.setView(map.unproject({ x: p.x + shift.x, y: p.y + shift.y }, z), z, { animate: true });
+    map.setView(map.unproject({ x: p.x + shift.x, y: p.y + shift.y }, z), z, { animate });
   }
 
   // ---------- Datos ----------

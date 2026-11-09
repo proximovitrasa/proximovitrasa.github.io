@@ -42,6 +42,11 @@ ESCENAS = [
     ("como-llegar", "#ir/p20193/p1860"),
     ("direccion", "#dir/42.23720,-8.72430~Rúa do Príncipe, 22"),
     ("favoritas", "#favoritas"),
+    # Fase 3 (línea abierta): ramales, variante de un letrero, alejada y de cerca.
+    ("linea-ramales", "#linea/A/14225"),
+    ("linea-variante", "#linea/C3i/20193/BOUZAS%20por%20GARCIA%20BARBON"),
+    ("linea-alejada", "#linea/C3i/20193", [42.2290, -8.7380], 13),
+    ("linea-cerca", "#linea/14", [42.23767, -8.72127], 16),
 ]
 VISTAS = {"movil": {"viewport": {"width": 390, "height": 844}, "device_scale_factor": 2, "is_mobile": True, "has_touch": True},
           "ordenador": {"viewport": {"width": 1366, "height": 820}, "device_scale_factor": 1}}
@@ -65,7 +70,9 @@ def capturar(salida, consulta):
     with sync_playwright() as p:
         nav = p.chromium.launch(args=["--use-gl=swiftshader", "--enable-unsafe-swiftshader"])
         for vista, opts in VISTAS.items():
-            for nombre, hash_ in ESCENAS + [("zoom-cercano", "#zoom")]:
+            for esc in ESCENAS + [("zoom-cercano", "#zoom")]:
+                nombre, hash_ = esc[0], esc[1]
+                vista_mapa = esc[2:] if len(esc) > 2 else None
                 ctx = nav.new_context(**opts, locale="es-ES", timezone_id="Europe/Madrid", reduced_motion="reduce",
                                       geolocation=YO, permissions=["geolocation"], service_workers="block")
                 ctx.clock.install(time=HORA)
@@ -91,6 +98,9 @@ def capturar(salida, consulta):
                     page.goto(f"http://127.0.0.1:{port}/{q}{hash_}")
                 page.clock.run_for(6000)
                 page.wait_for_timeout(3500)
+                if vista_mapa:
+                    page.evaluate(f"window.__pvTest.focus({list(vista_mapa[0])}, {vista_mapa[1]})")
+                    page.wait_for_timeout(1500)
                 page.clock.run_for(1500)
                 page.wait_for_timeout(800)
                 page.screenshot(path=str(salida / f"{vista}-{nombre}.png"))
@@ -106,7 +116,7 @@ def capturar(salida, consulta):
 def comparar(a, b):
     from PIL import Image, ImageChops
     peor = 0
-    for f in sorted(a.glob("*.png")):
+    for f in sorted(x for x in a.glob("*.png") if not x.name.startswith("dif-")):
         g = b / f.name
         if not g.exists():
             print(f"  {f.name}: falta en {b}")
