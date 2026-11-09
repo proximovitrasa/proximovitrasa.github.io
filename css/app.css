@@ -1366,21 +1366,6 @@ body:has(.panel:not([data-screen="home"])) .install, body:has(.panel[data-state=
 .pin-a { background: #1B1B1F; }
 .pin-b { background: var(--brand); }
 
-/* Bordes del mapa difuminados en el color de la hoja (móvil) */
-.map-fade { display: none; position: fixed; inset: 0; z-index: 800; pointer-events: none; --fc: var(--surface); }
-.map-fade i { position: absolute; display: block; }
-.map-fade .ft { left: 0; right: 0; top: 0; height: 115px; background: linear-gradient(180deg, var(--fc) 0%, color-mix(in srgb, var(--fc) 85%, transparent) 25%, color-mix(in srgb, var(--fc) 45%, transparent) 60%, transparent 100%); }
-.map-fade .fl, .map-fade .fr { top: 0; width: 22px; height: calc(var(--sheet-top, 60vh) - 20px); }
-.map-fade .fl { left: 0; background: linear-gradient(90deg, var(--fc) 0%, color-mix(in srgb, var(--fc) 70%, transparent) 35%, transparent 100%); }
-.map-fade .fr { right: 0; background: linear-gradient(270deg, var(--fc) 0%, color-mix(in srgb, var(--fc) 70%, transparent) 35%, transparent 100%); }
-.map-fade .fb { left: 0; right: 0; top: calc(var(--sheet-top, 60vh) - 92px); height: 120px; background: linear-gradient(180deg, transparent 0%, color-mix(in srgb, var(--fc) 35%, transparent) 40%, color-mix(in srgb, var(--fc) 80%, transparent) 75%, var(--fc) 100%); }
-@media (max-width: 859.98px) {
-  .panel[data-screen="home"] ~ .map-fade, .panel[data-view="stop"] ~ .map-fade, .panel[data-view="place"] ~ .map-fade,
-  .panel[data-view="line"] ~ .map-fade, .panel[data-screen="tripd"] ~ .map-fade { display: block; }
-  .panel[data-screen="home"] ~ .map-fade .ft { height: 140px; }
-  .panel[data-screen="home"] ~ .map-fade .fb { top: calc(var(--sheet-top, 60vh) - 64px); }
-  .panel[data-state="min"] ~ .map-fade .fb { display: none; }
-}
 /* "previsto" encima de los minutos (la clase .sched de Cómo llegar no debe ponerlo en línea) */
 .arrivals .eta.sched, .near-dep-list .eta.sched, #line-bus .eta.sched { display: block; }
 /* El autobús de lado, sin el trazo general de los iconos (salía oscuro con líneas de colores claros) */

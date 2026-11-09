@@ -4102,12 +4102,6 @@
     $('#fab-layer-menu [data-overlay="red"]').setAttribute("aria-pressed", netOn);
   }
   if (baseLayer === "sat") setBaseLayer("sat");
-  // Bordes del mapa difuminados (mockups): la de abajo sigue a la hoja cuando sube o baja.
-  const fadeAt = () => document.documentElement.style.setProperty("--sheet-top", `${Math.round(panel.getBoundingClientRect().top)}px`);
-  if (window.ResizeObserver) new ResizeObserver(fadeAt).observe(panel);
-  panel.addEventListener("transitionend", fadeAt);
-  addEventListener("resize", fadeAt);
-  fadeAt();
   $("#map-share").addEventListener("click", () => $('[data-share="line"]').click());
   $("#map-full").addEventListener("click", () => setPanel(panel.dataset.state === "min" ? baseState() : "min"));
   $("#tf-share").addEventListener("click", () => $('[data-share="trip"]').click());
