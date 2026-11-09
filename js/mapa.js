@@ -170,6 +170,8 @@
 
     return {
       engine: "leaflet",
+      getBearing: () => 0,
+      resetNorth() { return this; },
       // Cámara y coordenadas
       getZoom: () => m.getZoom(),
       getCenter: () => m.getCenter(),
@@ -271,9 +273,9 @@
     const ml = new maplibregl.Map({
       container: box, style: EMPTY_STYLE, center: lngLat(o.center), zoom: o.zoom - ZOFF,
       maxZoom: 20 - ZOFF, attributionControl: false,
-      dragRotate: false, pitchWithRotate: false, touchPitch: false, keyboard: false,
+      // Giro con dos dedos o con el botón derecho (fase 6); sin inclinación de momento.
+      dragRotate: true, pitchWithRotate: false, touchPitch: false, maxPitch: 0, keyboard: false,
     });
-    ml.touchZoomRotate.disableRotation();
     if (o.zoomControl) ml.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-left");
     // Lo que toca el estilo (fuentes, capas) espera a que esté cargado: al principio y mientras se
     // cambia de fondo, MapLibre no deja añadir nada.
@@ -485,6 +487,89 @@
       };
     }
 
+    // Capas fijas (no de grupos) con su z, para ordenarlas como los paneles de Leaflet.
+    function addFixedLayer(layer, z) {
+      const later = groups.concat(anchors).filter((h) => h.z > z && h.layers.length).sort((a2, b2) => a2.z - b2.z || a2.seq - b2.seq);
+      const before = later.length ? later[0].layers[0] : undefined;
+      ml.addLayer(layer, before && ml.getLayer(before) ? before : undefined);
+    }
+    const setVis = (ids, on) => ready(() => ids.forEach((id) => { if (ml.getLayer(id)) ml.setLayoutProperty(id, "visibility", on ? "visible" : "none"); }));
+
+    // Vigo Vertical: flecha (sube hacia el extremo de arriba) y ascensor, como en el lienzo de antes.
+    const VV_INK = "rgba(91,79,69,.78)", VV_HALO = "rgba(255,255,255,.85)";
+    function vvImage(kind) {
+      const k = 2, S = 20, c = document.createElement("canvas"), x = c.getContext("2d");
+      c.width = c.height = S * k;
+      x.scale(k, k);
+      const m = S / 2;
+      if (kind === "arrow") {
+        const h = 7;   // lw (4) + 3, como antes; apunta hacia arriba (norte de la imagen)
+        x.fillStyle = VV_INK; x.strokeStyle = VV_HALO; x.lineWidth = 1.5; x.lineJoin = "round";
+        x.beginPath(); x.moveTo(m, m - h); x.lineTo(m + h, m + h * 0.6); x.lineTo(m - h, m + h * 0.6); x.closePath(); x.stroke(); x.fill();
+      } else {
+        const sz = 14, box = (x0, y0, w, r) => { x.beginPath(); if (x.roundRect) x.roundRect(x0, y0, w, w, r); else x.rect(x0, y0, w, w); x.fill(); };
+        x.fillStyle = VV_HALO; box(m - sz / 2 - 1.5, m - sz / 2 - 1.5, sz + 3, 4);
+        x.fillStyle = VV_INK; box(m - sz / 2, m - sz / 2, sz, 3);
+        x.fillStyle = "#fff";
+        const a = sz * 0.22;
+        x.beginPath(); x.moveTo(m, m - sz * 0.36); x.lineTo(m + a, m - sz * 0.06); x.lineTo(m - a, m - sz * 0.06); x.fill();
+        x.beginPath(); x.moveTo(m, m + sz * 0.36); x.lineTo(m + a, m + sz * 0.06); x.lineTo(m - a, m + sz * 0.06); x.fill();
+      }
+      return { width: c.width, height: c.height, data: new Uint8Array(x.getImageData(0, 0, c.width, c.height).data.buffer) };
+    }
+    ml.on("styleimagemissing", (e) => {
+      if ((e.id === "pv-vv-arrow" || e.id === "pv-vv-lift") && !ml.hasImage(e.id)) ml.addImage(e.id, vvImage(e.id === "pv-vv-arrow" ? "arrow" : "lift"), { pixelRatio: 2 });
+    });
+    // ----- Vigo Vertical (fase 6): rampas, escaleras mecánicas y ascensores como capas -----
+    // Trazo con halo; peldaños como un trazo ancho a rayas finas; flecha hacia el extremo de arriba
+    // (gira con el mapa); ascensor: cuadradito con flechas (el inclinado, en mitad de su trazo).
+    function verticalLayer(o2) {
+      const SRC = `${PV}vv`, PTS = `${PV}vv-pts`, ids = [`${PV}vv-halo`, `${PV}vv-ink`, `${PV}vv-steps`, `${PV}vv-arrow`, `${PV}vv-lift`];
+      const anchor = { z: 449, seq: 1e9 + 2, layers: [] };
+      anchors.push(anchor);
+      let lines = null, pts = null, shown = false;
+      const minzoom = o2.minZoom - ZOFF, LW = ["step", ["zoom"], 3, 18 - ZOFF, 4];
+      const build = () => ready(() => {
+        if (!lines) return;
+        if (!ml.getSource(SRC)) ml.addSource(SRC, { type: "geojson", data: { type: "FeatureCollection", features: lines } });
+        if (!ml.getSource(PTS)) ml.addSource(PTS, { type: "geojson", data: { type: "FeatureCollection", features: pts } });
+        const vis = shown ? "visible" : "none", lay = { "line-cap": "round", "line-join": "round", visibility: vis };
+        const add = (l) => { if (!ml.getLayer(l.id)) addFixedLayer({ minzoom, ...l }, 449); };
+        add({ id: ids[0], type: "line", source: SRC, layout: lay, paint: { "line-color": VV_HALO, "line-width": ["step", ["zoom"], 6, 18 - ZOFF, 7] } });
+        add({ id: ids[1], type: "line", source: SRC, layout: lay, paint: { "line-color": VV_INK, "line-width": LW } });
+        add({ id: ids[2], type: "line", source: SRC, filter: ["==", ["get", "t"], "escalera"], layout: { "line-join": "round", visibility: vis },
+          paint: { "line-color": VV_INK, "line-width": ["step", ["zoom"], 10, 18 - ZOFF, 12], "line-dasharray": [0.15, 0.35] } });
+        add({ id: ids[3], type: "symbol", source: PTS, filter: ["==", ["get", "k"], "arrow"],
+          layout: { "icon-image": "pv-vv-arrow", "icon-rotate": ["get", "rot"], "icon-rotation-alignment": "map", "icon-allow-overlap": true, "icon-ignore-placement": true,
+            "icon-size": ["step", ["zoom"], 6 / 7, 18 - ZOFF, 1], visibility: vis } });
+        add({ id: ids[4], type: "symbol", source: PTS, filter: ["==", ["get", "k"], "lift"],
+          layout: { "icon-image": "pv-vv-lift", "icon-allow-overlap": true, "icon-ignore-placement": true, "icon-size": ["step", ["zoom"], 12 / 14, 18 - ZOFF, 1], visibility: vis } });
+        anchor.layers = [ids[0]];
+      });
+      ml.on("style.load", () => { if (lines) { const a = ml.getSource(SRC); if (a) a.setData({ type: "FeatureCollection", features: lines }); const b2 = ml.getSource(PTS); if (b2) b2.setData({ type: "FeatureCollection", features: pts }); } });
+      return {
+        loaded: () => !!lines,
+        set(els) {
+          lines = []; pts = [];
+          for (const el of els) {
+            const a = [el.ka[1], el.ka[0]], b2 = [el.kb[1], el.kb[0]];
+            if (el.t === "ascensor") { pts.push({ type: "Feature", properties: { k: "lift" }, geometry: { type: "Point", coordinates: a } }); continue; }
+            lines.push({ type: "Feature", properties: { t: el.t }, geometry: { type: "LineString", coordinates: [a, b2] } });
+            const mid = [(a[0] + b2[0]) / 2, (a[1] + b2[1]) / 2];
+            if (el.t === "inclinado") { pts.push({ type: "Feature", properties: { k: "lift" }, geometry: { type: "Point", coordinates: mid } }); continue; }
+            // Rumbo de a a b (grados desde el norte, en el sentido de las agujas), en Mercator.
+            const dx = (b2[0] - a[0]) * Math.cos(mid[1] * Math.PI / 180), dy = b2[1] - a[1];
+            const len = Math.hypot(dx, dy) * 111320;
+            if (len < 9) continue;   // muy corto: sin flecha (antes, menos de 10 px)
+            pts.push({ type: "Feature", properties: { k: "arrow", rot: Math.atan2(dx, dy) * 180 / Math.PI }, geometry: { type: "Point", coordinates: mid } });
+          }
+          build();
+          return this;
+        },
+        show(on) { if (on !== shown) { shown = on; setVis(ids, on); } return this; },
+      };
+    }
+
     // ----- Marcadores (elementos de la página, como los de Leaflet) -----
     function iconEl(d) {
       let el;
@@ -648,6 +733,8 @@
       raw: ml,
       // Cámara y coordenadas (zoom en la escala de Leaflet)
       getZoom: () => Math.floor(ml.getZoom() + ZOFF + 1e-6),
+      getBearing: () => ml.getBearing(),
+      resetNorth() { ml.easeTo({ bearing: 0, duration: 300 }); return this; },
       getCenter: () => { const c = ml.getCenter(); return { lat: c.lat, lng: c.lng }; },
       getBounds() { const b = ml.getBounds(); return bounds(b.getSouth(), b.getWest(), b.getNorth(), b.getEast()); },
       getSize: size,
@@ -665,7 +752,7 @@
         // (hasta ~20 px de radio) no queden cortados.
         const M = 20, tl = opts.paddingTopLeft || [0, 0], br = opts.paddingBottomRight || [0, 0];
         ml.fitBounds([[w, s], [e, n]], { padding: { left: tl[0] + M, top: tl[1] + M, right: br[0] + M, bottom: br[1] + M },
-          maxZoom: opts.maxZoom != null ? opts.maxZoom - ZOFF : ml.getMaxZoom(), duration: 400 });
+          maxZoom: opts.maxZoom != null ? opts.maxZoom - ZOFF : ml.getMaxZoom(), bearing: ml.getBearing(), duration: 400 });
         return this;
       },
       project: (ll, z) => { const p = toLL(ll); return worldPx(p.lat, p.lng, z); },
@@ -687,6 +774,7 @@
       marker,
       canvasPane,
       stopLayer,
+      verticalLayer,
       popup(o2) {
         const p = new maplibregl.Popup({ closeButton: false, className: o2.className || "", maxWidth: "none", offset: 10 });
         return {
@@ -715,6 +803,8 @@
       setIcon: nop, setOpacity: nop, setZIndexOffset: nop, on: nop, tooltip: nop, setRadius: nop, setLatLngs: nop });
     return {
       engine: "none",
+      getBearing: () => 0,
+      resetNorth() { return this; },
       getZoom: () => o.zoom, getCenter: () => toLL(o.center), getBounds: () => bounds(0, 0, 0, 0),
       getSize: () => ({ x: box.clientWidth, y: box.clientHeight }), getContainer: () => box,
       setView: nop, fitPoints: nop, project: (ll, z) => { const p = toLL(ll); return worldPx(p.lat, p.lng, z); }, unproject: (p, z) => worldLL(p, z),

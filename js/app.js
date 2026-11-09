@@ -407,7 +407,10 @@
     // En móvil se usa la altura final del panel, no la de mitad de animación.
     const st = panel.dataset.state;
     const h = st === "full" ? innerHeight - 56 : st === "stop" ? innerHeight * 0.64 : st === "min" ? 92 : Math.max(260, innerHeight * 0.46);
-    const shift = isDesktop() ? { x: -panel.getBoundingClientRect().right / 2, y: 0 } : { x: 0, y: h / 2 };
+    const sh = isDesktop() ? { x: -panel.getBoundingClientRect().right / 2, y: 0 } : { x: 0, y: h / 2 };
+    // Con el mapa girado, el desplazamiento en pantalla se gira al del mapa.
+    const r = map.getBearing() * Math.PI / 180, c = Math.cos(r), sn = Math.sin(r);
+    const shift = { x: sh.x * c - sh.y * sn, y: sh.x * sn + sh.y * c };
     map.setView(map.unproject({ x: p.x + shift.x, y: p.y + shift.y }, z), z, { animate });
   }
 
@@ -1291,7 +1294,7 @@
     marker.show();
     const el = marker.getElement();
     if (!el) return;
-    el.querySelector(".bus-arrow").style.transform = `rotate(${Math.round(s.bearing)}deg)`;
+    el.querySelector(".bus-arrow").style.transform = `rotate(${Math.round(s.bearing - map.getBearing())}deg)`;
     // El autobús mira hacia donde va: hacia el oeste, dado la vuelta.
     el.querySelector(".bus-dot > svg").style.transform = ((s.bearing % 360) + 360) % 360 > 180 ? "scaleX(-1)" : "";
     const m = Math.round(Number(est.minutos) - (Date.now() - at) / 60000);
@@ -2478,8 +2481,18 @@
   const numCanvas = numPane.canvas;
   let numHits = [];   // { x, y, w, h, pt } en coordenadas del mapa (contenedor)
   const numsOn = () => map.getZoom() >= NUM_ZOOM && !tripRouteOn && !active;
+  // Mapa nuevo (MapLibre, fase 6): Vigo Vertical como capa del mapa (se mueve y gira con él).
+  // Los números de portal no se dibujan (decisión del usuario, 9/11: basta con que el buscador
+  // reconozca las direcciones con número; dibujar los 52.000 congelaba la página).
+  const nativeMap = !!map.verticalLayer;
+  let vvLayer = null;   // se crea con VV_ZOOM, más abajo
+  function nativeNums() {
+    vvLayer.show(!active);
+    if (!vvLayer.loaded() && map.getZoom() >= VV_ZOOM) ensureVertical().then((d) => { if (!vvLayer.loaded()) vvLayer.set(d.elementos); }).catch(() => {});
+  }
 
   function drawNums() {
+    if (nativeMap) { nativeNums(); return; }
     numHits = [];
     const ctx = numCanvas.getContext("2d");
     const size = map.getSize(), dpr = window.devicePixelRatio || 1;
@@ -2521,6 +2534,7 @@
   // Rampa: trazo con una flecha hacia arriba; escalera mecánica: además, peldaños; ascensor: un
   // cuadradito con flechas arriba y abajo (el inclinado, sobre su trazo).
   const VV_ZOOM = 16;
+  if (map.verticalLayer) vvLayer = map.verticalLayer({ minZoom: VV_ZOOM });
   let vvData = null, vvLoading = null;
   function ensureVertical() {
     if (!vvLoading) vvLoading = fetch("data/vigo-vertical.json").then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); })
@@ -2582,6 +2596,7 @@
   // Portal tocado: el número más cercano al toque (a menos de 16 px).
   function numAt(cp) {
     if (!numsOn()) return null;
+    if (nativeMap) return null;   // mapa nuevo: sin números en el mapa
     let best = null, bd = 16;
     for (const b of numHits) {
       const d = Math.hypot(cp.x - (b.x + b.w / 2), cp.y - (b.y + b.h / 2));
@@ -2589,6 +2604,17 @@
     }
     return best;
   }
+  // Brújula (mapa nuevo, fase 6): con el mapa girado aparece arriba a la derecha; la aguja marca el
+  // norte y al tocarla el mapa vuelve con el norte arriba.
+  const compass = $("#compass");
+  function syncCompass() {
+    const b = map.getBearing();
+    compass.hidden = Math.abs(b) < 0.5;
+    compass.firstElementChild.style.transform = `rotate(${-b}deg)`;
+  }
+  map.on("rotate", syncCompass);
+  compass.addEventListener("click", () => map.resetNorth());
+
   // El toque que sigue a una pulsación larga ("Desde aquí / Hasta aquí") no cuenta como toque.
   let heldAt = 0;
   const justHeld = () => Date.now() - heldAt < 700;

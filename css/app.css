@@ -561,6 +561,11 @@ button.badge:hover { filter: brightness(1.08); }
 .pv-icon { display: block; }
 .no-map { background: var(--soft, #f3ece8); display: grid; place-items: start center; }
 .no-map-mode #fab-layer { display: none; }
+.compass { position: fixed; right: 16px; top: calc(72px + env(safe-area-inset-top)); z-index: 900; display: grid; place-items: center; width: 40px; height: 40px; padding: 0; border: 0; border-radius: 50%; background: var(--surface); box-shadow: var(--sh-sm); }
+.compass[hidden] { display: none; }
+.compass svg { width: 22px; height: 22px; transition: transform .1s linear; }
+.compass .n { fill: var(--brand); }
+.compass .s { fill: var(--ink); opacity: .35; }
 .no-map-msg { margin: 96px 24px 0; max-width: 34ch; padding: 14px 16px; border-radius: 14px; background: var(--surface); color: var(--ink); box-shadow: var(--sh-md, 0 8px 16px rgba(94,46,50,.2)); font: 500 15px/1.4 var(--sans); text-align: center; }
 .leaflet-top.leaflet-left { top: env(safe-area-inset-top); }
 .leaflet-bar a { color: var(--ink); background: var(--surface); border-color: var(--line); }
