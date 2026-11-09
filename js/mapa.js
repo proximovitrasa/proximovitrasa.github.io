@@ -606,27 +606,61 @@
         paint("highway-name-major", "text-color", "#4a433c");
         lay("highway-name-major", "text-size", ["interpolate", ["linear"], ["zoom"], 13, 12, 16, 14]);
         paint("highway-name-minor", "text-color", "#7f766c");
-        // 3. Ayudas para andar: calles peatonales en arena, escaleras con peldaños y sendas a puntos.
-        const i = st.layers.findIndex((l) => l.id === "highway_path");
-        if (i >= 0) {
-          lay("highway_path", "visibility", "none");
-          const path = (sub) => ["all", ["==", ["geometry-type"], "LineString"], ["==", ["get", "class"], "path"], sub];
-          const isSub = (v) => ["match", ["get", "subclass"], v, true, false];
-          const W = (...a) => ["interpolate", ["exponential", 1.3], ["zoom"], ...a];
-          const round = { "line-cap": "round", "line-join": "round" };
-          st.layers.splice(i + 1, 0,
-            { id: "vb-peatonal-borde", type: "line", source: OMT, "source-layer": "transportation", minzoom: 14, filter: path(isSub(["pedestrian"])), layout: round,
-              paint: { "line-color": "#dccbad", "line-width": W(14, 2, 18, 13, 20, 24) } },
-            { id: "vb-peatonal", type: "line", source: OMT, "source-layer": "transportation", minzoom: 14, filter: path(isSub(["pedestrian"])), layout: round,
-              paint: { "line-color": "#f3e8d5", "line-width": W(14, 1, 18, 10, 20, 20) } },
-            { id: "vb-escalera", type: "line", source: OMT, "source-layer": "transportation", minzoom: 15, filter: path(isSub(["steps"])), layout: round,
-              paint: { "line-color": "#eadcc5", "line-width": W(15, 2, 18, 6, 20, 10) } },
-            { id: "vb-peldanos", type: "line", source: OMT, "source-layer": "transportation", minzoom: 15, filter: path(isSub(["steps"])),
-              paint: { "line-color": "#8c6e50", "line-width": W(15, 4, 18, 8, 20, 12), "line-dasharray": [0.16, 0.32] } },
-            { id: "vb-senda", type: "line", source: OMT, "source-layer": "transportation", minzoom: 15.5,
-              filter: path(["!", isSub(["pedestrian", "steps"])]), layout: { "line-join": "round" },
-              paint: { "line-color": "#a5927a", "line-width": W(15.5, 1, 18, 1.6, 20, 2.4), "line-dasharray": [2, 1.6] } });
-        }
+      }
+      if (dark) {
+        // Modo oscuro azul pizarra, como el modo noche de Google Maps (sus colores de referencia:
+        // fondo #242f3e, agua #17263c, parques #263c3f, calles #38414e, borde #212a37, nombres #9ca5b3),
+        // en vez del negro de OpenFreeMap. Vale también para fiord, el de reserva.
+        paint("background", "background-color", "#242f3e");
+        paint("water", "fill-color", "#17263c");
+        paint("waterway", "line-color", "#17263c");
+        ["park", "landuse_park", "landcover_wood"].forEach((id) => paint(id, "fill-color", "#263c3f"));
+        paint("landuse_residential", "fill-color", "#273244");
+        paint("building", "fill-color", "#2c3749");
+        paint("building", "fill-outline-color", "#343f52");
+        ["road_area_pier", "road_pier", "landcover_ice_shelf"].forEach((id) => paint(id, id === "road_pier" ? "line-color" : "fill-color", "#242f3e"));
+        paint("highway_minor", "line-color", "#38414e");
+        paint("highway_major_casing", "line-color", "#212a37");
+        paint("highway_major_inner", "line-color", "#4a5466");
+        paint("highway_major_subtle", "line-color", "#38414e");
+        paint("highway_motorway_casing", "line-color", "#1f2835");
+        paint("highway_motorway_inner", "line-color", "#5a6478");
+        paint("highway_motorway_subtle", "line-color", "#38414e");
+        ["railway", "railway_transit", "railway_minor", "railway_service"].forEach((id) => paint(id, "line-color", "#3a4557"));
+        ["railway_dashline", "railway_transit_dashline", "railway_minor_dashline", "railway_service_dashline"].forEach((id) => paint(id, "line-color", "#242f3e"));
+        ["aeroway-area", "aeroway-runway"].forEach((id) => paint(id, id === "aeroway-area" ? "fill-color" : "line-color", "#2f3948"));
+        // Nombres legibles (en el oscuro de OpenFreeMap casi no se ven).
+        paint("highway_name_other", "text-color", "#9ca5b3");
+        paint("highway_name_other", "text-halo-color", "#242f3e");
+        paint("highway_name_motorway", "text-color", "#b8c0cc");
+        paint("water_name", "text-color", "#5d6a80");
+        paint("water_name", "text-halo-color", "#17263c");
+        st.layers.filter((l) => l.id.startsWith("place_")).forEach((l) => {
+          l.paint = { ...(l.paint || {}), "text-color": "#aeb7c4", "text-halo-color": "rgba(36,47,62,.85)" };
+        });
+      }
+      // 3. Ayudas para andar: calles peatonales, escaleras con peldaños y sendas a puntos.
+      const K = light ? { pb: "#dccbad", p: "#f3e8d5", e: "#eadcc5", ep: "#8c6e50", s: "#a5927a" }
+        : { pb: "#4a5466", p: "#38414e", e: "#3d4759", ep: "#8f9bad", s: "#6f7c90" };
+      const i = st.layers.findIndex((l) => l.id === "highway_path");
+      if (i >= 0) {
+        lay("highway_path", "visibility", "none");
+        const path = (sub) => ["all", ["==", ["geometry-type"], "LineString"], ["==", ["get", "class"], "path"], sub];
+        const isSub = (v) => ["match", ["get", "subclass"], v, true, false];
+        const W = (...a) => ["interpolate", ["exponential", 1.3], ["zoom"], ...a];
+        const round = { "line-cap": "round", "line-join": "round" };
+        st.layers.splice(i + 1, 0,
+          { id: "vb-peatonal-borde", type: "line", source: OMT, "source-layer": "transportation", minzoom: 14, filter: path(isSub(["pedestrian"])), layout: round,
+            paint: { "line-color": K.pb, "line-width": W(14, 2, 18, 13, 20, 24) } },
+          { id: "vb-peatonal", type: "line", source: OMT, "source-layer": "transportation", minzoom: 14, filter: path(isSub(["pedestrian"])), layout: round,
+            paint: { "line-color": K.p, "line-width": W(14, 1, 18, 10, 20, 20) } },
+          { id: "vb-escalera", type: "line", source: OMT, "source-layer": "transportation", minzoom: 15, filter: path(isSub(["steps"])), layout: round,
+            paint: { "line-color": K.e, "line-width": W(15, 2, 18, 6, 20, 10) } },
+          { id: "vb-peldanos", type: "line", source: OMT, "source-layer": "transportation", minzoom: 15, filter: path(isSub(["steps"])),
+            paint: { "line-color": K.ep, "line-width": W(15, 4, 18, 8, 20, 12), "line-dasharray": [0.16, 0.32] } },
+          { id: "vb-senda", type: "line", source: OMT, "source-layer": "transportation", minzoom: 15.5,
+            filter: path(["!", isSub(["pedestrian", "steps"])]), layout: { "line-join": "round" },
+            paint: { "line-color": K.s, "line-width": W(15.5, 1, 18, 1.6, 20, 2.4), "line-dasharray": [2, 1.6] } });
       }
       return st;
     }
@@ -637,7 +671,11 @@
     function placeFixed() {
       if (!styleReady()) return;
       const layers = ml.getStyle().layers;
-      const firstBaseSymbol = (layers.find((l) => l.type === "symbol" && !l.id.startsWith(PV)) || {}).id;
+      // Debajo del primer nombre de calle o de lugar del fondo (en el oscuro, el nombre del mar va
+      // antes que las calles, y la red quedaría tapada si se pusiera debajo del primer texto).
+      const firstBaseSymbol = (layers.find((l) => l.type === "symbol" && !l.id.startsWith(PV)
+        && ["transportation_name", "place"].includes(l["source-layer"]))
+        || layers.find((l) => l.type === "symbol" && !l.id.startsWith(PV)) || {}).id;
       const firstOurs = (layers.find((l) => l.id.startsWith(PV) && !FIXED.has(l.id)) || {}).id;
       const vectorBase = layers.some((l) => l.id === "building");
       // 2. Relieve (MDT del IGN, tools/teselas_relieve.py), debajo de los edificios; no en satélite.
@@ -647,8 +685,8 @@
         if (!ml.getLayer(`${PV}relieve`)) {
           const dark = base === "dark";
           ml.addLayer({ id: `${PV}relieve`, type: "hillshade", source: `${PV}dem`, paint: {
-            "hillshade-exaggeration": dark ? 0.3 : 0.38, "hillshade-shadow-color": dark ? "#000000" : "#4f453d",
-            "hillshade-highlight-color": dark ? "#3c4554" : "#fffdf8", "hillshade-accent-color": dark ? "#111111" : "#6f6358" } }, "building");
+            "hillshade-exaggeration": dark ? 0.3 : 0.38, "hillshade-shadow-color": dark ? "#0e141d" : "#4f453d",
+            "hillshade-highlight-color": dark ? "#46536a" : "#fffdf8", "hillshade-accent-color": dark ? "#141b26" : "#6f6358" } }, "building");
         }
       }
       // 4. Red de líneas, debajo de los nombres de las calles; se desvanece al acercarse.
@@ -673,7 +711,7 @@
               "icon-allow-overlap": true, "symbol-sort-key": ["get", "o"],
               "text-field": ["get", "n"], "text-font": ["Noto Sans Bold"], "text-size": 11.5, "text-anchor": "left", "text-offset": [0.9, 0],
               "text-optional": true, "text-max-width": 9 },
-            paint: { "text-color": onDark ? "#ffffff" : "#2e2924", "text-halo-color": onDark ? "rgba(0,0,0,.75)" : "rgba(255,255,255,.9)", "text-halo-width": 1.4 } },
+            paint: { "text-color": onDark ? "#ffffff" : "#2e2924", "text-halo-color": onDark ? "rgba(23,32,45,.85)" : "rgba(255,255,255,.9)", "text-halo-width": 1.4 } },
           firstOurs && ml.getLayer(firstOurs) ? firstOurs : undefined);
         }
         });
