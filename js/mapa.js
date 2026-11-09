@@ -512,6 +512,21 @@
       setAlt(inner);
       const anchorOf = (d) => (d.anchor || (d.size ? [d.size[0] / 2, d.size[1] / 2] : [0, 0]));
       const mk = new maplibregl.Marker({ element: outer, anchor: "top-left", draggable: !!o2.draggable });
+      // Arrastre soltado fuera del mapa (en el ordenador, encima del panel): MapLibre solo ve el
+      // ratón sobre el mapa y el arrastre no terminaba; se le pasa el "soltar" para que acabe ahí.
+      if (o2.draggable) {
+        let dragging = false;
+        mk.on("dragstart", () => {
+          dragging = true;
+          const up = (e) => {
+            window.removeEventListener("mouseup", up, true);
+            if (!dragging || box.contains(e.target)) return;
+            ml.getCanvasContainer().dispatchEvent(new MouseEvent("mouseup", { bubbles: true, cancelable: true, clientX: e.clientX, clientY: e.clientY, button: 0 }));
+          };
+          window.addEventListener("mouseup", up, true);
+        });
+        mk.on("dragend", () => { dragging = false; });
+      }
       const setAnchor = (d) => { const a = anchorOf(d); mk.setOffset([-a[0], -a[1]]); };
       setAnchor(cur);
       mk.setLngLat(lngLat(ll));
