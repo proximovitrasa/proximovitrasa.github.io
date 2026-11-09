@@ -388,6 +388,7 @@
     if (stopLayer) stopLayer.hide((!!active && map.getZoom() < LINE_STOPS_ZOOM) || tripRouteOn);
     drawStopsLow();
     drawNums();   // los números de portal se ocultan con una línea o un viaje dibujados
+    if (map.showNetwork) map.showNetwork(!active && !tripRouteOn);   // red de líneas (mapa nuevo)
   }
 
   map.on("zoomend", () => {
@@ -2485,6 +2486,20 @@
   // Los números de portal no se dibujan (decisión del usuario, 9/11: basta con que el buscador
   // reconozca las direcciones con número; dibujar los 52.000 congelaba la página).
   const nativeMap = !!map.verticalLayer;
+  // Mapa nuevo (fase 7): la red de líneas al alejar y los sitios útiles con icono.
+  if (map.setNetwork) {
+    linesReady.then((ls) => {
+      const net = [];
+      for (const l of Object.values(ls || {})) for (const d of l.sentidos || []) {
+        [d.trazado, ...(d.ramales || [])].forEach((str) => { if (str) net.push({ pts: decodePolyline(str), color: l.color }); });
+      }
+      map.setNetwork(net);
+      updateStopVisibility();
+    });
+    const SITE_ORDER = ["hospital", "estacion", "aeropuerto", "puerto", "universidad", "comercio", "mercado", "museo", "playa", "deporte"];
+    ensureSites().then((all) => map.setSites(all.filter((x) => SITE_ORDER.includes(x.type))
+      .map((x) => ({ ll: x.ll, name: x.name, type: x.type, order: SITE_ORDER.indexOf(x.type) })))).catch(() => {});
+  }
   let vvLayer = null;   // se crea con VV_ZOOM, más abajo
   function nativeNums() {
     vvLayer.show(!active);

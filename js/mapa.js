@@ -243,6 +243,9 @@
   const SAT_STYLE = { version: 8, sources: { pnoa: { type: "raster", tiles: [PNOA_URL], tileSize: 256, maxzoom: 19, attribution: PNOA_ATTR } },
     layers: [{ id: "pnoa", type: "raster", source: "pnoa" }] };
   const EMPTY_STYLE = { version: 8, sources: {}, layers: [] };
+  // Letra de los textos (sitios): la de OpenFreeMap, también con los fondos que no la traen.
+  const GLYPHS = "https://tiles.openfreemap.org/fonts/{fontstack}/{range}.pbf";
+  [OSM_STYLE, SAT_STYLE, EMPTY_STYLE].forEach((st) => { st.glyphs = GLYPHS; });
 
   // Píxeles del "mundo" de Leaflet (EPSG:3857, 256 · 2^z), para project/unproject.
   const worldPx = (lat, lng, z) => {
@@ -570,6 +573,143 @@
       };
     }
 
+    // ----- Estilo nuevo (fase 7): retoques del fondo, relieve, red de líneas y sitios -----
+    // Puntos de la propuesta (artefacto "Estilo del mapa de Vigo Bus"), elegidos todos por el
+    // usuario el 9/11: 1 sitios útiles y avenidas legibles, 2 relieve, 3 ayudas para andar, 4 la red
+    // de líneas al alejar, 5 colores de Vigo Bus (el rojo, solo para lo nuestro).
+    // Capas del fondo de OpenFreeMap (positron, dark): ver github.com/openfreemap/openfreemap-styles.
+    const OMT = "openmaptiles";
+    function tuneBase(st) {
+      if (!st || !Array.isArray(st.layers)) return st;
+      const light = st.layers.some((l) => l.id === "highway-name-major");
+      const dark = !light && st.layers.some((l) => l.id === "highway_name_other");
+      if (!light && !dark) return st;
+      const L = (id) => st.layers.find((l) => l.id === id);
+      const paint = (id, k, v) => { const l = L(id); if (l) l.paint = { ...(l.paint || {}), [k]: v }; };
+      const lay = (id, k, v) => { const l = L(id); if (l) l.layout = { ...(l.layout || {}), [k]: v }; };
+      // Fuera lo que no sirve para ir en bus: límites administrativos y escudos de carretera.
+      ["boundary_3", "boundary_2", "boundary_disputed", "boundary_state", "boundary_country_z0-4", "boundary_country_z5-",
+        "highway-shield-non-us", "highway-shield-us-interstate", "road_shield_us"].forEach((id) => lay(id, "visibility", "none"));
+      if (light) {
+        // 5. Colores: tierra cálida, ría azul suave, parques verde apagado, edificios tostados.
+        paint("background", "background-color", "#f4f2ee");
+        paint("water", "fill-color", "#bed6e4");
+        paint("waterway", "line-color", "#bed6e4");
+        paint("park", "fill-color", "#dfe8d6");
+        paint("landcover_wood", "fill-color", "#dce6d2");
+        paint("landuse_residential", "fill-color", "#efebe5");
+        paint("building", "fill-color", "#e8e2da");
+        paint("building", "fill-outline-color", "#d9d1c6");
+        paint("highway_minor", "line-color", "#fdfcfa");
+        paint("highway_major_casing", "line-color", "#dcd4c8");
+        // 1. Nombres de las avenidas más oscuros y algo más grandes; los de las calles, discretos.
+        paint("highway-name-major", "text-color", "#4a433c");
+        lay("highway-name-major", "text-size", ["interpolate", ["linear"], ["zoom"], 13, 12, 16, 14]);
+        paint("highway-name-minor", "text-color", "#7f766c");
+        // 3. Ayudas para andar: calles peatonales en arena, escaleras con peldaños y sendas a puntos.
+        const i = st.layers.findIndex((l) => l.id === "highway_path");
+        if (i >= 0) {
+          lay("highway_path", "visibility", "none");
+          const path = (sub) => ["all", ["==", ["geometry-type"], "LineString"], ["==", ["get", "class"], "path"], sub];
+          const isSub = (v) => ["match", ["get", "subclass"], v, true, false];
+          const W = (...a) => ["interpolate", ["exponential", 1.3], ["zoom"], ...a];
+          const round = { "line-cap": "round", "line-join": "round" };
+          st.layers.splice(i + 1, 0,
+            { id: "vb-peatonal-borde", type: "line", source: OMT, "source-layer": "transportation", minzoom: 14, filter: path(isSub(["pedestrian"])), layout: round,
+              paint: { "line-color": "#dccbad", "line-width": W(14, 2, 18, 13, 20, 24) } },
+            { id: "vb-peatonal", type: "line", source: OMT, "source-layer": "transportation", minzoom: 14, filter: path(isSub(["pedestrian"])), layout: round,
+              paint: { "line-color": "#f3e8d5", "line-width": W(14, 1, 18, 10, 20, 20) } },
+            { id: "vb-escalera", type: "line", source: OMT, "source-layer": "transportation", minzoom: 15, filter: path(isSub(["steps"])), layout: round,
+              paint: { "line-color": "#eadcc5", "line-width": W(15, 2, 18, 6, 20, 10) } },
+            { id: "vb-peldanos", type: "line", source: OMT, "source-layer": "transportation", minzoom: 15, filter: path(isSub(["steps"])),
+              paint: { "line-color": "#8c6e50", "line-width": W(15, 4, 18, 8, 20, 12), "line-dasharray": [0.16, 0.32] } },
+            { id: "vb-senda", type: "line", source: OMT, "source-layer": "transportation", minzoom: 15.5,
+              filter: path(["!", isSub(["pedestrian", "steps"])]), layout: { "line-join": "round" },
+              paint: { "line-color": "#a5927a", "line-width": W(15.5, 1, 18, 1.6, 20, 2.4), "line-dasharray": [2, 1.6] } });
+        }
+      }
+      return st;
+    }
+    // Capas nuestras de posición fija (se vuelven a colocar al cambiar de fondo).
+    const FIXED = new Set([`${PV}relieve`, `${PV}red`, `${PV}sitios`, `${PV}sitios2`]);
+    const DEM_URL = new URL("data/relieve/teselas/", location.href).href + "{z}/{x}/{y}.png";
+    let redOn = false, redData = null, sitesData = null;
+    function placeFixed() {
+      if (!styleReady()) return;
+      const layers = ml.getStyle().layers;
+      const firstBaseSymbol = (layers.find((l) => l.type === "symbol" && !l.id.startsWith(PV)) || {}).id;
+      const firstOurs = (layers.find((l) => l.id.startsWith(PV) && !FIXED.has(l.id)) || {}).id;
+      const vectorBase = layers.some((l) => l.id === "building");
+      // 2. Relieve (MDT del IGN, tools/teselas_relieve.py), debajo de los edificios; no en satélite.
+      if (vectorBase) {
+        if (!ml.getSource(`${PV}dem`)) ml.addSource(`${PV}dem`, { type: "raster-dem", tiles: [DEM_URL], tileSize: 256, maxzoom: 14, encoding: "terrarium",
+          bounds: [-8.845, 42.105, -8.585, 42.3] });   // la atribución del IGN ya la pone app.js
+        if (!ml.getLayer(`${PV}relieve`)) {
+          const dark = base === "dark";
+          ml.addLayer({ id: `${PV}relieve`, type: "hillshade", source: `${PV}dem`, paint: {
+            "hillshade-exaggeration": dark ? 0.3 : 0.38, "hillshade-shadow-color": dark ? "#000000" : "#4f453d",
+            "hillshade-highlight-color": dark ? "#3c4554" : "#fffdf8", "hillshade-accent-color": dark ? "#111111" : "#6f6358" } }, "building");
+        }
+      }
+      // 4. Red de líneas, debajo de los nombres de las calles; se desvanece al acercarse.
+      if (redData) {
+        if (!ml.getSource(`${PV}red`)) ml.addSource(`${PV}red`, { type: "geojson", data: redData });
+        if (!ml.getLayer(`${PV}red`)) ml.addLayer({ id: `${PV}red`, type: "line", source: `${PV}red`, maxzoom: 16 - ZOFF + 0.6,
+          layout: { "line-cap": "round", "line-join": "round", visibility: redOn ? "visible" : "none" },
+          paint: { "line-color": ["get", "c"], "line-width": ["interpolate", ["linear"], ["zoom"], 11, 1, 13, 1.6, 15, 2.6],
+            "line-opacity": ["interpolate", ["linear"], ["zoom"], 11, 0.85, 14, 0.7, 15.5, 0] } },
+        firstBaseSymbol && ml.getLayer(firstBaseSymbol) ? firstBaseSymbol : firstOurs);
+      }
+      // 1. Sitios útiles: icono y nombre, encima de los nombres del fondo y debajo de lo nuestro.
+      if (sitesData) {
+        if (!ml.getSource(`${PV}sitios`)) ml.addSource(`${PV}sitios`, { type: "geojson", data: sitesData });
+        // Los grandes (hospital, estación, aeropuerto, puerto) desde más lejos; los demás, de cerca
+        // (con todos a la vez, a media distancia se tapaban con las paradas).
+        [[`${PV}sitios`, 12.5, ["<=", ["get", "o"], 3]], [`${PV}sitios2`, 14.6, [">", ["get", "o"], 3]]].forEach(([id, minzoom, filter]) => {
+        if (!ml.getLayer(id)) {
+          const onDark = base !== "light";
+          ml.addLayer({ id, type: "symbol", source: `${PV}sitios`, minzoom, filter,
+            layout: { "icon-image": ["concat", "pv-sitio:", ["get", "t"]], "icon-size": ["interpolate", ["linear"], ["zoom"], 12.5, 0.8, 15, 1],
+              "icon-allow-overlap": true, "symbol-sort-key": ["get", "o"],
+              "text-field": ["get", "n"], "text-font": ["Noto Sans Bold"], "text-size": 11.5, "text-anchor": "left", "text-offset": [0.9, 0],
+              "text-optional": true, "text-max-width": 9 },
+            paint: { "text-color": onDark ? "#ffffff" : "#2e2924", "text-halo-color": onDark ? "rgba(0,0,0,.75)" : "rgba(255,255,255,.9)", "text-halo-width": 1.4 } },
+          firstOurs && ml.getLayer(firstOurs) ? firstOurs : undefined);
+        }
+        });
+      }
+    }
+    // Iconos de los sitios: círculo de color con una letra (como en la maqueta).
+    const SITE_LOOK = { hospital: ["#c8463d", "H"], estacion: ["#46465a", "T"], aeropuerto: ["#46465a", "A"], puerto: ["#286ea0", "B"],
+      universidad: ["#5a6e8c", "U"], comercio: ["#966e46", "C"], mercado: ["#966e46", "M"], museo: ["#785a96", "M"], playa: ["#d6a028", "P"], deporte: ["#3c8250", "E"] };
+    ml.on("styleimagemissing", (e) => {
+      if (!e.id || !e.id.startsWith("pv-sitio:") || ml.hasImage(e.id)) return;
+      const [col, ch] = SITE_LOOK[e.id.slice(9)] || ["#666", "·"];
+      const k = 2, S = 18, c = document.createElement("canvas"), x = c.getContext("2d");
+      c.width = c.height = S * k; x.scale(k, k);
+      x.fillStyle = "#fff"; x.beginPath(); x.arc(S / 2, S / 2, 8.5, 0, 2 * Math.PI); x.fill();
+      x.fillStyle = col; x.beginPath(); x.arc(S / 2, S / 2, 7, 0, 2 * Math.PI); x.fill();
+      x.fillStyle = "#fff"; x.font = "700 9.5px Barlow, system-ui, sans-serif"; x.textAlign = "center"; x.textBaseline = "middle";
+      x.fillText(ch, S / 2, S / 2 + 0.5);
+      ml.addImage(e.id, { width: S * k, height: S * k, data: new Uint8Array(x.getImageData(0, 0, S * k, S * k).data.buffer) }, { pixelRatio: k });
+    });
+    // lines: [{ pts: [[lat, lon], …], color }]
+    function setNetwork(lines) {
+      redData = { type: "FeatureCollection", features: lines.map((l) => ({ type: "Feature", properties: { c: l.color }, geometry: { type: "LineString", coordinates: l.pts.map(lngLat) } })) };
+      ready(() => { const src = ml.getSource(`${PV}red`); if (src) src.setData(redData); placeFixed(); });
+    }
+    function showNetwork(on) {
+      if (on === redOn) return;
+      redOn = on;
+      ready(() => { if (ml.getLayer(`${PV}red`)) ml.setLayoutProperty(`${PV}red`, "visibility", on ? "visible" : "none"); });
+    }
+    // sites: [{ ll, name, type, order }] (order: menor = más importante)
+    function setSites(sites) {
+      sitesData = { type: "FeatureCollection", features: sites.map((s) => ({ type: "Feature", properties: { n: s.name, t: s.type, o: s.order }, geometry: { type: "Point", coordinates: lngLat(s.ll) } })) };
+      ready(() => { const src = ml.getSource(`${PV}sitios`); if (src) src.setData(sitesData); placeFixed(); });
+    }
+    ready(placeFixed);
+
     // ----- Marcadores (elementos de la página, como los de Leaflet) -----
     function iconEl(d) {
       let el;
@@ -657,9 +797,12 @@
       const seq = ++styleSeq;
       ml.setStyle(style, {
         transformStyle: (prev, next) => {
+          next = tuneBase(next);
           if (!prev) return next;
           const srcs = Object.fromEntries(Object.entries(prev.sources || {}).filter(([k]) => k.startsWith(PV)));
-          const lays = (prev.layers || []).filter((l) => l.id.startsWith(PV));
+          // Las capas de posición fija (relieve, red, sitios) se vuelven a poner en su sitio con el
+          // estilo nuevo (placeFixed); las demás nuestras van encima, como estaban.
+          const lays = (prev.layers || []).filter((l) => l.id.startsWith(PV) && !FIXED.has(l.id));
           return { ...next, sources: { ...next.sources, ...srcs }, layers: [...next.layers, ...lays] };
         },
       });
@@ -687,6 +830,7 @@
       if (kind === "sat") { setStyle(SAT_STYLE); return; }
       vector(kind);
     }
+    ml.on("style.load", () => placeFixed());
     function startBase(kind) { ready(() => setBase(kind)); }
     function waterAt(ll) {
       if (!vectorOk || base === "sat") return null;
@@ -775,6 +919,7 @@
       canvasPane,
       stopLayer,
       verticalLayer,
+      setNetwork, showNetwork, setSites,
       popup(o2) {
         const p = new maplibregl.Popup({ closeButton: false, className: o2.className || "", maxWidth: "none", offset: 10 });
         return {
