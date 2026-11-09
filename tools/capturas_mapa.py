@@ -47,6 +47,8 @@ ESCENAS = [
     ("linea-variante", "#linea/C3i/20193/BOUZAS%20por%20GARCIA%20BARBON"),
     ("linea-alejada", "#linea/C3i/20193", [42.2290, -8.7380], 13),
     ("linea-cerca", "#linea/14", [42.23767, -8.72127], 16),
+    # Fase 4 (buses en vivo): Cómo llegar con el bus de la C3i en camino (y su recorrido).
+    ("como-llegar-bus", "#ir/p20193/p14124"),
 ]
 VISTAS = {"movil": {"viewport": {"width": 390, "height": 844}, "device_scale_factor": 2, "is_mobile": True, "has_touch": True},
           "ordenador": {"viewport": {"width": 1366, "height": 820}, "device_scale_factor": 1}}

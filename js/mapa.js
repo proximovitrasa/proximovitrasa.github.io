@@ -646,8 +646,10 @@
         if (!pts.length) return this;
         let s = 90, w = 180, n = -90, e = -180;
         for (const p of pts) { const q = toLL(p); s = Math.min(s, q.lat); n = Math.max(n, q.lat); w = Math.min(w, q.lng); e = Math.max(e, q.lng); }
-        const tl = opts.paddingTopLeft || [0, 0], br = opts.paddingBottomRight || [0, 0];
-        ml.fitBounds([[w, s], [e, n]], { padding: { left: tl[0], top: tl[1], right: br[0], bottom: br[1] },
+        // Sin zooms enteros el encuadre queda justo al borde: un margen más para que pines y buses
+        // (hasta ~20 px de radio) no queden cortados.
+        const M = 20, tl = opts.paddingTopLeft || [0, 0], br = opts.paddingBottomRight || [0, 0];
+        ml.fitBounds([[w, s], [e, n]], { padding: { left: tl[0] + M, top: tl[1] + M, right: br[0] + M, bottom: br[1] + M },
           maxZoom: opts.maxZoom != null ? opts.maxZoom - ZOFF : ml.getMaxZoom(), duration: 400 });
         return this;
       },
