@@ -233,7 +233,7 @@
     };
   }
 
-  // ---------- Motor MapLibre (tareas 41 + 47; de momento solo con ?mapa=nuevo) ----------
+  // ---------- Motor MapLibre (tareas 41 + 47; el de todos desde el 9/11) ----------
   // Zoom: la web usa la escala de Leaflet (teselas de 256 px), una más que la de MapLibre; hacia
   // fuera se da entero (hacia abajo), como los niveles de Leaflet, para que valgan los umbrales.
   const ZOFF = 1;
@@ -1001,8 +1001,9 @@
     };
   }
 
-  // Motor: el de siempre (Leaflet) salvo con ?mapa=nuevo (MapLibre; sin WebGL, sin mapa).
-  const wantNew = () => /[?&]mapa=nuevo\b/.test(location.search);
+  // Motor: MapLibre para todos desde el 9/11 (sin WebGL, la web sin mapa). Con ?mapa=viejo, el de
+  // antes (Leaflet), solo durante la transición; después se quita Leaflet.
+  const wantNew = () => !/[?&]mapa=viejo\b/.test(location.search);
   root.PV_MAPA = {
     wantNew,
     create(id, opts) {

@@ -2,7 +2,7 @@
 // Service worker: la app (interfaz y paradas) funciona sin conexión.
 // La red peatonal, las direcciones y los horarios (data/peatonal.json, data/direcciones.json, data/viajes.json) se guardan en caché la primera vez que se usan.
 // Los tiempos de llegada siempre se piden a la red. Sube VERSION al cambiar archivos.
-const VERSION = "pv-v105";
+const VERSION = "pv-v106";
 const SHELL = [
   "./",
   "index.html",
@@ -16,8 +16,8 @@ const SHELL = [
   "js/planificador.js",
   "data/paradas.geojson",
   "data/lineas.json",
-  "vendor/leaflet/leaflet.css",
-  "vendor/leaflet/leaflet.js",
+  "vendor/maplibre/maplibre-gl.css",
+  "vendor/maplibre/maplibre-gl.js",
   "fonts/Barlow-Regular.woff2",
   "fonts/Barlow-Medium.woff2",
   "fonts/Barlow-SemiBold.woff2",
