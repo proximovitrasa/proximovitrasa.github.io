@@ -97,11 +97,14 @@
 
   const normLine = (c) => String(c).trim().replace(/[.\-]+$/, "").trim().replace(/^PSA(\d)/, "PSA $1");
 
-  // Chapa de línea con su color oficial (si se conoce).
+  // Chapa de línea con su color oficial (si se conoce). Los servicios especiales que no están en
+  // el horario (69: "Citroën - PSA", refuerzos), en gris; el refuerzo sin número, con "Refuerzo".
   function lineStyle(code) {
     const l = lines && lines[code];
-    return l ? ` style="--lc:${l.color};--lt:${l.texto}"` : "";
+    return l ? ` style="--lc:${l.color};--lt:${l.texto}"` : lines ? ` style="--lc:#5B6470;--lt:#FFFFFF"` : "";
   }
+  const lineLabel = (code) => code || t("line_extra");
+  const badge0 = (code) => `<span class="badge${code ? "" : " badge-txt"}"${lineStyle(code)}>${esc(lineLabel(code))}</span>`;
   function lineChip(code, cls = "chip") {
     const tappable = lines && lines[code];
     const tag = tappable ? "button" : "i";
@@ -1605,6 +1608,12 @@
     // Algunos letreros de la API llevan un asterisco ("R. NIETO - CAEIRO*") sin explicación oficial
     // (60): se quita y se enseña el letrero tal cual, sin suponer qué significa.
     (data.estimaciones || []).forEach((x) => { if (x && x.ruta != null) x.ruta = String(x.ruta).replace(/\*/g, "").trim(); });
+    // La API llama "PSA" a secas a las lanzaderas de Stellantis; el número va en el letrero
+    // ("1 STELLANTIS - G. BARBON" → PSA 1, como en el horario). 69, registro del 9/11.
+    (data.estimaciones || []).forEach((x) => {
+      const m = x && /^\s*PSA\s*$/i.test(String(x.linea || "")) && /^\s*(\d)\s/.exec(String(x.ruta || ""));
+      if (m) x.linea = `PSA ${m[1]}`;
+    });
     feedLive(id, data.estimaciones, Date.now());
     return data;
   }
@@ -1792,7 +1801,7 @@
       const tag = known ? "button" : "div";
       const attrs = known ? ` type="button" data-line="${esc(g.linea)}" data-ruta="${esc(g.ruta)}"${g.raw ? ` data-raw="${esc(g.raw)}"` : ""} title="${esc(t("see_line", { code: g.linea }))}"` : "";
       return `<${tag} class="arrival${g.live ? "" : " is-sched"}"${attrs}>
-        <span class="badge"${lineStyle(g.linea)}>${esc(g.linea)}</span>
+        ${badge0(g.linea)}
         <span class="route"><b>${esc(g.ruta)}</b>${sub}</span>
         ${eta}
       </${tag}>`;
@@ -1959,7 +1968,7 @@
         const eta = r.m <= 0 ? `<span class="eta now"><b>${esc(t("arriving"))}</b></span>` : `<span class="eta">${etaNum(r.m)}</span>`;
         const known = lines && lines[r.code];
         return `<${known ? "button" : "div"} class="arrival"${known ? ` type="button" data-near-line="${esc(r.code)}" data-near-stop="${esc(r.s.id)}" data-near-raw="${esc(r.raw)}"` : ""}>
-          <span class="badge"${lineStyle(r.code)}>${esc(r.code)}</span>
+          ${badge0(r.code)}
           <span class="route"><b>${esc(r.ruta)}</b><small>${esc(r.s.name)} · ${esc(fmtDist(r.d))}</small></span>${eta}
         </${known ? "button" : "div"}>`;
       }).join("") : `<p class="note">${esc(t("near_dep_none"))}</p>`;
@@ -2144,7 +2153,7 @@
       const rows = [...by].map(([code, ms]) => [code, ms.sort((a, b) => a - b).filter((m) => m >= 0).slice(0, 2)]).filter(([, ms]) => ms.length)
         .sort((a, b) => a[1][0] - b[1][0]);
       box.innerHTML = rows.length ? rows.map(([code, ms]) =>
-        `<span class="fl"><i${lineStyle(code)}>${esc(code)}</i><b>${ms[0] <= 0 ? esc(t("arriving")) : esc(hMin(ms[0]))}</b></span>`).join("")
+        `<span class="fl"><i${lineStyle(code)}>${esc(lineLabel(code))}</i><b>${ms[0] <= 0 ? esc(t("arriving")) : esc(hMin(ms[0]))}</b></span>`).join("")
         : `<span class="fl-none">${esc(t(f.lines ? "fav_none_lines" : "bus_none"))}</span>`;
     }));
     favTimer = setTimeout(() => { if (!document.hidden) refreshFavLive(); }, REFRESH_MS);

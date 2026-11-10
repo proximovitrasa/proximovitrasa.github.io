@@ -26,6 +26,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 TOLERANCIA_M = 4  # simplificación del trazado, en metros
 
+EXTRA = {"LZD"}
+
 MINUSCULAS = {"por", "de", "do", "da", "dos", "das", "del", "e", "y", "o", "a", "en"}
 
 
@@ -110,6 +112,9 @@ def orden_linea(n: str):
 def main(gtfs_zip: str) -> None:
     oficiales = json.loads((ROOT / "data" / "oficial" / "paradas.json").read_text(encoding="utf-8"))
     lineas_actuales = {l.strip() for p in oficiales for l in p["lineas"].split(",") if l.strip()}
+    # Servicios que la lista oficial de paradas no anuncia pero sí están en el GTFS y la API los da
+    # en vivo (69, registro del 9/11): la lanzadera Stellantis – Álvaro Cunqueiro.
+    lineas_actuales |= EXTRA
     gtfs_a_parada = {p["stop_id"]: str(p["id"]) for p in oficiales}
 
     z = zipfile.ZipFile(gtfs_zip)
@@ -251,6 +256,8 @@ def main(gtfs_zip: str) -> None:
     for f in gj["features"]:
         pid = f["properties"]["id"]
         buenas = [l for l in f["properties"]["lineas"] if l not in salida or pid in atendidas[l]]
+        # Las de EXTRA no están en la lista oficial de paradas: se añaden donde tienen viajes.
+        buenas += [l for l in sorted(EXTRA) if l in salida and pid in atendidas[l] and l not in buenas]
         for l in set(f["properties"]["lineas"]) - set(buenas):
             quitadas[l] += 1
         f["properties"]["lineas"] = buenas

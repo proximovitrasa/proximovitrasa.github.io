@@ -455,6 +455,7 @@ button.arrival:hover { background: var(--surface); }
   font: 700 23px/1 var(--cond); letter-spacing: .01em;
 }
 button.badge { border: 0; cursor: pointer; }
+.badge.badge-txt { font-size: 14px; letter-spacing: 0; }   /* "Refuerzo" (servicio sin número) */
 button.badge:hover { filter: brightness(1.08); }
 
 /* ---------- Líneas ---------- */
