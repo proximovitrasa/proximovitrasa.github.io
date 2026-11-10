@@ -3089,7 +3089,7 @@
 
   // Busca de nuevo (las opciones del horario, aún sin tiempos en vivo).
   // Coordenadas de las paradas para el planificador (distancia de los tramos en bus, ver pick()).
-  const withStops = (plan) => { if (!plan.stopsSet && byId.size) { plan.setStops((id) => { const s = byId.get(id); return s && s.ll; }); plan.stopsSet = true; } return plan; };
+  const withStops = (plan) => { if (!plan.stopsSet && byId.size) { plan.setStops((id) => { const s = byId.get(id); return s && s.ll; }, (id) => { const s = byId.get(id); return s && s.name; }); plan.stopsSet = true; } return plan; };
   function planSearch() {
     const lt = lastTrip;
     withStops(lt.plan);

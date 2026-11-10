@@ -483,9 +483,16 @@
     // recta entre las paradas por las que pasa (setStops); sin coordenadas, 5 m por segundo de viaje.
     let stopLL = null;
     const cumDist = new Map();   // patrón → distancia acumulada en cada posición
-    function setStops(llOf) {
+    // llOf(id) → [lat, lon]; nameOf(id) → nombre (opcional: para los letreros que son el nombre de
+    // una parada, ver liveReaches).
+    let stopsByName = null;
+    function setStops(llOf, nameOf) {
       stopLL = ids.map((id) => llOf(id) || null);
       cumDist.clear();
+      if (nameOf) {
+        stopsByName = new Map();
+        ids.forEach((id, i) => { const k = normTxt(nameOf(id)); if (!k) return; if (!stopsByName.has(k)) stopsByName.set(k, []); stopsByName.get(k).push(i); });
+      }
     }
     const hav = (a, b) => {
       const r = Math.PI / 180, dl = (b[0] - a[0]) * r, dn = (b[1] - a[1]) * r;
@@ -839,6 +846,20 @@
       const all = pats.filter((pt) => mine(pt) && pt.p.includes(leg.board));
       if (!all.length) {
         if (pats.some(mine)) return "no";
+        // Letrero que es el nombre de una parada (registro de la API del 9/11: casi 1 de cada 3
+        // buses de la C3i y la C3d; también 4A, 4C, 5A, 5B, 6, 9B, 12A, 13, 25, 27, 28, 29, 31, C1,
+        // U2, H3…): en todos los casos vistos es la última parada de un recorrido de esa línea. El
+        // bus va hasta ahí: se decide con los recorridos de la línea y sentido que acaban en ella.
+        const term = stopsByName && stopsByName.get(r);
+        if (term) {
+          const ends = (pt) => pt.l === leg.line && pt.s === leg.dir && term.includes(pt.p[pt.p.length - 1]);
+          const nearT = upcoming(leg.board, when, MATCH_WINDOW, MATCH_WINDOW).filter((x) => ends(pats[x.pat]));
+          const set = nearT.length ? nearT.map((x) => pats[x.pat]) : pats.filter((pt) => ends(pt) && pt.p.includes(leg.board));
+          if (set.length) {
+            const ok = set.map((pt) => goes(pt, leg.board, leg.alight));
+            return ok.every(Boolean) ? "yes" : ok.some(Boolean) ? "mixed" : "no";
+          }
+        }
         // Letrero que no está en el horario: solo vale si TODOS los viajes de la línea y sentido que
         // pasan por la subida a esa hora llegan a la bajada (así da igual el ramal); si no, "mixed"
         // y se usa el horario (67: nunca ofrecer un bus sin certeza de que llega).
