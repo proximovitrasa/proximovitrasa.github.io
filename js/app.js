@@ -1328,10 +1328,13 @@
   // los que ya pasaron la parada de origen, o la línea abierta sin parada) se consultan unas pocas
   // paradas repartidas por el recorrido del sentido que se ve (una cada FLEET_SPACING m, la última
   // incluida, como mucho FLEET_MAX) y cada bus se coloca desde la más cercana. Un mismo bus sale en
-  // varias paradas: se juntan los del mismo letrero a menos de FLEET_SAME m (sin identificador de
-  // vehículo en la API, no hay otra forma). Sin minutos en la etiqueta (no van hacia una parada
-  // elegida); los que vienen hacia la parada de origen los dibuja drawBus() con sus minutos.
-  const FLEET_SPACING = 2500, FLEET_MAX = 6, FLEET_SAME = 350;
+  // varias paradas: se juntan los del mismo letrero a menos de FLEET_SAME m vistos desde paradas
+  // distintas (sin identificador de vehículo en la API, no hay otra forma; dos de una misma parada
+  // son buses distintos, salvo que caigan en el mismo sitio). Con el registro del 9/11, un mismo bus visto desde dos paradas
+  // salía a ~500 m (400–600) de sí mismo: con 350 m, 1 de cada 10 buses salía dos veces; con 700 m y
+  // sin juntar los de la misma parada, casi ninguno. Sin minutos en la etiqueta (no van hacia una
+  // parada elegida); los que vienen hacia la parada de origen los dibuja drawBus() con sus minutos.
+  const FLEET_SPACING = 2500, FLEET_MAX = 6, FLEET_SAME = 700;
   let fleet = null;   // { code, dir, probes: [{ id, loc }], cands, markers, timer, tick }
   function stopFleet() {
     if (!fleet) return;
@@ -1384,7 +1387,7 @@
             if (pr.off >= 60) return;
             loc = { shape: bsh, along: pr.along, off: pr.off, branch: only[0] };
           }
-          cands.push({ loc, est, at: e.at, ruta: norm(String(est.ruta || "")), metros: Number(est.metros) });
+          cands.push({ loc, est, at: e.at, ruta: norm(String(est.ruta || "")), metros: Number(est.metros), probe: p.id });
         });
       });
       cands.sort((a, b) => a.metros - b.metros);   // primero, el visto desde la parada más cercana
@@ -1401,14 +1404,15 @@
     const kept = [];
     if (shown && track && track.dir === fl.dir) (track.ests || []).forEach((est, i) => {
       const b = busNow(i);
-      if (b && (b.state === "route" || b.state === "head")) kept.push({ ll: b.ll, ruta: norm(String(est.ruta || "")) });
+      if (b && (b.state === "route" || b.state === "head")) kept.push({ ll: b.ll, ruta: norm(String(est.ruta || "")), probe: track.stop });
     });
     const out = [];
     if (shown) fl.cands.forEach((c) => {
       const b = busState(c);
       if (!b || (b.state !== "route" && b.state !== "head")) return;
-      if ([...kept, ...out].some((k) => k.ruta === c.ruta && haversine(k.ll, b.ll) < FLEET_SAME)) return;
-      out.push({ ll: b.ll, ruta: c.ruta, b, c });
+      // (los de la misma parada, solo si caen en el mismo sitio: el que ya dibuja drawBus)
+      if ([...kept, ...out].some((k) => k.ruta === c.ruta && haversine(k.ll, b.ll) < (k.probe !== c.probe ? FLEET_SAME : 150))) return;
+      out.push({ ll: b.ll, ruta: c.ruta, probe: c.probe, b, c });
     });
     const l = lines[fl.code];
     out.forEach((o, i) => {

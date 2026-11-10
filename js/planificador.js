@@ -800,7 +800,13 @@
           const exp = nowS + m * 60;
           const i = matchPass(ps, exp, used);
           if (i < 0) continue;
-          liveDelay.set(tripKey(ps[i].pat, base, ps[i].trip), { d: exp - ps[i].at, at: atMs });
+          // Un mismo viaje visto desde varias paradas (74, registro del 9/11: 1 de cada 10 no
+          // coincidían en más de 5 min, por emparejarse en alguna con el bus de antes o el de
+          // después): manda la parada más cercana al bus. Un dato más lejano que no coincide con el
+          // que hay no lo cambia.
+          const k = tripKey(ps[i].pat, base, ps[i].trip), d = exp - ps[i].at, prev = liveDelay.get(k);
+          if (prev && prev.at >= old && prev.m != null && m > prev.m && Math.abs(d - prev.d) > 300) continue;
+          liveDelay.set(k, { d, at: atMs, m });
           n++;
         }
       }
