@@ -835,8 +835,31 @@
     // situaciones con un letrero ambiguo (se usa el horario).
     const MATCH_WINDOW = 1200;
     const goes = (pt, board, alight) => { const a = pt.p.indexOf(board); return a >= 0 && pt.p.indexOf(alight, a + 1) > a; };
+    // Letrero que es el nombre de una parada (registro de la API del 9/11: casi 1 de cada 3 buses de la
+    // C3i y la C3d; también 4A, 4C, 5A, 5B, 6, 9B, 12A, 13, 25, 27, 28, 29, 31, C1, U2, H3…): en todos
+    // los casos vistos es la última parada de un recorrido de esa línea. El bus va hasta ahí: se
+    // decide con los recorridos de la línea y sentido que acaban en ella. null si no aplica.
+    function stopNameReach(leg, r, when) {
+      const term = stopsByName && stopsByName.get(r);
+      if (!term) return null;
+      const ends = (pt) => pt.l === leg.line && pt.s === leg.dir && term.includes(pt.p[pt.p.length - 1]);
+      const nearT = upcoming(leg.board, when, MATCH_WINDOW, MATCH_WINDOW).filter((x) => ends(pats[x.pat]));
+      const set = nearT.length ? nearT.map((x) => pats[x.pat]) : pats.filter((pt) => ends(pt) && pt.p.includes(leg.board));
+      if (!set.length) return null;
+      const ok = set.map((pt) => goes(pt, leg.board, leg.alight));
+      return ok.every(Boolean) ? "yes" : ok.some(Boolean) ? "mixed" : "no";
+    }
+
     function liveReaches(leg, ruta, when) {
       const r = normTxt(ruta);
+      // Los letreros del horario van en mayúsculas; los que son el nombre de una parada, en
+      // minúsculas ("Universidade.", "Rúa do Porriño (fronte 9)"). Si coinciden al normalizar con un
+      // letrero del horario (el 11/11, "Universidade." de la A con "UNIVERSIDADE" de unos viajes
+      // cortos desde Fragoso), manda la parada.
+      if (/[a-zß-ÿ]/.test(String(ruta || ""))) {
+        const byName = stopNameReach(leg, r, when);
+        if (byName) return byName;
+      }
       const mine = (pt) => pt.l === leg.line && pt.s === leg.dir && pt.h && pt.h.some((x) => normTxt(x) === r);
       const near = upcoming(leg.board, when, MATCH_WINDOW, MATCH_WINDOW).filter((x) => mine(pats[x.pat]));
       if (near.length) {
@@ -845,21 +868,13 @@
       }
       const all = pats.filter((pt) => mine(pt) && pt.p.includes(leg.board));
       if (!all.length) {
-        if (pats.some(mine)) return "no";
-        // Letrero que es el nombre de una parada (registro de la API del 9/11: casi 1 de cada 3
-        // buses de la C3i y la C3d; también 4A, 4C, 5A, 5B, 6, 9B, 12A, 13, 25, 27, 28, 29, 31, C1,
-        // U2, H3…): en todos los casos vistos es la última parada de un recorrido de esa línea. El
-        // bus va hasta ahí: se decide con los recorridos de la línea y sentido que acaban en ella.
-        const term = stopsByName && stopsByName.get(r);
-        if (term) {
-          const ends = (pt) => pt.l === leg.line && pt.s === leg.dir && term.includes(pt.p[pt.p.length - 1]);
-          const nearT = upcoming(leg.board, when, MATCH_WINDOW, MATCH_WINDOW).filter((x) => ends(pats[x.pat]));
-          const set = nearT.length ? nearT.map((x) => pats[x.pat]) : pats.filter((pt) => ends(pt) && pt.p.includes(leg.board));
-          if (set.length) {
-            const ok = set.map((pt) => goes(pt, leg.board, leg.alight));
-            return ok.every(Boolean) ? "yes" : ok.some(Boolean) ? "mixed" : "no";
-          }
-        }
+        // (Antes: si el letrero era de otros recorridos de la línea que no pasan por la subida, "no".
+        // Pero la API da el bus EN la subida, así que es otro viaje con letrero parecido: el 11/11,
+        // "Universidade." de la A —nombre de la parada 8710, final de "PORTO - UNIVERSIDADE"— chocaba
+        // con el letrero "UNIVERSIDADE" de unos viajes cortos desde Fragoso y se descartaban 52
+        // buses buenos. Ahora sigue como un letrero que no está en el horario.)
+        const byName = stopNameReach(leg, r, when);
+        if (byName) return byName;
         // Letrero que no está en el horario: solo vale si TODOS los viajes de la línea y sentido que
         // pasan por la subida a esa hora llegan a la bajada (así da igual el ramal); si no, "mixed"
         // y se usa el horario (67: nunca ofrecer un bus sin certeza de que llega).
