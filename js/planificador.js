@@ -195,6 +195,7 @@
       // Paradas de destino de cada recorrido, en orden: [posición, metros].
       const destOf = new Map(), lastDest = new Map();
       for (const [s, m] of dests) for (const [n, k] of at[s]) {
+        if (shut(s, pats[n].l)) continue;   // anulada para esa línea: no se baja ahí
         if (!destOf.has(n)) destOf.set(n, []);
         destOf.get(n).push([k, m]);
         lastDest.set(n, Math.max(lastDest.get(n) || 0, k));
@@ -237,6 +238,7 @@
         const tau = now + mo / WALK;
         for (const [n, k] of at[o]) {
           const pt = pats[n], tr = trips(pt);
+          if (shut(o, pt.l)) continue;   // anulada para esa línea: no se sube ahí
           const nt = nextTrip(pt, tr, k, tau, now + horizon);
           if (!nt) continue;
           firsts.push({ o, mo, pt, tr, q: nt.q, k });
@@ -256,12 +258,13 @@
         for (let x = k + 1; x < pt.p.length; x++) {
           const ax = tr.dep[q] + pt.t[x] * tr.dur[q];
           if (ax - now > (bestArr - now) * 1.6 + 600) break;   // ya no puede salir a cuenta
+          if (shut(pt.p[x], pt.l)) continue;
           for (const [s2, m2, mm2, ks] of transfers[pt.p[x]]) {
             if (ks && !vvOpenAt(ks, base, ax)) continue;
             const tau2 = ax + m2 / WALK + TRANSFER;
             for (const [n2, k2] of at[s2]) {
               const pt2 = pats[n2];
-              if (pt2.l === pt.l || !(lastDest.get(n2) > k2)) continue;
+              if (pt2.l === pt.l || !(lastDest.get(n2) > k2) || shut(s2, pt2.l)) continue;
               const tr2 = trips(pt2);
               const nt = nextTrip(pt2, tr2, k2, tau2, tau2 + MAX_WAIT);
               if (!nt) continue;
@@ -388,7 +391,7 @@
           let q = -1, from = -1;
           for (let i = k0; i < pt.p.length; i++) {
             const s = pt.p[i];
-            if (q >= 0 && !blocked[s]) {
+            if (q >= 0 && !shut(s, pt.l)) {
               const arr = tr.dep[q] + pt.t[i] * tr.dur[q];
               if (arr < best[s] && arr < bus[s] && arr <= cap) {
                 bus[s] = cur[s] = best[s] = arr;
@@ -397,7 +400,7 @@
               }
             }
             // ¿Se puede subir aquí a un viaje anterior al que se lleva?
-            if (!blocked[s] && prev[s] < Infinity && prevLine[s] !== pt.l) {
+            if (!shut(s, pt.l) && prev[s] < Infinity && prevLine[s] !== pt.l) {
               const ready = prev[s] + (k > 1 ? TRANSFER : 0);
               const curAt = q >= 0 ? tr.dep[q] + pt.t[i] * tr.dur[q] : Infinity;
               if (ready <= curAt) {
@@ -487,6 +490,17 @@
     // una parada, ver liveReaches).
     let stopsByName = null, stopNames = null;
     const blocked = new Uint8Array(ids.length);
+    // Paradas anuladas temporalmente (data/anuladas.json, desvíos del Nadal…): ni se sube ni se baja
+    // en ellas; con "lineas", solo para esas líneas. setClosed([{ id, lineas }]) con las vigentes.
+    const closed = new Map();   // índice de parada → Set de líneas, o null (todas)
+    const shut = (s, l) => blocked[s] === 1 || (closed.size > 0 && closed.has(s) && (closed.get(s) === null || closed.get(s).has(l)));
+    function setClosed(list) {
+      closed.clear();
+      for (const c of list || []) {
+        const i = index.get(String(c.id));
+        if (i != null) closed.set(i, c.lineas && c.lineas.length ? new Set(c.lineas) : null);
+      }
+    }
     function setStops(llOf, nameOf) {
       stopLL = ids.map((id) => llOf(id) || null);
       cumDist.clear();
@@ -1113,7 +1127,7 @@
       return r === "mixed" ? base : r;
     }
 
-    return { liveReachesProbe, ids, index, pats, at, transfers, search, retime, choose, setStops, stopPasses, upcoming, liveReaches, observe, liveDelay, branchCheck, branchPick, routesReach, branchName, setBranchNames, tripBranch, routesOf, liveCands, fecha: data.fecha, WALK };
+    return { liveReachesProbe, setClosed, ids, index, pats, at, transfers, search, retime, choose, setStops, stopPasses, upcoming, liveReaches, observe, liveDelay, branchCheck, branchPick, routesReach, branchName, setBranchNames, tripBranch, routesOf, liveCands, fecha: data.fecha, WALK };
   }
 
   let pending = null;

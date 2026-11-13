@@ -1,0 +1,25 @@
+{
+  "nota": "Paradas anuladas temporalmente (desvíos). Se mantiene a mano a partir de los avisos oficiales de Vitrasa y se comprueba con el registro de la API. Cada aviso vale de 'aplicar' a 'hasta' (ambos incluidos); 'desde' y 'hasta' son las fechas que se enseñan. 'lineas': solo para esas líneas (sin 'lineas', todas). 'proximas': paradas más próximas según el aviso. 'afluencia': paradas que el aviso anula solo en días de mucha gente o en momentos puntuales (se avisa cuando no hay buses en vivo).",
+  "avisos": [
+    {
+      "id": "nadal-2026",
+      "motivo": "nadal",
+      "fuente": "Vitrasa, aviso 151 «Desvíos Nadal 2026 / 2027» (12/11/2026). Corte de tráfico en Policarpo Sanz. Comprobado con el registro de la API del 11 y 12/11/2026 (Policarpo Sanz 25 y 26 y Colón 27, sin buses de línea desde el 10–11/11).",
+      "desde": "2026-11-14",
+      "hasta": "2027-01-10",
+      "aplicar": "2026-11-11",
+      "anuladas": [
+        { "id": "20193", "proximas": ["8770", "5520", "430", "6860"] },
+        { "id": "3230", "proximas": ["8770", "5520", "430", "6860"] },
+        { "id": "5530", "lineas": ["5B", "17"], "proximas": ["8770", "5520"] },
+        { "id": "14121", "proximas": ["20206", "20208", "14333", "14264", "5530"] },
+        { "id": "20198", "proximas": ["20206", "20208", "14333", "14264", "5530"] },
+        { "id": "6620", "proximas": ["20206", "20208", "14333", "14264", "5530"] }
+      ],
+      "afluencia": [
+        { "id": "20208", "proximas": ["20206", "14264", "5520"] },
+        { "id": "20192", "proximas": ["20206", "14264", "5520"] }
+      ]
+    }
+  ]
+}

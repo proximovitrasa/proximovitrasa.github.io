@@ -362,8 +362,8 @@
   stopLayer = map.stopLayer ? map.stopLayer({ onClick: stopClick, hover: canHover, title: (s) => `${s.name} (${s.id})` }) : null;
   function stopLook(s) {
     const l = active && lines && lines[active.code];
-    const inLine = !!(l && active.stops.has(s.id)), fav = favStop(s.id);
-    return { bg: inLine ? l.color : fav ? "#13222C" : "#D3202F", fg: inLine ? l.texto : "#FFFFFF", big: inLine,
+    const inLine = !!(l && active.stops.has(s.id)), fav = favStop(s.id), off = closures.length && closedAll(s.id);
+    return { bg: inLine ? l.color : off ? "#9AA1A6" : fav ? "#13222C" : "#D3202F", fg: inLine ? l.texto : "#FFFFFF", big: inLine,
       op: !active || active.stops.has(s.id) ? 1 : 0.12, sort: (inLine ? 2 : 0) + (fav ? 1 : 0) };
   }
   // Va antes que los demás toques del mapa: si se toca una parada dibujada, se abre y nada más.
@@ -461,6 +461,49 @@
     })
     .catch(() => { lines = {}; })
     .then(() => lines);
+
+  // ---------- Paradas anuladas (desvíos; data/anuladas.json, a mano desde los avisos de Vitrasa) ----------
+  // Cada aviso vale de "aplicar" a "hasta" (fechas locales, incluidas). Una parada anulada (todas sus
+  // líneas o solo las de "lineas") no se usa en Cómo llegar, no enseña horarios previstos de esas
+  // líneas y avisa en su ficha; las de "afluencia" solo avisan cuando no hay buses en vivo.
+  let closures = [];
+  const ALERTS_URL = "https://www.vitrasa.es/avisos";
+  const dayKey = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  const avisosOn = (d = new Date()) => { const k = dayKey(d); return closures.filter((a) => (a.aplicar || a.desde) <= k && k <= a.hasta); };
+  function closureOf(id, d, kind = "anuladas") {
+    for (const a of avisosOn(d)) { const c = (a[kind] || []).find((x) => String(x.id) === String(id)); if (c) return { a, c }; }
+    return null;
+  }
+  const closedAll = (id, d) => { const x = closureOf(id, d); return !!x && !(x.c.lineas && x.c.lineas.length); };
+  const closuresReady = fetch("data/anuladas.json")
+    .then((r) => r.json())
+    .then((d) => {
+      closures = Array.isArray(d.avisos) ? d.avisos : [];
+      if (stops.length) restyleStops();
+      if (current && lastArrivalsId === current.id && (lastUpdate || arrivalsFailed)) renderArrivals(lastArrivals);
+    })
+    .catch(() => {})
+    .then(() => closures);
+  const fmtDay = (k) => new Date(`${k}T12:00:00`).toLocaleDateString(lang, { day: "numeric", month: "numeric", year: "numeric" });
+  function closureHtml(x, crowd) {
+    const { a, c } = x;
+    const why = t(`why_${a.motivo}`);
+    const head = crowd ? t("crowd_title") : c.lineas && c.lineas.length ? t("closed_lines_title", { lines: c.lineas.join(", ") }) : t("closed_title");
+    const body = crowd ? t("crowd_body", { why }) : t("closed_body", { why, from: fmtDay(a.desde), to: fmtDay(a.hasta) });
+    const near = (c.proximas || []).map((id) => byId.get(String(id))).filter(Boolean);
+    return `<div class="closed-note${crowd ? " is-crowd" : ""}" role="note">
+      <strong>${esc(head)}</strong><p>${esc(body)}</p>
+      ${near.length ? `<p class="closed-near"><span>${esc(t("closed_near"))}</span>${near.map((n) => `<button type="button" data-goto-stop="${esc(n.id)}">${esc(n.name)}</button>`).join("")}</p>` : ""}
+      <a href="${ALERTS_URL}" target="_blank" rel="noopener">${esc(t("closed_alerts"))}</a>
+    </div>`;
+  }
+
+  // "Sin buses en vivo" en Cómo llegar; en una parada que el aviso anula según la afluencia, se dice.
+  function noLiveText(leg) {
+    const id = lastTrip && lastTrip.plan ? lastTrip.plan.ids[leg.board] : null;
+    const x = id != null ? closureOf(id, new Date(), "afluencia") : null;
+    return x ? t("no_live_crowd", { why: t(`why_${x.a.motivo}`) }) : t("no_live");
+  }
 
   // ---------- Lista ----------
   function stopItem(s, extra) {
@@ -1763,6 +1806,10 @@
   let probeAsked = null;   // lista de llegadas para la que ya se pidieron las sondas
 
   // list: estimaciones de la API ([] si no da ninguna; null si la consulta falló).
+  $("#arrivals").addEventListener("click", (e) => {
+    const b = e.target.closest("button[data-goto-stop]");
+    if (b && byId.has(b.dataset.gotoStop)) { e.stopPropagation(); navigate(b.dataset.gotoStop, { replace: true }); }
+  });
   function renderArrivals(list) {
     lastArrivals = list;
     arrivalsFailed = list == null;
@@ -1772,7 +1819,11 @@
     const nowS = (now - dayBase(now)) / 1000;
     // Horario publicado de esta parada (si ya ha cargado): pasos de hace 30 min a dentro de 3 h.
     const si = stopPlan && s ? stopPlan.index.get(s.id) : null;
-    const passes = si != null ? stopPlan.upcoming(si, now, 3 * 3600, 30 * 60) : [];
+    // Parada anulada (desvío): sin horarios previstos de las líneas afectadas.
+    const closed = s ? closureOf(s.id, now) : null;
+    const crowd = !closed && s ? closureOf(s.id, now, "afluencia") : null;
+    const cut = closed ? (closed.c.lineas && closed.c.lineas.length ? new Set(closed.c.lineas) : null) : undefined;
+    const passes = (si != null ? stopPlan.upcoming(si, now, 3 * 3600, 30 * 60) : []).filter((p) => cut === undefined || (cut !== null && !cut.has(p.line)));
     const passesOf = new Map();
     passes.forEach((p) => { const k = `${p.line}|${p.dir}`; if (!passesOf.has(k)) passesOf.set(k, []); passesOf.get(k).push(p); });
 
@@ -1863,12 +1914,16 @@
     const err = list == null && s ? `<div class="state"><strong>${esc(t("times_error"))}</strong>
         ${esc(t("times_error_body", { infobus: "\u0000" })).replace("\u0000",
           `<a href="${INFOBUS_URL(s.id)}" target="_blank" rel="noopener">Infobus</a>`)}</div>` : "";
+    // Aviso de parada anulada; en las de "afluencia", solo si la API responde sin ningún bus en vivo
+    // y el horario espera alguno en los próximos 15 min.
+    const crowdOn = crowd && list != null && !rows.some((r) => r.live) && rows.some((r) => r.sortMin <= 15);
+    const cnote = closed ? closureHtml(closed, false) : crowdOn ? closureHtml(crowd, true) : "";
     if (!rows.length) {
-      box.innerHTML = err || `<div class="state"><strong>${esc(t("empty"))}</strong> ${esc(t("empty_body"))}</div>`;
+      box.innerHTML = cnote + (err || (closed ? "" : `<div class="state"><strong>${esc(t("empty"))}</strong> ${esc(t("empty_body"))}</div>`));
       return;
     }
     const onlySched = !rows.some((r) => r.live);
-    const head = err || (onlySched ? `<p class="note">${esc(t("sched_only"))}</p>` : "");
+    const head = cnote + (err || (onlySched && !crowdOn ? `<p class="note">${esc(t("sched_only"))}</p>` : ""));
     box.innerHTML = head + rows.map((g) => {
       let eta, sub;
       if (g.live) {
@@ -2105,7 +2160,7 @@
     if (c && c.key === key && Date.now() - c.at < 60000) return;
     hwEtaCache[k] = { key, at: Date.now(), html: c && c.key === key ? c.html : "" };
     try {
-      const [net, plan] = await Promise.all([window.PV_PEATON.load(), PLAN.load(), linesReady]);
+      const [net, plan] = await Promise.all([window.PV_PEATON.load(), PLAN.load(), linesReady, closuresReady]);
       if (tripOpen()) return;   // no tocar la red mientras se calcula un viaje
       const start = new Date();
       setVerticalTime(net, start);
@@ -3039,7 +3094,7 @@
       out.mech = new Map();
       for (const s of stops) {
         const i = plan.index.get(s.id);
-        if (i == null || haversine(ll, s.ll) > max || /\bNO ACTIVA\b/i.test(s.name)) continue;   // ver planificador (blocked)
+        if (i == null || haversine(ll, s.ll) > max || /\bNO ACTIVA\b/i.test(s.name) || closedAll(s.id)) continue;   // ver planificador (blocked, setClosed)
         const [m, , mm] = dist(s.ll, null, true);
         if (m <= max) { out.set(i, m); if (mm) out.mech.set(i, mm); }
       }
@@ -3116,7 +3171,7 @@
     let net, plan = null;
     try { net = await window.PV_PEATON.load(); }
     catch { if (seq === tripSeq) box.innerHTML = `<div class="state"><strong>${esc(t("trip_net_error"))}</strong></div>`; return; }
-    try { [plan] = await Promise.all([PLAN.load(), linesReady]); } catch { plan = null; }
+    try { [plan] = await Promise.all([PLAN.load(), linesReady, closuresReady]); } catch { plan = null; }
     if (seq !== tripSeq) return;
     const vvWhen = arriveMode() ? new Date(trip.when.getTime() - 15 * 60000) : tripStart();
     setVerticalTime(net, vvWhen);
@@ -3177,7 +3232,11 @@
 
   // Busca de nuevo (las opciones del horario, aún sin tiempos en vivo).
   // Coordenadas de las paradas para el planificador (distancia de los tramos en bus, ver pick()).
-  const withStops = (plan) => { if (!plan.stopsSet && byId.size) { plan.setStops((id) => { const s = byId.get(id); return s && s.ll; }, (id) => { const s = byId.get(id); return s && s.name; }); plan.stopsSet = true; } return plan; };
+  const withStops = (plan) => {
+    if (!plan.stopsSet && byId.size) { plan.setStops((id) => { const s = byId.get(id); return s && s.ll; }, (id) => { const s = byId.get(id); return s && s.name; }); plan.stopsSet = true; }
+    plan.setClosed(avisosOn().flatMap((a) => a.anuladas || []));   // paradas anuladas hoy (desvíos)
+    return plan;
+  };
   function planSearch() {
     const lt = lastTrip;
     withStops(lt.plan);
@@ -3419,7 +3478,7 @@
       return `<li class="opt-li"><button type="button" class="opt" data-opt="${esc(j.key)}"${cur(j.key)}>
         <span class="chain">${chain(j)}</span>
         <span class="eta">${durHtml(total)}</span>
-        <span class="when">${leave}${statusHtml(first)}${late}${first.doubtful ? `<span class="warn nl"> · ${esc(t("no_live"))}</span>` : ""}${isTight(j) ? ` <span class="warn">${esc(t("tight_transfer"))}</span>` : ""}</span>
+        <span class="when">${leave}${statusHtml(first)}${late}${first.doubtful ? `<span class="warn nl"> · ${esc(noLiveText(first))}</span>` : ""}${isTight(j) ? ` <span class="warn">${esc(t("tight_transfer"))}</span>` : ""}</span>
         <span class="arr">${esc(arriveShort(j.arr))}</span>
       </button>${starBtn(j.key)}</li>`;
     });
@@ -3509,7 +3568,7 @@
         steps.push(`<li class="step bus" ${lc}><span class="ico">${badge(l.line)}</span>
           <span class="txt"><b>${esc(stopName(l.board))}</b> <span class="gid">· ${esc(t("stop_lc", { id: lastTrip.plan.ids[l.board] }))}</span>
             <small class="dest">${esc(t("towards", { dest }))}${legBranch(l) ? ` · ${esc(legBranch(l))}` : ""}</small>
-            <small class="st">${statusHtml(l)}${where}${l.doubtful ? ` · <span class="warn">${esc(t("no_live"))}</span>` : ""}</small></span>
+            <small class="st">${statusHtml(l)}${where}${l.doubtful ? ` · <span class="warn">${esc(noLiveText(l))}</span>` : ""}</small></span>
           <span class="tm">${esc(clock(l.dep))}</span></li>`);
         steps.push(`<li class="step ride" ${lc}><span class="ico"><i></i></span><span class="txt">
           ${mids ? `<button type="button" class="ride-btn" aria-expanded="false">` : `<span class="ride-btn">`}${esc(t(l.stops === 1 ? "stops_1" : "stops_n", { n: l.stops, min: rideMin }))}${mids ? `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button><ol class="ride-stops" hidden>${mids}</ol>` : "</span>"}</span></li>`);

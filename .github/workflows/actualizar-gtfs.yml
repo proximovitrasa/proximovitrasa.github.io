@@ -57,6 +57,9 @@ jobs:
       - name: Regenerar paradas, líneas y horarios
         run: |
           cp /tmp/fuentes/paradas.json data/oficial/paradas.json
+          # Paradas que ya usa el GTFS y aún no están en la lista del Concello (p. ej. las provisionales
+          # de los desvíos del Nadal, 13/11/2026).
+          python3 tools/completar_paradas.py data/oficial/paradas.json /tmp/fuentes/gtfs_vigo.zip
           python3 tools/actualizar_paradas.py data/oficial/paradas.json
           python3 tools/actualizar_lineas.py /tmp/fuentes/gtfs_vigo.zip
           python3 tools/actualizar_viajes.py /tmp/fuentes/gtfs_vigo.zip
