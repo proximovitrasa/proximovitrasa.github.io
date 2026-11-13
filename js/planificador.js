@@ -388,7 +388,7 @@
           let q = -1, from = -1;
           for (let i = k0; i < pt.p.length; i++) {
             const s = pt.p[i];
-            if (q >= 0) {
+            if (q >= 0 && !blocked[s]) {
               const arr = tr.dep[q] + pt.t[i] * tr.dur[q];
               if (arr < best[s] && arr < bus[s] && arr <= cap) {
                 bus[s] = cur[s] = best[s] = arr;
@@ -397,7 +397,7 @@
               }
             }
             // ¿Se puede subir aquí a un viaje anterior al que se lleva?
-            if (prev[s] < Infinity && prevLine[s] !== pt.l) {
+            if (!blocked[s] && prev[s] < Infinity && prevLine[s] !== pt.l) {
               const ready = prev[s] + (k > 1 ? TRANSFER : 0);
               const curAt = q >= 0 ? tr.dep[q] + pt.t[i] * tr.dur[q] : Infinity;
               if (ready <= curAt) {
@@ -486,12 +486,16 @@
     // llOf(id) → [lat, lon]; nameOf(id) → nombre (opcional: para los letreros que son el nombre de
     // una parada, ver liveReaches).
     let stopsByName = null, stopNames = null;
+    const blocked = new Uint8Array(ids.length);
     function setStops(llOf, nameOf) {
       stopLL = ids.map((id) => llOf(id) || null);
       cumDist.clear();
       if (nameOf) {
         stopsByName = new Map();
         stopNames = ids.map((id) => normTxt(nameOf(id)));
+        // Paradas "… NO ACTIVA" en los datos de Vitrasa (García Barbón, 20146): no se recomienda subir
+        // ni bajar en ellas hasta que el estudio de paradas anuladas diga otra cosa (13/11, usuario).
+        stopNames.forEach((n, i) => { blocked[i] = /\bno activa\b/.test(n) ? 1 : 0; });
         ids.forEach((id, i) => { const k = normTxt(nameOf(id)); if (!k) return; if (!stopsByName.has(k)) stopsByName.set(k, []); stopsByName.get(k).push(i); });
       }
     }

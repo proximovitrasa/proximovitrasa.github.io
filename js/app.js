@@ -3039,7 +3039,7 @@
       out.mech = new Map();
       for (const s of stops) {
         const i = plan.index.get(s.id);
-        if (i == null || haversine(ll, s.ll) > max) continue;
+        if (i == null || haversine(ll, s.ll) > max || /\bNO ACTIVA\b/i.test(s.name)) continue;   // ver planificador (blocked)
         const [m, , mm] = dist(s.ll, null, true);
         if (m <= max) { out.set(i, m); if (mm) out.mech.set(i, mm); }
       }
