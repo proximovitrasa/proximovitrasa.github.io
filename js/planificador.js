@@ -1039,7 +1039,22 @@
       return dayTrips.get(pt.n);
     };
     const routeTrips = (r) => r.pats.reduce((a, n) => a + tripsPerDay(pats[n]), 0);
+    // Una parada que en los datos de Vitrasa se llama "… NO ACTIVA" (García Barbón, 20146: donde
+    // acaban algunos viajes después de Urzáiz 13) no se da como destino: "hasta" la anterior.
+    const activeEnd = (r) => {
+      let k = r.stops.length - 1;
+      while (k > 0 && stopNames && /\bno activa\b/.test(stopNames[r.stops[k]] || "")) k--;
+      return r.stops[k];
+    };
     function branchName(routes, js) {
+      const n = branchName0(routes, js);
+      if (n && n.until != null) {
+        n.until = activeEnd(routes[js[0]]);
+        if (stopNames && /\bno activa\b/.test(stopNames[n.until] || "")) return null;   // solo le queda esa
+      }
+      return n;
+    }
+    function branchName0(routes, js) {
       const mine = js.map((j) => routes[j]);
       const others = routes.filter((r, j) => !js.includes(j) && routeTrips(r) >= MIN_TRIPS);
       if (!others.length || !mine.length) return null;
@@ -1047,6 +1062,9 @@
       // "Hasta": acaba antes, en una parada por la que los demás siguen.
       const e = end(mine[0]);
       if (mine.every((r) => end(r) === e) && others.every((o) => { const k = o.stops.indexOf(e); return k >= 0 && k < o.stops.length - 1; })) return { until: e };
+      // También si hace lo mismo que otro recorrido frecuente pero acaba antes (los demás pueden ir
+      // por otro sitio): la A "PORTO - UNIVERSIDADE" que acaba en la parada Universidade.
+      if (mine.every((r) => end(r) === e) && others.some((o) => { const k = o.stops.indexOf(e); return k >= 0 && k < o.stops.length - 1 && mine[0].stops.every((x) => o.stops.includes(x)); })) return { until: e };
       // "Por": su tramo propio (paradas por las que no pasa ninguno de los otros).
       const own = mine[0].stops.filter((x) => !others.some((o) => o.stops.includes(x)) && mine.every((r) => r.stops.includes(x)));
       if (own.length < MIN_OWN) return null;
