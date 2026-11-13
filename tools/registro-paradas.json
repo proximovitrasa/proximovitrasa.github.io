@@ -1331,7 +1331,50 @@
    "motivos": [
     "sonda de ramal (fase 2, 13/11): A"
    ]
+  },
+  {
+   "id": "20206",
+   "motivos": [
+    "desvíos del Nadal (13/11): provisional del Nadal (Marqués de Valladares 19)"
+   ]
+  },
+  {
+   "id": "20208",
+   "motivos": [
+    "desvíos del Nadal (13/11): provisional del Nadal (Colón 12; anulada según afluencia)"
+   ]
+  },
+  {
+   "id": "20226",
+   "motivos": [
+    "desvíos del Nadal (13/11): parada del desvío del Nadal (Pontevedra, cruce García Barbón)"
+   ]
+  },
+  {
+   "id": "14121",
+   "motivos": [
+    "desvíos del Nadal (13/11): anulada por el Nadal (Praza de Compostela 2)"
+   ]
+  },
+  {
+   "id": "6620",
+   "motivos": [
+    "desvíos del Nadal (13/11): anulada por el Nadal (Policarpo Sanz 40)"
+   ]
+  },
+  {
+   "id": "5530",
+   "motivos": [
+    "desvíos del Nadal (13/11): anulada por el Nadal para 5B y 17 (García Barbón 18)"
+   ]
+  },
+  {
+   "id": "14333",
+   "motivos": [
+    "desvíos del Nadal (13/11): más próxima a las anuladas del Nadal (Cánovas del Castillo 18)"
+   ]
   }
  ],
- "sondas_fase2": "13/11/2026: +52 paradas que usa el método de los deltas para mirar cada ramal"
+ "sondas_fase2": "13/11/2026: +52 paradas que usa el método de los deltas para mirar cada ramal",
+ "nadal": "13/11/2026: +7 paradas del aviso 151 de Vitrasa (anuladas, provisionales y más próximas que faltaban) para auditar data/anuladas.json"
 }
