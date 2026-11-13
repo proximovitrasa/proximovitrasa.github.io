@@ -1,11 +1,15 @@
-# Actualización semanal de paradas, líneas y horarios con los datos abiertos del Concello de Vigo.
+# Actualización diaria (dos veces) de paradas, líneas y horarios con los datos abiertos del Concello de Vigo.
 # Descarga la lista oficial de paradas y el GTFS de Vitrasa, regenera data/paradas.geojson,
 # data/lineas.json y data/viajes.json y, si algo cambia, lo sube a main (GitHub Pages lo publica).
 # Si la descarga falla o los datos parecen incompletos, no se cambia nada.
 name: Actualizar horarios de Vitrasa
 on:
   schedule:
-    - cron: "17 4 * * 1"      # los lunes a las 04:17 UTC
+    # Dos veces al día: de madrugada y a primera hora de la tarde (Vitrasa publica a veces a mediodía
+    # cambios que valen desde el día siguiente, como los desvíos del Nadal del 14/11/2026).
+    # Solo se sube algo si los datos cambian. Los programados de GitHub pueden llegar con retraso.
+    - cron: "17 4 * * *"      # todos los días a las 04:17 UTC
+    - cron: "23 14 * * *"     # todos los días a las 14:23 UTC
   workflow_dispatch:
 permissions:
   contents: write
