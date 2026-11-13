@@ -24,9 +24,9 @@
   <meta name="apple-mobile-web-app-title" content="Vigo Bus">
   <link rel="preload" href="fonts/BarlowCondensed-Bold.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="fonts/Barlow-Medium.woff2" as="font" type="font/woff2" crossorigin>
-  <!-- Mapa de antes (Leaflet), solo con ?mapa=viejo: su estilo antes del nuestro, como siempre -->
-  <script>if (/[?&]mapa=viejo\b/.test(location.search)) document.write('<link rel="stylesheet" href="vendor/leaflet/leaflet.css">');</script>
   <link rel="stylesheet" href="css/app.css">
+  <!-- Después del nuestro, como cuando se cargaba con el mapa (mismo orden de estilos que antes) -->
+  <link rel="stylesheet" href="vendor/maplibre/maplibre-gl.css">
 </head>
 <body>
   <div id="map" data-i18n-aria="map"></div>
@@ -373,11 +373,8 @@
   <script src="js/direcciones.js"></script>
   <script src="js/bus.js"></script>
   <script src="js/planificador.js"></script>
-  <!-- Mapa: el nuevo (MapLibre) para todos desde el 9/11 (tareas 41 + 47). Con ?mapa=viejo, el de
-       antes (Leaflet), solo mientras dure la transición (una o dos semanas). -->
-  <script>document.write(/[?&]mapa=viejo\b/.test(location.search)
-    ? '<script src="vendor/leaflet/leaflet.js"><\/script>'
-    : '<link rel="stylesheet" href="vendor/maplibre/maplibre-gl.css"><script src="vendor/maplibre/maplibre-gl.js"><\/script>');</script>
+  <!-- Mapa: MapLibre (tareas 41 + 47; el de antes, Leaflet, se quitó el 13/11). -->
+  <script src="vendor/maplibre/maplibre-gl.js"></script>
   <script src="js/mapa.js"></script>
   <script src="js/app.js"></script>
 </body>

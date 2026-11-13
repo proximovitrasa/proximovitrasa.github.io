@@ -213,174 +213,27 @@
   const RED = css.getPropertyValue("--bus").trim() || "#D3202F";
   const INK = css.getPropertyValue("--ink").trim() || "#13222C";
 
-  // Icono de parada (señal con un autobús). Rojo normal, azul ría en favoritas
-  // y, con una línea elegida, del color oficial de esa línea.
-  // La sombra va dentro del SVG (antes era un drop-shadow de CSS, que se recalculaba en cada
-  // fotograma al mover el mapa): 1 px hacia abajo y 2 px de difuminado, medidos en píxeles de pantalla.
-  const STOP_PAD = 3;   // margen alrededor del icono para que la sombra no se corte
-  const stopSvg = (bg, fg, size) => { const u = 32 / size; return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${-STOP_PAD} ${-STOP_PAD} ${32 + 2 * STOP_PAD} ${32 + 2 * STOP_PAD}"><defs><filter id="sh" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="${u.toFixed(2)}" stdDeviation="${u.toFixed(2)}" flood-color="#13222C" flood-opacity=".45"/></filter></defs><rect x="1.5" y="1.5" width="29" height="29" rx="8" fill="${bg}" stroke="#fff" stroke-width="2.5" filter="url(#sh)"/><g fill="${fg}"><circle cx="8.6" cy="9.6" r="2.6"/><rect x="7.8" y="11.5" width="1.6" height="14.5" rx=".8"/><rect x="13" y="9.5" width="12.5" height="13.5" rx="2.6"/><rect x="14.4" y="22" width="2.6" height="3.6" rx=".9"/><rect x="21.5" y="22" width="2.6" height="3.6" rx=".9"/></g><rect x="15" y="11.5" width="8.5" height="5.6" rx="1.2" fill="${bg}"/></svg>`; };
+  // Tamaño del icono de parada según el zoom (el mismo que usa la capa de paradas de js/mapa.js):
+  // de él sale el anillo de la parada elegida.
   const sizeFor = (z) => (z <= 12 ? 12 : z === 13 ? 16 : z === 14 ? 20 : z === 15 ? 26 : 30);
-  const iconCache = new Map();
-  function iconFor(s, z) {
-    let bg = "#D3202F", fg = "#FFFFFF";
-    const l = active && lines && lines[active.code];
-    if (l && active.stops.has(s.id)) { bg = l.color; fg = l.texto; }
-    else if (favStop(s.id)) bg = "#13222C";
-    const size = sizeFor(z) + (l && active.stops.has(s.id) ? 4 : 0), k = `${bg}|${fg}|${size}`;
-    if (!iconCache.has(k)) {
-      const full = Math.round(size * (32 + 2 * STOP_PAD) / 32);
-      iconCache.set(k, { url: `data:image/svg+xml,${encodeURIComponent(stopSvg(bg, fg, size))}`,
-        size: [full, full], anchor: [full / 2, full / 2], className: "stop-icon", key: k });
-    }
-    return iconCache.get(k);
-  }
 
-  // ---------- Paradas en el mapa: solo las que caen en pantalla ----------
-  // Cada parada tiene su marcador (se crea la primera vez que entra en pantalla), pero solo
-  // están en el mapa las de la vista actual con un margen. El aspecto (icono, transparencia
-  // con una línea abierta, orden) se aplica al añadirlas y, después, solo a las que están.
-  const STOP_MARGIN = 0.35;   // margen alrededor de la pantalla, en fracción de su tamaño
-  let shownStops = new Set();
-  function stopMarker(s) {
-    if (!s.marker) {
-      const icon = iconFor(s, map.getZoom());
-      s.marker = map.marker(s.ll, { icon, alt: s.name }).on("click", () => stopClick(s));
-      if (canHover) s.marker.tooltip(() => `${esc(s.name)} (${esc(s.id)})`, { direction: "top", offset: [0, -6] });
-      s.look = { icon: icon.key, op: 1, z: 0 };
-    }
-    return s.marker;
-  }
-  function styleStop(s) {
-    const m = stopMarker(s);
-    const icon = iconFor(s, map.getZoom());
-    const on = !active || active.stops.has(s.id);
-    const op = on ? 1 : 0.12, z = active && on ? 500 : 0;
-    if (s.look.icon !== icon.key) { m.setIcon(icon); s.look.icon = icon.key; if (s.look.op !== 1) m.setOpacity(s.look.op); }
-    if (s.look.op !== op) { m.setOpacity(op); s.look.op = op; }
-    if (s.look.z !== z) { m.setZIndexOffset(z); s.look.z = z; }
-  }
-  let stopLayer = null;   // capa nativa de paradas del mapa nuevo (se crea más abajo, con stopClick)
-  function syncStops() {
-    if (!stops.length) return;
-    if (stopLayer) { if (!stopLayer.ready) { stopLayer.ready = true; stopLayer.set(stops, stopLook); } return; }
-    // Alejado (zoom 14 o menos) caben cientos de paradas: van dibujadas en un lienzo (53). Con un
-    // marcador por parada, alejar el mapa creaba y cambiaba más de mil elementos de golpe (tirones
-    // de hasta medio segundo en un móvil). Las de cerca siguen siendo marcadores (se pueden tocar,
-    // con su globo de ayuda en el ordenador).
-    const low = map.getZoom() < STOP_DOM_ZOOM;
-    const next = new Set();
-    if (!low) {
-      const b = map.getBounds().pad(STOP_MARGIN);
-      for (const s of stops) if (b.contains(s.ll)) next.add(s);
-    }
-    shownStops.forEach((s) => { if (!next.has(s)) s.marker.remove(); });
-    next.forEach((s) => { styleStop(s); if (!shownStops.has(s)) s.marker.show(); });
-    shownStops = next;
-    drawStopsLow();
-  }
-  // Volver a pintar todas las paradas visibles (al abrir o cerrar una línea, por ejemplo).
-  const restyleStops = () => { if (stopLayer) { stopLayer.update(); return; } shownStops.forEach(styleStop); drawStopsLow(); };
-  const refreshIcon = (s) => { if (stopLayer) { stopLayer.update(); return; } if (shownStops.has(s)) styleStop(s); else drawStopsLow(); };
-
-  // ---------- Paradas en un lienzo, con el mapa alejado ----------
-  const STOP_DOM_ZOOM = 15;
-  const STOP_CANVAS_PAD = 0.25;
-  const stopPane = map.canvasPane("stopsLow", 590, "stop-canvas");   // donde irían los marcadores (600), justo debajo
-  const stopCanvas = stopPane.canvas;
-  const stopImgs = new Map();   // clave del icono → imagen ya cargada
-  let stopHits = [];            // { x, y, r, s } en coordenadas del contenedor
-  const stopsLowHidden = () => tripRouteOn || !!active;   // con una línea alejada se ocultan (LINE_STOPS_ZOOM)
-  // Cada icono se pasa una sola vez a un mapa de bits: dibujar el SVG directamente obliga a
-  // calcular su sombra en cada parada y cada vez.
-  function stopImg(icon) {
-    let e = stopImgs.get(icon.key);
-    if (!e) {
-      e = { bmp: null };
-      const im = new Image();
-      im.onload = () => {
-        const w = icon.size[0], dpr = Math.min(2, window.devicePixelRatio || 1);
-        const c = document.createElement("canvas");
-        c.width = c.height = Math.ceil(w * dpr);
-        c.getContext("2d").drawImage(im, 0, 0, c.width, c.height);
-        e.bmp = c;
-        drawStopsLow();
-      };
-      im.src = icon.url;
-      stopImgs.set(icon.key, e);
-    }
-    return e.bmp;
-  }
-  function drawStopsLow() {
-    if (stopLayer) return;   // mapa nuevo: las paradas son una capa del mapa
-    const ctx = stopCanvas.getContext("2d");
-    // El lienzo sobresale un cuarto de pantalla por cada lado, para que al arrastrar no se vean
-    // huecos hasta que se suelta el mapa.
-    const size = map.getSize(), dpr = Math.min(2, window.devicePixelRatio || 1);
-    const mx = Math.round(size.x * STOP_CANVAS_PAD), my = Math.round(size.y * STOP_CANVAS_PAD);
-    const W = size.x + 2 * mx, Hh = size.y + 2 * my;
-    if (stopCanvas.width !== W * dpr || stopCanvas.height !== Hh * dpr) {
-      stopCanvas.width = W * dpr; stopCanvas.height = Hh * dpr;
-      stopCanvas.style.width = `${W}px`; stopCanvas.style.height = `${Hh}px`;
-    }
-    stopPane.place(mx, my);
-    stopCanvas.style.display = "";
-    ctx.setTransform(dpr, 0, 0, dpr, mx * dpr, my * dpr);   // dibujo en coordenadas del contenedor
-    ctx.clearRect(-mx, -my, W, Hh);
-    stopHits = [];
-    const z = map.getZoom();
-    if (!stops.length || z >= STOP_DOM_ZOOM || stopsLowHidden()) return;
-    const b = map.getBounds().pad(STOP_CANVAS_PAD + 0.05);
-    const later = [];   // favoritas encima
-    for (const s of stops) {
-      if (!b.contains(s.ll)) continue;
-      const icon = iconFor(s, z);
-      (favStop(s.id) ? later : stopHits).push({ s, icon });
-    }
-    const all = stopHits.concat(later);
-    stopHits = [];
-    for (const { s, icon } of all) {
-      const p = map.latLngToContainerPoint(s.ll), w = icon.size[0];
-      const im = stopImg(icon);
-      if (im) ctx.drawImage(im, p.x - w / 2, p.y - w / 2, w, w);
-      stopHits.push({ x: p.x, y: p.y, r: sizeFor(z) / 2 + 4, s });
-    }
-  }
-  map.on("zoomstart", () => { stopCanvas.style.display = "none"; });
-  // Parada dibujada bajo un punto del mapa (la de encima si se solapan).
-  function stopAt(cp) {
-    for (let i = stopHits.length - 1; i >= 0; i--) {
-      const h = stopHits[i];
-      if (Math.abs(cp.x - h.x) <= h.r && Math.abs(cp.y - h.y) <= h.r) return h.s;
-    }
-    return null;
-  }
+  // ---------- Paradas en el mapa ----------
+  // Todas las paradas son una sola capa del mapa (js/mapa.js, stopLayer). Aspecto (stopLook): roja,
+  // oscura si es favorita, gris si está anulada y, con una línea abierta, las suyas de su color y algo
+  // más grandes y las demás casi transparentes; encima, las de la línea y las favoritas. Sin WebGL no
+  // hay mapa ni capa (stopLayer = null) y todo esto no hace nada.
   const stopClick = (s) => { if (tripOpen()) tripPickStop(s); else navigate(s.id, { replace: !!current }); };
-  // Con el mapa nuevo (MapLibre, fase 2), todas las paradas son una sola capa del mapa: no se crean
-  // ni quitan marcadores al moverse, ni hace falta el lienzo de las lejanas. Mismo aspecto que
-  // iconFor(): roja, oscura si es favorita y, con una línea abierta, las suyas de su color y algo
-  // más grandes y las demás casi transparentes; encima, las de la línea y las favoritas.
-  stopLayer = map.stopLayer ? map.stopLayer({ onClick: stopClick, hover: canHover, title: (s) => `${s.name} (${s.id})` }) : null;
+  const stopLayer = map.stopLayer ? map.stopLayer({ onClick: stopClick, hover: canHover, title: (s) => `${s.name} (${s.id})` }) : null;
+  function syncStops() {
+    if (stopLayer && stops.length && !stopLayer.ready) { stopLayer.ready = true; stopLayer.set(stops, stopLook); }
+  }
+  const restyleStops = () => { if (stopLayer) stopLayer.update(); };
+  const refreshIcon = restyleStops;
   function stopLook(s) {
     const l = active && lines && lines[active.code];
     const inLine = !!(l && active.stops.has(s.id)), fav = favStop(s.id), off = closures.length && closedAll(s.id);
     return { bg: inLine ? l.color : off ? "#9AA1A6" : fav ? "#13222C" : "#D3202F", fg: inLine ? l.texto : "#FFFFFF", big: inLine,
       op: !active || active.stops.has(s.id) ? 1 : 0.12, sort: (inLine ? 2 : 0) + (fav ? 1 : 0) };
-  }
-  // Va antes que los demás toques del mapa: si se toca una parada dibujada, se abre y nada más.
-  map.on("click", (e) => {
-    if (map.getZoom() >= STOP_DOM_ZOOM || !stopHits.length) return;
-    const s = stopAt(e.containerPoint);
-    if (!s) return;
-    e.originalEvent._stopHit = true;
-    stopClick(s);
-  });
-  if (canHover) {
-    map.on("mousemove", (e) => {
-      if (stopLayer || map.getZoom() >= STOP_DOM_ZOOM) return;
-      const s = stopAt(e.containerPoint);
-      map.getContainer().classList.toggle("on-stop", !!s);
-      map.getContainer().title = s ? `${s.name} (${s.id})` : "";
-    });
   }
   const lineGroup = map.group();
 
@@ -392,10 +245,7 @@
   function updateStopVisibility() {
     // Con una línea abierta, las paradas se ocultan al alejar. En "Cómo llegar", con un viaje
     // dibujado, solo se ven las paradas de ese viaje (las dibuja drawTrip con el color de su línea).
-    map.getContainer().classList.toggle("hide-stops", !!active && map.getZoom() < LINE_STOPS_ZOOM);
-    map.getContainer().classList.toggle("trip-stops", tripRouteOn);
     if (stopLayer) stopLayer.hide((!!active && map.getZoom() < LINE_STOPS_ZOOM) || tripRouteOn);
-    drawStopsLow();
     drawNums();   // los números de portal se ocultan con una línea o un viaje dibujados
     if (map.showNetwork) map.showNetwork(netOn && !active && !tripRouteOn);   // red de líneas (mapa nuevo; interruptor en el menú de capas)
   }
@@ -403,11 +253,9 @@
   map.on("zoomend", () => {
     updateStopVisibility();
     const z = map.getZoom();
-    syncStops();   // también cambia el icono de las visibles; las demás, al entrar en pantalla
     selRing.setRadius(sizeFor(z) / 2 + 7);
   });
-  map.on("moveend", () => {
-    syncStops(); if (mode === "near" && !me && !current && !active) renderNear(); });
+  map.on("moveend", () => { if (mode === "near" && !me && !current && !active) renderNear(); });
 
   // Centra un punto en la zona del mapa que no tapa el panel.
   function focusOn(ll, zoom, animate = true) {
@@ -484,7 +332,9 @@
     })
     .catch(() => {})
     .then(() => closures);
-  const fmtDay = (k) => new Date(`${k}T12:00:00`).toLocaleDateString(lang, { day: "numeric", month: "numeric", year: "numeric" });
+  // Día/mes/año en todos los idiomas (no depende de que el navegador tenga datos del idioma: sin los
+  // del gallego, Chrome daba "11/14/2026").
+  const fmtDay = (k) => { const [y, m, d] = k.split("-").map(Number); return `${d}/${m}/${y}`; };
   function closureHtml(x, crowd) {
     const { a, c } = x;
     const why = t(`why_${a.motivo}`);
@@ -2628,21 +2478,11 @@
   $("#info-back").addEventListener("click", goBack);
   $("#place-trip").addEventListener("click", () => { if (place) openTrip({ kind: "addr", ll: place.ll, label: place.label, approx: place.approx }); });
 
-  // ---------- Números de portal en el mapa ----------
-  // Con zoom alto se dibujan todos los números de portal conocidos (aunque el mapa base ya traiga
-  // algunos). Van en un lienzo propio; solo los que caen en pantalla y sin que se pisen entre ellos.
-  // Tocar uno abre esa dirección (o, en "Cómo llegar", la elige como origen o destino).
-  // Mismo zoom desde el que el mapa de OpenStreetMap empieza a pintar sus números de portal (17).
-  const NUM_ZOOM = 18;     // uno más que el mapa base (17), para no cargar tanto la vista
-  const PLACE_ZOOM = 18;   // al abrir una dirección
-  const numPane = map.canvasPane("nums", 450, "num-canvas");   // encima de los trazados, debajo de las paradas
-  const numCanvas = numPane.canvas;
-  let numHits = [];   // { x, y, w, h, pt } en coordenadas del mapa (contenedor)
-  const numsOn = () => map.getZoom() >= NUM_ZOOM && !tripRouteOn && !active;
-  // Mapa nuevo (MapLibre, fase 6): Vigo Vertical como capa del mapa (se mueve y gira con él).
+  // ---------- Números de portal y Vigo Vertical en el mapa ----------
   // Los números de portal no se dibujan (decisión del usuario, 9/11: basta con que el buscador
-  // reconozca las direcciones con número; dibujar los 52.000 congelaba la página).
-  const nativeMap = !!map.verticalLayer;
+  // reconozca las direcciones con número; dibujar los 52.000 congelaba la página). Vigo Vertical es
+  // una capa del mapa (js/mapa.js, verticalLayer) que se mueve y gira con él.
+  const PLACE_ZOOM = 18;   // al abrir una dirección
   // Mapa nuevo (fase 7): la red de líneas al alejar y los sitios útiles con icono.
   if (map.setNetwork) {
     linesReady.then((ls) => {
@@ -2658,124 +2498,24 @@
       .map((x) => ({ ll: x.ll, name: x.name, type: x.type, order: SITE_ORDER.indexOf(x.type) })))).catch(() => {});
   }
   let vvLayer = null;   // se crea con VV_ZOOM, más abajo
-  function nativeNums() {
+  // Antes "drawNums" (lienzo de números de portal del mapa de antes): hoy solo Vigo Vertical.
+  function drawNums() {
+    if (!vvLayer) return;
     vvLayer.show(!active);
     if (!vvLayer.loaded() && map.getZoom() >= VV_ZOOM) ensureVertical().then((d) => { if (!vvLayer.loaded()) vvLayer.set(d.elementos); }).catch(() => {});
   }
-
-  function drawNums() {
-    if (nativeMap) { nativeNums(); return; }
-    numHits = [];
-    const ctx = numCanvas.getContext("2d");
-    const size = map.getSize(), dpr = window.devicePixelRatio || 1;
-    if (numCanvas.width !== size.x * dpr || numCanvas.height !== size.y * dpr) {
-      numCanvas.width = size.x * dpr; numCanvas.height = size.y * dpr;
-      numCanvas.style.width = `${size.x}px`; numCanvas.style.height = `${size.y}px`;
-    }
-    numPane.place(0, 0);
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.clearRect(0, 0, size.x, size.y);
-    drawVertical(ctx);
-    if (!numsOn()) return;
-    if (!dirData) { ensureDir().then(drawNums).catch(() => {}); return; }
-    const b = map.getBounds().pad(0.05);
-    const pts = dirData.portalsIn(b.getSouth(), b.getWest(), b.getNorth(), b.getEast());
-    const z = map.getZoom();
-    // Discretos: letra pequeña, color claro y halo fino (el portal elegido, en rojo).
-    ctx.font = `500 ${z >= 19 ? 12 : 11}px Barlow, system-ui, sans-serif`;
-    ctx.textAlign = "center"; ctx.textBaseline = "middle";
-    ctx.lineJoin = "round"; ctx.lineWidth = 2; ctx.strokeStyle = "rgba(255,255,255,.75)";
-    const boxes = [];
-    const selKey = place && /\d/.test(place.label) ? place.label : null;
-    for (const pt of pts) {
-      const p = map.latLngToContainerPoint(pt.ll);
-      const w = ctx.measureText(pt.n).width + 4, h = 14;
-      const box = { x: p.x - w / 2, y: p.y - h / 2, w, h, pt };
-      numHits.push(box);
-      if (boxes.some((o) => box.x < o.x + o.w && o.x < box.x + box.w && box.y < o.y + o.h && o.y < box.y + box.h)) continue;
-      boxes.push(box);
-      const sel = selKey === `${pt.s.name}, ${pt.n}`;
-      ctx.fillStyle = sel ? "#D3202F" : "rgba(91,79,69,.72)";
-      ctx.strokeText(pt.n, p.x, p.y);
-      ctx.fillText(pt.n, p.x, p.y);
-    }
-  }
   // ---------- Vigo Vertical en el mapa ----------
-  // Rampas, escaleras mecánicas y ascensores (data/vigo-vertical.json), dibujados en el mismo lienzo
-  // que los números de portal y con el mismo estilo discreto, desde zoom 16; no se pueden tocar.
-  // Rampa: trazo con una flecha hacia arriba; escalera mecánica: además, peldaños; ascensor: un
-  // cuadradito con flechas arriba y abajo (el inclinado, sobre su trazo).
+  // Rampas, escaleras mecánicas y ascensores (data/vigo-vertical.json), desde zoom 16; no se pueden tocar.
   const VV_ZOOM = 16;
   if (map.verticalLayer) vvLayer = map.verticalLayer({ minZoom: VV_ZOOM });
-  let vvData = null, vvLoading = null;
+  let vvLoading = null;
   function ensureVertical() {
     if (!vvLoading) vvLoading = fetch("data/vigo-vertical.json").then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); })
-      .then((d) => { vvData = d; return d; }).catch((e) => { vvLoading = null; throw e; });
+      .catch((e) => { vvLoading = null; throw e; });
     return vvLoading;
   }
-  const VV_INK = "rgba(91,79,69,.78)", VV_HALO = "rgba(255,255,255,.85)";
-  function liftIcon(ctx, x, y, s) {
-    ctx.fillStyle = VV_HALO;
-    const box = (x0, y0, w, r) => { ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(x0, y0, w, w, r); else ctx.rect(x0, y0, w, w); ctx.fill(); };
-    box(x - s / 2 - 1.5, y - s / 2 - 1.5, s + 3, 4);
-    ctx.fillStyle = VV_INK;
-    box(x - s / 2, y - s / 2, s, 3);
-    ctx.fillStyle = "#fff";
-    const a = s * 0.22;
-    ctx.beginPath(); ctx.moveTo(x, y - s * 0.36); ctx.lineTo(x + a, y - s * 0.06); ctx.lineTo(x - a, y - s * 0.06); ctx.fill();
-    ctx.beginPath(); ctx.moveTo(x, y + s * 0.36); ctx.lineTo(x + a, y + s * 0.06); ctx.lineTo(x - a, y + s * 0.06); ctx.fill();
-  }
-  function drawVertical(ctx) {
-    if (map.getZoom() < VV_ZOOM || active) return;
-    if (!vvData) { ensureVertical().then(drawNums).catch(() => {}); return; }
-    const z = map.getZoom(), lw = z >= 18 ? 4 : 3, s = z >= 18 ? 14 : 12;
-    const b = map.getBounds().pad(0.1);
-    ctx.lineCap = "round"; ctx.lineJoin = "round";
-    for (const el of vvData.elementos) {
-      if (!b.contains(el.ka) && !b.contains(el.kb)) continue;
-      const p = map.latLngToContainerPoint(el.ka), q = map.latLngToContainerPoint(el.kb);
-      if (el.t === "ascensor") { liftIcon(ctx, p.x, p.y, s); continue; }
-      const dx = q.x - p.x, dy = q.y - p.y, L = Math.hypot(dx, dy) || 1, ux = dx / L, uy = dy / L;
-      ctx.strokeStyle = VV_HALO; ctx.lineWidth = lw + 3;
-      ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(q.x, q.y); ctx.stroke();
-      ctx.strokeStyle = VV_INK; ctx.lineWidth = lw;
-      ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(q.x, q.y); ctx.stroke();
-      if (el.t === "escalera" && L > 14) {   // peldaños
-        ctx.lineWidth = 1.5;
-        for (let d = 5; d < L - 3; d += 5) {
-          const cx = p.x + ux * d, cy = p.y + uy * d;
-          ctx.beginPath(); ctx.moveTo(cx - uy * (lw + 2), cy + ux * (lw + 2)); ctx.lineTo(cx + uy * (lw + 2), cy - ux * (lw + 2)); ctx.stroke();
-        }
-      }
-      const mx = (p.x + q.x) / 2, my = (p.y + q.y) / 2;
-      if (el.t === "inclinado") { liftIcon(ctx, mx, my, s); continue; }
-      if (L < 10) continue;
-      // Flecha hacia el extremo de arriba (las rampas y escaleras suben).
-      const h = lw + 4;
-      ctx.fillStyle = VV_INK; ctx.strokeStyle = VV_HALO; ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      ctx.moveTo(mx + ux * h, my + uy * h);
-      ctx.lineTo(mx - ux * h * 0.6 - uy * h, my - uy * h * 0.6 + ux * h);
-      ctx.lineTo(mx - ux * h * 0.6 + uy * h, my - uy * h * 0.6 - ux * h);
-      ctx.closePath(); ctx.stroke(); ctx.fill();
-    }
-  }
+  map.on("moveend zoomend resize", drawNums);
 
-  // Durante el zoom animado el lienzo se esconde; se vuelve a dibujar al terminar.
-  map.on("zoomstart", () => { numCanvas.style.visibility = "hidden"; });
-  map.on("moveend zoomend resize", () => { numCanvas.style.visibility = ""; drawNums(); });
-
-  // Portal tocado: el número más cercano al toque (a menos de 16 px).
-  function numAt(cp) {
-    if (!numsOn()) return null;
-    if (nativeMap) return null;   // mapa nuevo: sin números en el mapa
-    let best = null, bd = 16;
-    for (const b of numHits) {
-      const d = Math.hypot(cp.x - (b.x + b.w / 2), cp.y - (b.y + b.h / 2));
-      if (d < bd) { bd = d; best = b.pt; }
-    }
-    return best;
-  }
   // Brújula (mapa nuevo, fase 6): con el mapa girado aparece arriba a la derecha; la aguja marca el
   // norte y al tocarla el mapa vuelve con el norte arriba.
   const compass = $("#compass");
@@ -2790,11 +2530,6 @@
   // El toque que sigue a una pulsación larga ("Desde aquí / Hasta aquí") no cuenta como toque.
   let heldAt = 0;
   const justHeld = () => Date.now() - heldAt < 700;
-  map.on("click", (e) => {
-    if (tripOpen() || justHeld() || e.originalEvent._stopHit) return;   // en "Cómo llegar" lo atiende su propio manejador
-    const pt = numAt(e.containerPoint);
-    if (pt) openPlace({ ll: pt.ll, label: `${pt.s.name}, ${pt.n}`, approx: false }, { replace: panel.dataset.view === "place" });
-  });
 
   // ---------- Cómo llegar (de A a B; por ahora, a pie) ----------
   // Cada extremo es { kind: "stop" | "me" | "map", ll: [lat, lon], id? }. En la dirección: #ir/<A>/<B>,
@@ -3874,10 +3609,7 @@
 
   map.on("click", (e) => {
     if (!tripOpen() || justHeld() || e.originalEvent._stopHit) return;
-    // Si se toca un número de portal, se elige esa dirección; si no, el punto del mapa.
-    const pt = numAt(e.containerPoint);
-    if (pt) setEnd(targetEnd(), { kind: "addr", ll: pt.ll, label: `${pt.s.name}, ${pt.n}` });
-    else setEnd(targetEnd(), { kind: "map", ll: [e.latlng.lat, e.latlng.lng] });
+    setEnd(targetEnd(), { kind: "map", ll: [e.latlng.lat, e.latlng.lng] });
   });
 
   // ---------- "Desde aquí / Hasta aquí" en cualquier punto del mapa (32) ----------
@@ -3940,7 +3672,7 @@
     const cancel = () => { clearTimeout(timer); timer = null; };
     el.addEventListener("touchstart", (e) => {
       cancel();
-      if (e.touches.length !== 1 || e.target.closest(".leaflet-popup, .leaflet-control, .maplibregl-popup, .maplibregl-ctrl")) return;
+      if (e.touches.length !== 1 || e.target.closest(".maplibregl-popup, .maplibregl-ctrl")) return;
       x0 = e.touches[0].clientX; y0 = e.touches[0].clientY;
       timer = setTimeout(() => {
         timer = null;

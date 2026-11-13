@@ -44,8 +44,7 @@ tools/actualizar_peatonal.py  genera peatonal.json desde las vías de OpenStreet
 tools/relieve.py        lee el relieve y calcula el coste de andar en cuesta
 tools/descargar_relieve.py, tools/preparar_relieve.py  descarga (una vez) y recorte del relieve
 tools/actualizar_direcciones.py  genera direcciones.json desde las vías y portales de OpenStreetMap
-vendor/leaflet/         Leaflet 1.9.4
-vendor/maplibre/        MapLibre GL JS 5.24 y su complemento para Leaflet (mapa base de OpenFreeMap)
+vendor/maplibre/        MapLibre GL JS 5.24 (mapa vectorial de OpenFreeMap)
 fonts/                  Barlow (licencia OFL)
 icons/, manifest.webmanifest, sw.js   app instalable
 ```
@@ -184,7 +183,7 @@ y abre http://localhost:8000.
 
 ## Coste
 
-Todo es gratuito y sin claves: el mapa base es el de OpenStreetMap (con su atribución), los tiempos vienen de la API abierta del Concello de Vigo y Leaflet y Barlow son de código abierto. Para alojarla basta GitHub Pages.
+Todo es gratuito y sin claves: el mapa base es el de OpenFreeMap con datos de OpenStreetMap (con su atribución), los tiempos vienen de la API abierta del Concello de Vigo y MapLibre y Barlow son de código abierto. Para alojarla basta GitHub Pages.
 
 Mapa base y red peatonal © colaboradores de OpenStreetMap. La red peatonal (`data/peatonal.json`
 y `data/osm/`) es una base de datos derivada de OpenStreetMap y se distribuye con la licencia
@@ -201,6 +200,6 @@ licencia **GNU AGPL-3.0** (solo la versión 3, [`LICENSE`](LICENSE)) y estos
   enlace a este repositorio.
 - El nombre «Vigo Bus» y el logo no forman parte de la licencia: las copias deben usar
   otro nombre y otro logo.
-- Los datos (OpenStreetMap, Concello de Vigo, Catastro), la letra Barlow y Leaflet mantienen sus
+- Los datos (OpenStreetMap, Concello de Vigo, Catastro), la letra Barlow y MapLibre mantienen sus
   propias licencias.
 
