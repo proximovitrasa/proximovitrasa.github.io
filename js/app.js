@@ -328,6 +328,8 @@
     .then((d) => {
       closures = Array.isArray(d.avisos) ? d.avisos : [];
       if (stops.length) restyleStops();
+      if (panel.dataset.view === "place" && location.hash.startsWith("#dir/")) showPlace(location.hash.slice(5));   // paradas próximas de la dirección
+      else if (!current && !active && panel.dataset.view === "home") render();
       if (current && lastArrivalsId === current.id && (lastUpdate || arrivalsFailed)) renderArrivals(lastArrivals);
     })
     .catch(() => {})
@@ -378,6 +380,10 @@
     return stops.map((s) => ({ s, d: haversine(origin, s.ll) }))
       .sort((a, b) => a.d - b.d).slice(0, n);
   }
+  // Para las listas de paradas cercanas: las anuladas hoy (data/anuladas.json, todas sus líneas) al
+  // final, en gris y con "Anulada". Se lee siempre de los avisos vigentes: al acabar uno, vuelven solas.
+  const openFirst = (list) => list.slice().sort((a, b) => closedAll(a.s.id) - closedAll(b.s.id));
+  const closedTag = (s) => (closedAll(s.id) ? `<em class="closed-tag">${esc(t("closed_tag"))}</em>` : "");
 
   // Filas del buscador y de las paradas cercanas como en el mockup (rediseño, fase 2): un cuadro
   // con el icono (parada, línea, sitio o dirección), el nombre, una línea gris y la distancia.
@@ -403,8 +409,10 @@
     return li;
   }
   function resStop(s, nameHtml) {
-    return resRow(`data-id="${esc(s.id)}"`, STOP_TILE, nameHtml || esc(s.name),
-      esc(`${t("stop_n", { id: s.id })} · ${nLines(s.lines.length)}`), me ? haversine(me, s.ll) : null);
+    const li = resRow(`data-id="${esc(s.id)}"`, STOP_TILE, nameHtml || esc(s.name),
+      esc(`${t("stop_n", { id: s.id })} · ${nLines(s.lines.length)}`) + closedTag(s), me ? haversine(me, s.ll) : null);
+    if (closedAll(s.id)) li.classList.add("is-closed");
+    return li;
   }
   function secHead(text, extra = "") {
     const li = document.createElement("li");
@@ -430,14 +438,14 @@
         <div class="near-dep-list"><p class="note">…</p></div>`;
       const head = secHead(t("near_stops"));
       head.id = "near-stops-head";
-      fillList([dep, head, ...near.map(({ s }) => resStop(s))], "");
+      fillList([dep, head, ...openFirst(near).map(({ s }) => resStop(s))], "");
       refreshNearDep();
     } else {
       const c = map.getCenter();
       const top = document.createElement("li");
       top.className = "near-dep";
       top.innerHTML = `<div class="near-head"><h3>${esc(t("area_title"))}</h3><button type="button" class="near-more" data-use-loc="1">${esc(t("use_location"))}</button></div>`;
-      fillList([top, ...nearest([c.lat, c.lng], NEAR_COUNT).map(({ s }) => resStop(s))], "");
+      fillList([top, ...openFirst(nearest([c.lat, c.lng], NEAR_COUNT)).map(({ s }) => resStop(s))], "");
     }
   }
   $("#list").addEventListener("click", (e) => {
@@ -629,7 +637,7 @@
       });
     } else {
       const c = map.getCenter();
-      items.push(secHead(t(me ? "near_stops" : "area_title")), ...nearest(me || [c.lat, c.lng], NEAR_COUNT).map(({ s }) => resStop(s)));
+      items.push(secHead(t(me ? "near_stops" : "area_title")), ...openFirst(nearest(me || [c.lat, c.lng], NEAR_COUNT)).map(({ s }) => resStop(s)));
     }
     fillList(items, "");
   }
@@ -2345,10 +2353,11 @@
     // Como en el mockup (10): "Dirección · a 650 m de ti" y las paradas de alrededor con sus líneas.
     $("#place-meta").textContent = place.site ? t(`site_${place.site}`) : place.approx ? t("addr_approx") : /\d/.test(place.label) ? t("fav_address") : t("addr_whole");
     $("#place-dist").textContent = me ? ` · ${t("from_you", { d: fmtDist(haversine(me, place.ll)) })}` : "";
-    $("#place-stops").replaceChildren(...nearest(place.ll, 6).map(({ s, d }) => {
+    $("#place-stops").replaceChildren(...openFirst(nearest(place.ll, 6)).map(({ s, d }) => {
       const li = document.createElement("li");
+      if (closedAll(s.id)) li.className = "is-closed";
       li.innerHTML = `<button type="button" class="pstop" data-id="${esc(s.id)}">
-        <span class="txt"><span class="name">${esc(s.name)}</span><span class="pl"><small>${esc(t("stop_n", { id: s.id }))}</small>${s.lines.map((l) => `<i${lineStyle(l)}>${esc(l)}</i>`).join("")}</span></span>
+        <span class="txt"><span class="name">${esc(s.name)}${closedTag(s)}</span><span class="pl"><small>${esc(t("stop_n", { id: s.id }))}</small>${s.lines.map((l) => `<i${lineStyle(l)}>${esc(l)}</i>`).join("")}</span></span>
         <span class="walk"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="13" cy="4" r="2"/><path d="M9 21l3-7 3 3v4M7 12l3-4 4 2 3 3"/></svg>${esc(hMin(walkMin(d * 1.25)))}</span>
       </button>`;
       return li;
