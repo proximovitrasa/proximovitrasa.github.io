@@ -2,6 +2,7 @@
 # Consulta en bucle las paradas de tools/registro-paradas.json (tronco de cada línea y paradas
 # justo después de cada separación de ramales) y guarda las respuestas, junto con el GTFS del día,
 # en la rama prueba-concello (registro/<día>/). No toca main ni la web ni abre avisos.
+# La semana del 14 al 22/11 la registra registrar-semana.yml (este queda para pruebas sueltas).
 # TEMPORAL: borrar este archivo (y tools/registrar_api.py, elegir_paradas_registro.js y
 # registro-paradas.json si ya no hacen falta) después del domingo 15/11/2026.
 name: Registrar la API de Vitrasa (temporal)
@@ -12,7 +13,6 @@ on:
     - cron: "41 5 9 11 *"     # lunes 9/11, mañana (después del Action semanal de horarios)
     - cron: "23 11 9 11 *"    # lunes 9/11, mediodía y tarde
     - cron: "59 16 9 11 *"    # lunes 9/11, tarde y noche
-    - cron: "41 10 15 11 *"   # domingo 15/11, alrededor de las 12:57 (caso de la C3i)
   workflow_dispatch:
     inputs:
       minutos:

@@ -1,0 +1,103 @@
+# Registro de una semana entera de la API de tiempos en vivo (control de calidad de la tarea 75:
+# ramales, viajes partidos y retrasos). Una sola ejecución, sin depender de nadie: se lanza a mano
+# una vez y encadena trabajos de menos de 6 h, uno detrás de otro, hasta las 24:00 del último día.
+# Registra día y noche (también los búhos y usos nocturnos), con tools/registrar_semana.py. Al acabar cada trabajo guarda lo registrado en la rama
+# prueba-concello (registro/<día>/), igual que registrar-api.yml. No toca main ni la web.
+# TEMPORAL: borrar cuando acabe el análisis de la semana.
+name: Registrar la API una semana (temporal)
+on:
+  workflow_dispatch:
+    inputs:
+      hasta:
+        description: "Último día de registro (AAAA-MM-DD, hora de Vigo)"
+        default: "2026-11-22"
+permissions:
+  contents: write   # solo para guardar el registro en la rama prueba-concello
+concurrency:
+  group: registrar-semana
+  cancel-in-progress: false
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      trozos: ${{ steps.c.outputs.trozos }}
+    steps:
+      - id: c
+        run: |
+          fin=$(TZ=Europe/Madrid date -d "${{ github.event.inputs.hasta }} + 1 day" +%s)
+          n=$(( (fin - $(date +%s)) / (330*60) + 3 ))      # trozos de ~340 min, con margen
+          [ $n -lt 1 ] && n=1; [ $n -gt 250 ] && n=250
+          echo "trozos=$(seq -s, 1 $n | sed 's/.*/[&]/')" >> "$GITHUB_OUTPUT"
+          echo "$n trozos hasta el ${{ github.event.inputs.hasta }} a las 24:00" >> "$GITHUB_STEP_SUMMARY"
+
+  registrar:
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 358
+    strategy:
+      max-parallel: 1      # uno detrás de otro
+      fail-fast: false     # si uno falla, siguen los demás
+      matrix:
+        trozo: ${{ fromJSON(needs.plan.outputs.trozos) }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: ¿Queda semana?
+        id: q
+        run: |
+          fin=$(TZ=Europe/Madrid date -d "${{ github.event.inputs.hasta }} + 1 day" +%s)
+          if [ "$(date +%s)" -ge "$fin" ]; then echo "sigue=no" >> "$GITHUB_OUTPUT"; echo "La semana ya acabó."; else echo "sigue=si" >> "$GITHUB_OUTPUT"; fi
+
+      - name: Guardar el GTFS del día
+        if: steps.q.outputs.sigue == 'si'
+        run: |
+          mkdir -p registro
+          curl -sS --fail --retry 3 --retry-delay 10 -m 120 -o registro/gtfs_vigo.zip https://datos.vigo.org/data/transporte/gtfs_vigo.zip || echo "no se pudo bajar el GTFS" > registro/gtfs.error
+          git rev-parse HEAD > registro/commit.txt
+
+      - name: Registrar
+        if: steps.q.outputs.sigue == 'si'
+        run: python3 tools/registrar_semana.py registro/api.jsonl "${{ github.event.inputs.hasta }}"
+
+      - name: Resumen
+        if: always() && steps.q.outputs.sigue == 'si'
+        run: |
+          [ -s registro/api.jsonl ] || { echo "Trozo ${{ matrix.trozo }}: sin registro." >> "$GITHUB_STEP_SUMMARY"; exit 0; }
+          python3 - <<'EOF' >> "$GITHUB_STEP_SUMMARY"
+          import json, collections
+          n = err = 0; lin = collections.Counter()
+          for l in open("registro/api.jsonl", encoding="utf-8"):
+              r = json.loads(l); n += 1
+              if "error" in r: err += 1; continue
+              for x in r["est"]: lin[x["linea"]] += 1
+          print(f"Trozo ${{ matrix.trozo }}: **{n} consultas**, {err} con error, {len(lin)} líneas.")
+          EOF
+
+      - name: Guardar el registro en la rama prueba-concello
+        if: always() && steps.q.outputs.sigue == 'si'
+        run: |
+          set -e
+          [ -s registro/api.jsonl ] || exit 0
+          dia=$(cat registro/dia.txt 2>/dev/null || TZ=Europe/Madrid date +%Y-%m-%d)
+          nombre="api-${GITHUB_RUN_ID}-${{ matrix.trozo }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch --depth 1 origin prueba-concello
+          git worktree add /tmp/rama FETCH_HEAD
+          mkdir -p "/tmp/rama/registro/$dia"
+          gzip -9 -c registro/api.jsonl > "/tmp/rama/registro/$dia/$nombre.jsonl.gz"
+          cp registro/commit.txt "/tmp/rama/registro/$dia/commit-$nombre.txt"
+          if [ -f registro/gtfs_vigo.zip ]; then
+            md5=$(md5sum registro/gtfs_vigo.zip | cut -c1-12)
+            [ -f "/tmp/rama/registro/gtfs-$md5.zip" ] || cp registro/gtfs_vigo.zip "/tmp/rama/registro/gtfs-$md5.zip"
+            echo "gtfs-$md5.zip" > "/tmp/rama/registro/$dia/gtfs-$nombre.txt"
+          fi
+          cd /tmp/rama
+          git add registro
+          git commit -q -m "Registro de la API ${dia} (semana, ejecución ${GITHUB_RUN_ID}, trozo ${{ matrix.trozo }})"
+          for i in 1 2 3 4 5; do
+            git push origin HEAD:prueba-concello && exit 0
+            sleep $((i * 10))
+            git pull --rebase -q origin prueba-concello || true
+          done
+          exit 1
