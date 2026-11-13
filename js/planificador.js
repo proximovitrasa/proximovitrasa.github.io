@@ -1025,22 +1025,40 @@
         branchNames.get(k).push({ stop: i, n: x.n });
       }
     }
+    // Solo se pone nombre cuando la línea no siempre hace lo mismo de verdad (13/11, decisión del
+    // usuario): frente a recorridos con al menos MIN_TRIPS viajes al día (no viajes sueltos), y "por"
+    // solo si el tramo propio tiene al menos MIN_OWN paradas (no una o dos paradas distintas).
+    const MIN_TRIPS = 3, MIN_OWN = 3;
+    const dayTrips = new Map();
+    const tripsPerDay = (pt) => {
+      if (!dayTrips.has(pt.n)) {
+        let best = 0;
+        for (let b = 0; b < 7; b++) { let c = 0; for (let k = 0; k < pt.mask.length; k++) if (pt.mask[k] & (1 << b)) c++; if (c > best) best = c; }
+        dayTrips.set(pt.n, best);
+      }
+      return dayTrips.get(pt.n);
+    };
+    const routeTrips = (r) => r.pats.reduce((a, n) => a + tripsPerDay(pats[n]), 0);
     function branchName(routes, js) {
-      const mine = js.map((j) => routes[j]), others = routes.filter((_, j) => !js.includes(j));
+      const mine = js.map((j) => routes[j]);
+      const others = routes.filter((r, j) => !js.includes(j) && routeTrips(r) >= MIN_TRIPS);
       if (!others.length || !mine.length) return null;
-      // Primero, el nombre hecho a mano de la parada propia que antes se encuentre.
+      const end = (r) => r.stops[r.stops.length - 1];
+      // "Hasta": acaba antes, en una parada por la que los demás siguen.
+      const e = end(mine[0]);
+      if (mine.every((r) => end(r) === e) && others.every((o) => { const k = o.stops.indexOf(e); return k >= 0 && k < o.stops.length - 1; })) return { until: e };
+      // "Por": su tramo propio (paradas por las que no pasa ninguno de los otros).
+      const own = mine[0].stops.filter((x) => !others.some((o) => o.stops.includes(x)) && mine.every((r) => r.stops.includes(x)));
+      if (own.length < MIN_OWN) return null;
+      // Si lo suyo es solo el final, "hasta" su última parada.
+      if (own.every((x) => mine[0].stops.indexOf(x) >= mine[0].stops.length - MIN_OWN)) return { until: e };
+      // El nombre hecho a mano (data/ramales.json) de la primera de sus paradas propias que lo tenga;
+      // si no hay, la calle de la primera.
       const pt0 = pats[mine[0].pats[0]];
-      const named = (branchNames.get(`${pt0.l}|${pt0.s}`) || [])
-        .filter((e) => mine.every((r) => r.stops.includes(e.stop)) && !others.some((o) => o.stops.includes(e.stop)))
+      const named = (branchNames.get(`${pt0.l}|${pt0.s}`) || []).filter((x) => own.includes(x.stop))
         .sort((a, b) => mine[0].stops.indexOf(a.stop) - mine[0].stops.indexOf(b.stop));
       if (named.length) return { name: named[0].n, by: named[0].stop };
-      const end = (r) => r.stops[r.stops.length - 1];
-      const u = mine[0].stops.find((x) => !others.some((o) => o.stops.includes(x)));
-      // Si lo suyo es solo el final (las dos últimas paradas), "hasta" su última parada.
-      if (u != null && mine.every((r) => end(r) === end(mine[0])) && mine[0].stops.indexOf(u) >= mine[0].stops.length - 2) return { until: end(mine[0]) };
-      if (u != null && mine.every((r) => r.stops.includes(u))) return { by: u };
-      if (mine.every((r) => end(r) === end(mine[0])) && others.every((o) => o.stops.includes(end(mine[0])) && o.stops.indexOf(end(mine[0])) < o.stops.length - 1)) return { until: end(mine[0]) };
-      return null;
+      return { by: own[0] };
     }
     // Recorrido de un viaje del horario (patrón "pat" que sale a "trip") que pasa por s frente a los
     // demás viajes de su línea y sentido que pasan por s a esa hora (±MATCH_WINDOW): branchName o null.
