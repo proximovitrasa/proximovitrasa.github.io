@@ -133,6 +133,9 @@
   let reqSeq = 0;                 // descarta respuestas de peticiones antiguas
   let lines = null;               // data/lineas.json: recorrido y paradas de cada línea
   let lineRuta = null;            // destino de la fila de llegadas desde la que se abrió la línea
+  let linePats = null;            // recorridos (patrones del horario) del bus de esa fila, si se sabe su ramal
+  const LIVE_MAX_AGE = 180000;          // un dato en vivo de más de 3 min no se usa en Cómo llegar
+  const liveCache = new Map();       // parada → { at, list | null } (null: sin respuesta)
   let active = null;              // línea iluminada: { code, dir, stops, from, fromDir }
   let tripRouteOn = false;        // hay un viaje dibujado en "Cómo llegar"
   // Red de líneas del mapa nuevo: se enciende y apaga en el menú de capas (se recuerda).
@@ -1068,10 +1071,14 @@
       if (active !== act || !act.variant) return;
       const r = norm(act.variant.ruta);
       const fi = plan.index.get(act.from);
-      const pats = plan.pats.filter((pt) => pt.l === act.code && pt.s === act.dir && pt.h && pt.h.some((x) => norm(x) === r))
+      // Bus de un ramal conocido (fila de la parada con "· por …"): solo sus recorridos; si no, todos
+      // los de su letrero.
+      const known = (act.variant.pats || []).map((n) => plan.pats[n]).filter((pt) => pt && pt.l === act.code && pt.s === act.dir);
+      const pats = (known.length ? known : plan.pats.filter((pt) => pt.l === act.code && pt.s === act.dir && pt.h && pt.h.some((x) => norm(x) === r)))
         .sort((a, b) => (b.p.includes(fi) - a.p.includes(fi)) || (b.dep.length - a.dep.length));
       if (!pats.length) return;   // letrero que no está en el horario: la línea entera
-      const ids = (pt) => pt.p.map((i) => plan.ids[i]).filter((id) => byId.has(id));
+      // (Viaje partido del horario, "c": con las paradas del viaje en el que sigue.)
+      const ids = (pt) => [...pt.p, ...(pt.c != null ? plan.pats[pt.c].p.slice(1) : [])].map((i) => plan.ids[i]).filter((id) => byId.has(id));
       const main = ids(pats[0]);
       const others = pats.slice(1).map(ids).filter((x) => x.length > 1);
       const seen = new Set(main);
@@ -1127,13 +1134,14 @@
   let lineAllNext = false;   // "Ver la línea completa" desde una variante: la línea entera, sin recortar
   function showLine(code, from = null, variant = null) {
     leaveStop();
-    const changed = !active || active.code !== code || active.from !== from || (active.variant ? active.variant.ruta : null) !== variant;
+    const changed = !active || active.code !== code || active.from !== from || (active.variant ? active.variant.ruta : null) !== variant
+      || String(active.variant && active.variant.pats) !== String(variant ? linePats : null);
     if (changed) {
       clearLine();
       // Abierta desde una parada: el sentido que pasa por ella (si pasan los dos, el de la fila tocada).
       const dirWith = from ? dirThrough(lines[code], from, variant || lineRuta) : -1;
       active = { code, dir: Math.max(0, dirWith), stops: new Set(), from, fromDir: dirWith,
-        variant: variant && dirWith >= 0 ? { ruta: variant } : null };
+        variant: variant && dirWith >= 0 ? { ruta: variant, pats: linePats } : null };
       if (active.variant) loadVariant(active);
     }
     const l = lines[code];
@@ -1247,6 +1255,15 @@
     // Variante: solo los buses con su letrero.
     const v = active && active.code === tr.code && active.variant;
     if (v) mine = mine.filter((e) => norm(String(e.ruta || "")) === norm(v.ruta));
+    // Abierta desde la fila de un ramal: solo los buses de ese ramal (o los que aún no se sabe).
+    if (v && v.pats && stopPlan && stopPlan.index.has(tr.stop)) {
+      const si = stopPlan.index.get(tr.stop);
+      const ok = mine.filter((e) => {
+        const br = liveBranch(stopPlan, si, tr.code, tr.dir, e.ruta, Number(e.minutos), at instanceof Date ? at.getTime() : Number(at) || Date.now(), null);
+        return !br || br.pats.some((n) => v.pats.includes(n));
+      });
+      if (ok.length) mine = ok;
+    }
     else if (both) {
       const same = mine.filter((e) => goesTo(l.sentidos[tr.dir], e.ruta));
       if (same.length) mine = same;
@@ -1702,6 +1719,49 @@
   const delayHtml = (d) => d == null ? "" : Math.abs(d) <= 1 ? `<small class="ontime">${esc(t("delay_on"))}</small>`
     : d > 0 ? `<small class="late">${esc(t("delay_late", { n: d }))}</small>` : `<small class="early">${esc(t("delay_early", { n: -d }))}</small>`;
 
+  // ---------- Ramal de cada bus (fase 2 del plan de ramales, tarea 75) ----------
+  // Un bus va por un solo recorrido: si con su letrero puede ir por varios después de esta parada,
+  // se dice cuál ("· por <calle>" o "· hasta <parada>") y en el mapa se dibuja solo ese. En vivo,
+  // con las "sondas" (PV_PLAN.branchCheck / branchPick: dónde sale el bus en la API después de la
+  // separación); según horario, por su viaje.
+  // Calle de una parada: "Rúa de Eduardo Cabello (Igrexa)" → "Eduardo Cabello".
+  function streetOf(name) {
+    const x = String(name || "").replace(/\s*\(.*?\)\s*/g, " ").replace(/,.*$/, "").replace(/\s+\d+\s*$/, "").trim()
+      .replace(/^(Rúa|Avda\.?|Avenida|Estrada|Camiño|Praza|Subida|Baixada|Travesía|Ronda|Paseo|Rolda)\s+((d[eoa]s?|á|ás|ao|aos)\s+)?/i, "");
+    return x || String(name || "");
+  }
+  function branchText(plan, nm) {
+    if (!nm) return "";
+    if (nm.name) return t("branch_via", { x: nm.name });
+    const st = byId.get(plan.ids[nm.by != null ? nm.by : nm.until]);
+    if (!st) return "";
+    return nm.by != null ? t("branch_via", { x: streetOf(st.name) }) : t("branch_until", { x: st.name });
+  }
+  // Lo que da la API en una parada (para las sondas), con los minutos pasados a la hora t0 (ms); null
+  // si no hay un dato reciente (y entonces se apunta en "need" para pedirlo).
+  function probeLists(plan, t0, need) {
+    return (u) => {
+      const id = plan.ids[u], c = liveCache.get(id);
+      if (c && c.list && Date.now() - c.at < LIVE_MAX_AGE) {
+        const dm = (c.at - t0) / 60000;
+        return c.list.map((x) => ({ line: normLine(x.linea), ruta: x.ruta, minutos: Number(x.minutos) + dm }));
+      }
+      if (need && !(c && Date.now() - c.at < 20000)) need.add(id);
+      return null;
+    };
+  }
+  // Ramal de un bus en vivo a "m" minutos de la parada si (índice): { text, pats } o null (un solo
+  // recorrido posible, o aún no se sabe cuál).
+  function liveBranch(plan, si, linea, dir, raw, m, t0, need) {
+    const check = plan.branchCheck(si, linea, dir, raw, new Date(t0 + m * 60000));
+    if (!check) return null;
+    const js = plan.branchPick(check, linea, raw, m, probeLists(plan, t0, need));
+    if (!js.length || js.length === check.routes.length) return null;
+    const text = branchText(plan, plan.branchName(check.routes, js));
+    return text ? { text, pats: [...new Set(js.flatMap((j) => check.routes[j].pats))] } : null;
+  }
+  let probeAsked = null;   // lista de llegadas para la que ya se pidieron las sondas
+
   // list: estimaciones de la API ([] si no da ninguna; null si la consulta falló).
   function renderArrivals(list) {
     lastArrivals = list;
@@ -1719,13 +1779,24 @@
     // En vivo: agrupa por línea y destino; el próximo y el siguiente.
     const groups = new Map();
     const covered = new Set();   // líneas y sentidos con algún bus en vivo (no se repiten según horario)
+    const t0 = lastUpdate ? lastUpdate.getTime() : now.getTime(), need = new Set();
     (list || []).forEach((b) => {
       const linea = normLine(b.linea);
       const ruta = titleCase(String(b.ruta || ""));
-      const k = `${linea}|${ruta}`;
-      if (!groups.has(k)) groups.set(k, { linea, ruta, raw: String(b.ruta || "").trim(), buses: [], dir: s ? liveDir(s.id, linea, b.ruta) : null });
-      groups.get(k).buses.push(Number(b.minutos));
+      const dir = s ? liveDir(s.id, linea, b.ruta) : null;
+      const m = Number(b.minutos);
+      // Cada ramal, en su fila.
+      const br = si != null && dir != null && isFinite(m) ? liveBranch(stopPlan, si, linea, dir, b.ruta, m, t0, need) : null;
+      const k = `${linea}|${ruta}|${br ? br.text : ""}`;
+      if (!groups.has(k)) groups.set(k, { linea, ruta, raw: String(b.ruta || "").trim(), buses: [], dir, br });
+      groups.get(k).buses.push(m);
     });
+    // Sondas que faltan: se piden y se vuelve a pintar (una vez por respuesta de la API).
+    if (need.size && list && probeAsked !== list && s) {
+      probeAsked = list;
+      const id0 = s.id;
+      Promise.all([...need].map(getLive)).then(() => { if (current && current.id === id0 && lastArrivals === list) renderArrivals(list); });
+    }
     const rows = [];
     for (const g of groups.values()) {
       const mins = g.buses.filter((m) => !isNaN(m)).sort((a, b) => a - b);
@@ -1743,7 +1814,7 @@
       const same = all.filter((p) => { const h = stopPlan.pats[p.pat].h; return h && h.some((x) => norm(x) === rn); });
       const ps = same.length ? same : all;
       const delay = ps.length ? delayOf(ps, nowS + mins[0] * 60, new Set()) : null;
-      rows.push({ live: true, linea: g.linea, ruta: g.ruta, raw: g.raw, sortMin: mins[0], mins, delay });
+      rows.push({ live: true, linea: g.linea, ruta: g.ruta, raw: g.raw, sortMin: mins[0], mins, delay, br: g.br });
     }
     // Según horario (19): por línea, sentido y letrero de cada viaje (67: un ramal o un viaje que
     // "remata" antes sale con su propio letrero y sus horas, nunca con el destino de otro), sin los
@@ -1764,13 +1835,28 @@
         schedOf.get(key).ps.push(p);
       });
     }
-    for (const { h, ps } of schedOf.values()) {
+    // Con un mismo letrero, viajes por recorridos distintos después de esta parada: cada uno en su
+    // fila, con su ramal.
+    for (const [key, g] of [...schedOf]) {
+      const soon = g.ps.filter((p) => p.at >= nowS - 30 && p.at <= nowS + SCHED_AHEAD);
+      const routes = soon.length > 1 ? stopPlan.routesOf(si, soon.map((p) => ({ pat: p.pat, trip: p.trip })), now) : [];
+      if (routes.length < 2) continue;
+      schedOf.delete(key);
+      soon.forEach((p) => {
+        const j = routes.findIndex((r) => r.pats.includes(p.pat));
+        const text = branchText(stopPlan, stopPlan.branchName(routes, [j]));
+        const k2 = `${key}|${text}`;
+        if (!schedOf.has(k2)) schedOf.set(k2, { h: g.h, ps: [], br: text ? { text, pats: routes[j].pats } : null });
+        schedOf.get(k2).ps.push(p);
+      });
+    }
+    for (const { h, ps, br } of schedOf.values()) {
       const next = ps.filter((p) => p.at >= nowS - 30 && p.at <= nowS + SCHED_AHEAD);
       if (!next.length) continue;
       const [linea, dir] = [next[0].line, next[0].dir];
       const ln = lines && lines[linea];
       const ruta = h ? headText(h) : ln && ln.sentidos[dir] ? ln.sentidos[dir].destino : "";
-      rows.push({ live: false, linea, ruta, raw: UNTIL.has(h) ? "" : h, sortMin: (next[0].at - nowS) / 60, at: next.map((p) => p.at) });
+      rows.push({ live: false, linea, ruta, raw: UNTIL.has(h) ? "" : h, sortMin: (next[0].at - nowS) / 60, at: next.map((p) => p.at), br: br || null });
     }
     rows.sort((a, b) => a.sortMin - b.sortMin);
 
@@ -1799,10 +1885,10 @@
       // Toda la fila (número, destino y tiempo) abre la línea en el mapa.
       const known = lines && lines[g.linea];
       const tag = known ? "button" : "div";
-      const attrs = known ? ` type="button" data-line="${esc(g.linea)}" data-ruta="${esc(g.ruta)}"${g.raw ? ` data-raw="${esc(g.raw)}"` : ""} title="${esc(t("see_line", { code: g.linea }))}"` : "";
+      const attrs = known ? ` type="button" data-line="${esc(g.linea)}" data-ruta="${esc(g.ruta)}"${g.raw ? ` data-raw="${esc(g.raw)}"` : ""}${g.br ? ` data-pats="${g.br.pats.join(",")}"` : ""} title="${esc(t("see_line", { code: g.linea }))}"` : "";
       return `<${tag} class="arrival${g.live ? "" : " is-sched"}"${attrs}>
         ${badge0(g.linea)}
-        <span class="route"><b>${esc(g.ruta)}</b>${sub}</span>
+        <span class="route"><b>${esc(g.ruta)}</b>${g.br ? `<span class="via">${esc(g.br.text)}</span>` : ""}${sub}</span>
         ${eta}
       </${tag}>`;
     }).join("");
@@ -2929,8 +3015,7 @@
   const SHOW_OPTIONS = 8;               // opciones en bus que se ven de entrada; el resto, con "Ver más" (8/11)
   const LIVE_MAX_STOPS = 16;            // en las vueltas completas, paradas de subida de candidatos ocultos como mucho
   const FULL_EVERY = 4;                 // cada 4 vueltas (2 min) se piden todas las paradas de los candidatos
-  const LIVE_MAX_AGE = 180000;          // un dato en vivo de más de 3 min no se usa en Cómo llegar
-  const liveCache = new Map();       // parada → { at, list | null } (null: sin respuesta)
+  const PROBE_MAX = 12;                 // sondas de ramal como mucho por vuelta
   const walkCache = new Map();       // tramos a pie ya calculados
   let tripTimer = null, tripTick = null, tripBuses = [];
 
@@ -2988,8 +3073,9 @@
 
   // Buses en vivo de la línea y sentido de un tramo, en su parada de subida, que de verdad llevan a la
   // parada de bajada (ver PV_PLAN.liveReaches). Si la API da buses de la línea pero ninguno sirve, se
-  // devuelve null (se usa el horario, sin marcarlo dudoso).
-  function liveFor(plan, leg) {
+  // devuelve null (se usa el horario, sin marcarlo dudoso). Si con el letrero no queda claro, las
+  // sondas (liveReachesProbe): las paradas que faltan se apuntan en "need" para pedirlas.
+  function liveFor(plan, leg, need = null) {
     const e = liveCache.get(plan.ids[leg.board]);
     if (!e || !e.list || Date.now() - e.at > LIVE_MAX_AGE) return null;   // dato viejo: el horario
     const l = lines[leg.line];
@@ -2999,12 +3085,14 @@
     const mine = e.list.filter((x) => normLine(x.linea) === leg.line && (!both || !d || goesTo(d, x.ruta)));
     // Solo los buses que seguro llegan (o de letrero desconocido): ni los de otro ramal o que acaban
     // antes, ni aquellos en los que a esa hora hay viajes con su letrero que llegan y otros que no.
+    const lists = probeLists(plan, e.at, need);
     const good = mine.filter((x) => {
-      const r = plan.liveReaches(leg, x.ruta, new Date(e.at + Number(x.minutos) * 60000));
+      const r = plan.liveReachesProbe(leg, x.ruta, new Date(e.at + Number(x.minutos) * 60000), Number(x.minutos), lists);
       return r === "yes";   // "unknown" (sin viajes de la línea a esa hora): sin certeza, se usa el horario
     });
     if (mine.length && !good.length) return null;
-    return good.map((x) => ({ ...x, _at: e.at }));
+    // Con su ramal, si se sabe (para decirlo y dibujarlo).
+    return good.map((x) => ({ ...x, _at: e.at, _br: liveBranch(plan, leg.board, leg.line, leg.dir, x.ruta, Number(x.minutos), e.at, null) }));
   }
 
   async function computeTrip(fit) {
@@ -3159,6 +3247,12 @@
     planSearch();
     const more = [...boards()].filter((id) => !ids.has(id));
     if (more.length) await Promise.all(more.map(getLive));
+    if (seq !== tripSeq || lastTrip !== lt) return;
+    // Sondas de ramal (fase 2): paradas después de una separación en las que mirar si sale el bus,
+    // cuando con su letrero no se sabe si llega (como mucho PROBE_MAX por vuelta).
+    const need = new Set();
+    lt.cands.forEach((j) => j.legs.forEach((l) => { if (l.type === "bus") liveFor(lt.plan, l, need); }));
+    if (need.size) await Promise.all([...need].slice(0, PROBE_MAX).map(getLive));
     if (seq !== tripSeq || lastTrip !== lt) return;
     const now = new Date();
     const re = lt.cands.map((j) => lt.plan.retime(j, (leg) => liveFor(lt.plan, leg), now, lt.start));
@@ -3414,7 +3508,7 @@
         const mids = pat ? pat.p.slice(l.from + 1, l.to).map((i) => `<li>${esc(stopName(i))}</li>`).join("") : "";
         steps.push(`<li class="step bus" ${lc}><span class="ico">${badge(l.line)}</span>
           <span class="txt"><b>${esc(stopName(l.board))}</b> <span class="gid">· ${esc(t("stop_lc", { id: lastTrip.plan.ids[l.board] }))}</span>
-            <small class="dest">${esc(t("towards", { dest }))}</small>
+            <small class="dest">${esc(t("towards", { dest }))}${legBranch(l) ? ` · ${esc(legBranch(l))}` : ""}</small>
             <small class="st">${statusHtml(l)}${where}${l.doubtful ? ` · <span class="warn">${esc(t("no_live"))}</span>` : ""}</small></span>
           <span class="tm">${esc(clock(l.dep))}</span></li>`);
         steps.push(`<li class="step ride" ${lc}><span class="ico"><i></i></span><span class="txt">
@@ -3526,7 +3620,24 @@
   function busPath(leg) {
     const plan = lastTrip.plan;
     const pt = plan.pats[leg.pat];
+    // Bus en vivo de otro ramal que también llega: por su recorrido.
+    const br = leg.live && leg.live._br;
+    if (br && !br.pats.includes(leg.pat)) {
+      for (const n of br.pats) {
+        const q = plan.pats[n], a = q.p.indexOf(leg.board), b = a >= 0 ? q.p.indexOf(leg.alight, a + 1) : -1;
+        if (b > a) return pathThrough(lines[q.l].sentidos[q.s], q.p.map((i) => plan.ids[i]), a, b, `p${q.n}`);
+      }
+    }
     return pathThrough(lines[pt.l].sentidos[pt.s], pt.p.map((i) => plan.ids[i]), leg.from, leg.to, `p${pt.n}`);
+  }
+  // Ramal del bus de un tramo ("por …"): el del bus en vivo si se sabe; si no, el de su viaje del
+  // horario, si a esa hora hay viajes de la línea por otros recorridos. "" si no hace falta.
+  function legBranch(l) {
+    const plan = lastTrip && lastTrip.plan;
+    if (!plan) return "";
+    if (l.live) return l.live._br ? l.live._br.text : "";
+    const when = new Date(dayBase(lastTrip.start || new Date()).getTime() + l.dep * 1000);
+    return branchText(plan, plan.tripBranch(l.board, l.pat, null, when));
   }
   // Recorrido de un sentido de línea pasando por una lista de paradas (ids), de la posición "from" a
   // la "to": cada trozo con el trazado (principal o ramal) que pasa por sus paradas.
@@ -4026,6 +4137,7 @@
       $("#q").blur();
       // Si se abre desde una parada, la línea se muestra alrededor de esa parada y con su próximo bus.
       lineRuta = line.dataset.ruta || null;
+      linePats = line.dataset.pats ? line.dataset.pats.split(",").map(Number) : null;
       // Desde una parada, la fila abre solo los viajes con ese letrero (como una línea aparte).
       const ruta = current && line.dataset.raw;
       // Abierta desde la pantalla Líneas: la barra sigue marcando Líneas.

@@ -95,7 +95,7 @@
         mask[k] = p.v[3 * k + 2];
         if (dur[k] > maxDur) maxDur = dur[k];
       }
-      return { n, l: p.l, s: p.s, f: p.f, p: p.p, t: p.t.map((x) => x / 1000), dep, dur, mask, maxDur, h: p.h || null };
+      return { n, l: p.l, s: p.s, f: p.f, p: p.p, t: p.t.map((x) => x / 1000), dep, dur, mask, maxDur, h: p.h || null, c: p.c == null ? null : p.c };
     });
     // Recorridos que pasan por cada parada: [patrón, posición].
     const at = ids.map(() => []);
@@ -485,12 +485,13 @@
     const cumDist = new Map();   // patrón → distancia acumulada en cada posición
     // llOf(id) → [lat, lon]; nameOf(id) → nombre (opcional: para los letreros que son el nombre de
     // una parada, ver liveReaches).
-    let stopsByName = null;
+    let stopsByName = null, stopNames = null;
     function setStops(llOf, nameOf) {
       stopLL = ids.map((id) => llOf(id) || null);
       cumDist.clear();
       if (nameOf) {
         stopsByName = new Map();
+        stopNames = ids.map((id) => normTxt(nameOf(id)));
         ids.forEach((id, i) => { const k = normTxt(nameOf(id)); if (!k) return; if (!stopsByName.has(k)) stopsByName.set(k, []); stopsByName.get(k).push(i); });
       }
     }
@@ -834,7 +835,11 @@
     // se acepta ninguno malo con retrasos de hasta 20 min; se pierde el dato en vivo en ~4 % de las
     // situaciones con un letrero ambiguo (se usa el horario).
     const MATCH_WINDOW = 1200;
-    const goes = (pt, board, alight) => { const a = pt.p.indexOf(board); return a >= 0 && pt.p.indexOf(alight, a + 1) > a; };
+    // (Con los viajes partidos del horario, "c": el bus sigue en ese otro recorrido.)
+    const goes = (pt, board, alight) => {
+      const a = pt.p.indexOf(board);
+      return a >= 0 && (pt.p.indexOf(alight, a + 1) > a || (pt.c != null && pats[pt.c].p.indexOf(alight, 1) > 0));
+    };
     // Letrero que es el nombre de una parada (registro de la API del 9/11: casi 1 de cada 3 buses de la
     // C3i y la C3d; también 4A, 4C, 5A, 5B, 6, 9B, 12A, 13, 25, 27, 28, 29, 31, C1, U2, H3…): en todos
     // los casos vistos es la última parada de un recorrido de esa línea. El bus va hasta ahí: se
@@ -842,8 +847,12 @@
     function stopNameReach(leg, r, when) {
       const term = stopsByName && stopsByName.get(r);
       if (!term) return null;
-      const ends = (pt) => pt.l === leg.line && pt.s === leg.dir && term.includes(pt.p[pt.p.length - 1]);
-      const nearT = upcoming(leg.board, when, MATCH_WINDOW, MATCH_WINDOW).filter((x) => ends(pats[x.pat]));
+      const ends = (pt) => pt.l === leg.line && pt.s === leg.dir && term.includes(lastStop(pt));
+      // También los viajes cercanos con ese letrero en el horario: el 12/11, la A "Universidade."
+      // de las 8:09 era el viaje partido "UNIVERSIDADE" Guixar–Fragoso–Bioloxía, no uno de los que
+      // acaban en la parada Universidade (8710). Si unos llegan y otros no, "mixed" (y las sondas).
+      const head = (pt) => pt.l === leg.line && pt.s === leg.dir && (pt.h || []).some((h) => normTxt(h) === r);
+      const nearT = upcoming(leg.board, when, MATCH_WINDOW, MATCH_WINDOW).filter((x) => ends(pats[x.pat]) || head(pats[x.pat]));
       const set = nearT.length ? nearT.map((x) => pats[x.pat]) : pats.filter((pt) => ends(pt) && pt.p.includes(leg.board));
       if (!set.length) return null;
       const ok = set.map((pt) => goes(pt, leg.board, leg.alight));
@@ -886,7 +895,185 @@
       return ok.every(Boolean) ? "yes" : ok.some(Boolean) ? "mixed" : "no";
     }
 
-    return { ids, index, pats, at, transfers, search, retime, choose, setStops, stopPasses, upcoming, liveReaches, observe, liveDelay, fecha: data.fecha, WALK };
+    // ---------- Ramal de cada bus en vivo (fase 2 del plan de ramales, 13/11) ----------
+    // Un bus concreto va por un solo recorrido. Si con su letrero hay varios posibles después de la
+    // parada (ramales, viajes que rematan antes), se mira en la API una parada de cada uno justo
+    // después de donde se separan: el bus sale en la del suyo a la hora de la subida + lo que tarda
+    // según el horario (los "deltas": el retraso se arrastra igual). Registro de la API del 9 al
+    // 12/11: así queda claro el ramal de casi todos los buses (ver tools/probar_ramales.js).
+
+    // Paradas que le quedan a un viaje del recorrido pt desde la posición k, con los segundos que
+    // tarda en llegar a cada una (dur: duración de ese viaje). Si el viaje sigue como otro viaje
+    // con el mismo letrero (viajes partidos del horario, "c"; p. ej. la A "UNIVERSIDADE" en Fragoso
+    // 12), también las de ese.
+    function routeAfter(pt, k, dur, endAbs, when) {
+      const stops = [], offs = [];
+      for (let i = k + 1; i < pt.p.length; i++) { stops.push(pt.p[i]); offs.push((pt.t[i] - pt.t[k]) * dur); }
+      if (pt.c != null && endAbs != null) {
+        const c = pats[pt.c], tr = tripsFor(when, false)(c), base = (endAbs - (1 - pt.t[k]) * dur);
+        const q = tr.dep.findIndex((d) => d >= endAbs - 60 && d <= endAbs + 900);
+        if (q >= 0) for (let i = 1; i < c.p.length; i++) { stops.push(c.p[i]); offs.push(tr.dep[q] + c.t[i] * tr.dur[q] - base); }
+      }
+      return { stops, offs };
+    }
+    const lastStop = (pt) => pt.c != null ? pats[pt.c].p[pats[pt.c].p.length - 1] : pt.p[pt.p.length - 1];
+
+    // Viajes del horario que puede ser un bus en vivo de esa línea y sentido, con ese letrero, que
+    // pasa por la parada s hacia "when": los de su letrero a esa hora (±MATCH_WINDOW); si el letrero es
+    // el nombre de una parada, los que acaban en ella; si no está en el horario, todos.
+    function liveCands(s, line, dir, ruta, when) {
+      const r = normTxt(ruta);
+      const near = upcoming(s, when, MATCH_WINDOW, MATCH_WINDOW).filter((x) => pats[x.pat].l === line && pats[x.pat].s === dir);
+      const term = stopsByName && stopsByName.get(r);
+      const byName = term ? near.filter((x) => term.includes(lastStop(pats[x.pat]))) : [];
+      const byHead = near.filter((x) => (pats[x.pat].h || []).some((h) => normTxt(h) === r));
+      if (/[a-zß-ÿ]/.test(String(ruta || "")) && byName.length) return [...byName, ...byHead.filter((x) => !byName.includes(x))];
+      if (byHead.length) return byHead;
+      if (byName.length) return byName;
+      // Sin viajes de su letrero a esa hora (un bus muy retrasado o adelantado: el 12/11, la 12B de
+      // las 14:48 pasó por Castrelos con 36 min de retraso): los recorridos de ese letrero a
+      // cualquier hora.
+      const passing = (pt) => { const k = pt.p.indexOf(s); return pt.l === line && pt.s === dir && k >= 0 && k < pt.p.length - 1; };
+      const anyHead = pats.filter((pt) => passing(pt) && (pt.h || []).some((h) => normTxt(h) === r));
+      if (anyHead.length) return anyHead.map((pt) => ({ pat: pt.n, trip: null }));
+      const anyName = term ? pats.filter((pt) => passing(pt) && term.includes(lastStop(pt))) : [];
+      if (anyName.length) return anyName.map((pt) => ({ pat: pt.n, trip: null }));
+      return near;
+    }
+    const medianDur = (pt) => { const d = [...pt.dur].sort((a, b) => a - b); return d.length ? d[d.length >> 1] : 0; };
+
+    // ¿Puede ir este bus por más de un recorrido después de la parada s? null si no (o si no hay
+    // viajes del horario a esa hora). Si sí: { routes: [{ stops, offs, pats }], probes: [{ stop,
+    // off, routes }] }, con una parada de "sonda" por recorrido: la primera suya que no está en
+    // todos los demás (un recorrido que remata antes que otro no tiene: se sabe por descarte).
+    // canProbe(u): paradas que se pueden usar de sonda (por defecto, todas).
+    // Recorridos distintos después de s de unos viajes del horario (cands: [{ pat, trip }], trip null
+    // si no se sabe cuál): [{ stops, offs, pats }].
+    function routesOf(s, cands, when) {
+      const groups = new Map();
+      for (const x of cands) {
+        const pt = pats[x.pat], k = pt.p.indexOf(s), tr = tripsFor(when, false)(pt);
+        const q = x.trip == null ? -1 : tr.dep.indexOf(x.trip);
+        const dur = q >= 0 ? tr.dur[q] : medianDur(pt);
+        const r = routeAfter(pt, k, dur, q >= 0 ? x.trip + dur : null, when);
+        const key = r.stops.join(",");
+        if (!groups.has(key)) groups.set(key, { ...r, pats: [] });
+        if (!groups.get(key).pats.includes(x.pat)) groups.get(key).pats.push(x.pat);
+      }
+      return [...groups.values()];
+    }
+    function branchCheck(s, line, dir, ruta, when, canProbe = null) {
+      const routes = routesOf(s, liveCands(s, line, dir, ruta, when), when);
+      if (routes.length < 2) return null;
+      // Una sonda por cada par de recorridos: la primera parada de uno que no está en el otro (sin
+      // la última, ver arriba).
+      const probes = [];
+      routes.forEach((rt, a) => routes.forEach((o, b) => {
+        if (a === b) return;
+        const i = rt.stops.findIndex((u, k) => k < rt.stops.length - 1 && !o.stops.includes(u) && (!canProbe || canProbe(u)));
+        if (i < 0 || probes.some((p) => p.stop === rt.stops[i])) return;
+        const u = rt.stops[i];
+        const rs = routes.map((x, j) => (x.stops.includes(u) ? j : -1)).filter((j) => j >= 0);
+        // offs: lo que tarda en llegar a la sonda por cada recorrido (no es lo mismo por todos).
+        probes.push({ stop: u, off: rt.offs[i], routes: rs, offs: rs.map((j) => routes[j].offs[routes[j].stops.indexOf(u)]) });
+      }));
+      return { routes, probes };
+    }
+
+    // Recorridos que pueden ser el del bus que está a "m" minutos de la subida, con lo que da la API
+    // en las sondas: lists(stop) → lista de { line, ruta, minutos } de esa parada, o null si no se
+    // sabe. Sale en una sonda si allí hay un bus de la línea con el mismo letrero a m + lo que tarda
+    // (± probeTol). Devuelve los índices de los recorridos posibles (todos si no queda claro).
+    const probeTol = (off) => 150 + 0.15 * off;
+    function branchPick(check, line, ruta, m, lists) {
+      if (!check) return [];
+      // El letrero tal cual (sin juntar mayúsculas y minúsculas: el 12/11, "Universidade." y
+      // "UNIVERSIDADE" de la A eran dos buses distintos, uno a cada lado).
+      const same = (x) => String(x || "").replace(/\s+/g, " ").trim();
+      const r = same(ruta);
+      const hit = [];
+      for (const p of check.probes) {
+        const list = lists(p.stop);
+        if (!list) continue;
+        // Mismo letrero, o el nombre de la última parada de uno de los recorridos de esa sonda (cerca
+        // del final, la API cambia el letrero por el nombre de la parada en la que acaba el viaje).
+        const ends = new Set(p.routes.flatMap((j) => { const st = check.routes[j].stops; return stopNames ? [stopNames[st[st.length - 1]]] : []; }));
+        const mins = list.filter((b) => b.line === line && (same(b.ruta) === r || ends.has(normTxt(b.ruta))) && isFinite(Number(b.minutos))).map((b) => Number(b.minutos) * 60);
+        // Sale si llega a la hora de alguno de sus recorridos. No se elige entre ellos por la hora (las
+        // diferencias entre recorridos son pequeñas frente a los retrasos: el 11/11 se equivocaba).
+        if (p.routes.some((j, i) => mins.some((x) => Math.abs(x - (m * 60 + p.offs[i])) <= probeTol(p.offs[i])))) hit.push(p);
+      }
+      const all = check.routes.map((_, j) => j);
+      if (!hit.length) return all;
+      // Que no salga en una sonda no dice nada (la API no siempre da los buses lejanos; en el
+      // registro del 11 y el 12/11, descartar así se equivocaba): solo cuenta dónde sí sale.
+      return all.filter((j) => hit.every((p) => p.routes.includes(j)));
+    }
+    // Cómo se llama el recorrido (o recorridos js, si son el mismo en lo que importa) frente a los
+    // demás de "routes": { by: parada } (la primera suya que no está en ninguno de los otros: "por
+    // <su calle>") o { until: parada } (remata antes que los otros: "hasta <su última parada>").
+    // null si no hay otros o no se distingue.
+    // Nombres de ramal hechos a mano (data/ramales.json): "línea|sentido" → [{ stop, n }].
+    const branchNames = new Map();
+    function setBranchNames(list) {
+      branchNames.clear();
+      for (const x of list || []) {
+        const i = index.get(String(x.p));
+        if (i == null) continue;
+        const k = `${x.l}|${x.s}`;
+        if (!branchNames.has(k)) branchNames.set(k, []);
+        branchNames.get(k).push({ stop: i, n: x.n });
+      }
+    }
+    function branchName(routes, js) {
+      const mine = js.map((j) => routes[j]), others = routes.filter((_, j) => !js.includes(j));
+      if (!others.length || !mine.length) return null;
+      // Primero, el nombre hecho a mano de la parada propia que antes se encuentre.
+      const pt0 = pats[mine[0].pats[0]];
+      const named = (branchNames.get(`${pt0.l}|${pt0.s}`) || [])
+        .filter((e) => mine.every((r) => r.stops.includes(e.stop)) && !others.some((o) => o.stops.includes(e.stop)))
+        .sort((a, b) => mine[0].stops.indexOf(a.stop) - mine[0].stops.indexOf(b.stop));
+      if (named.length) return { name: named[0].n, by: named[0].stop };
+      const end = (r) => r.stops[r.stops.length - 1];
+      const u = mine[0].stops.find((x) => !others.some((o) => o.stops.includes(x)));
+      // Si lo suyo es solo el final (las dos últimas paradas), "hasta" su última parada.
+      if (u != null && mine.every((r) => end(r) === end(mine[0])) && mine[0].stops.indexOf(u) >= mine[0].stops.length - 2) return { until: end(mine[0]) };
+      if (u != null && mine.every((r) => r.stops.includes(u))) return { by: u };
+      if (mine.every((r) => end(r) === end(mine[0])) && others.every((o) => o.stops.includes(end(mine[0])) && o.stops.indexOf(end(mine[0])) < o.stops.length - 1)) return { until: end(mine[0]) };
+      return null;
+    }
+    // Recorrido de un viaje del horario (patrón "pat" que sale a "trip") que pasa por s frente a los
+    // demás viajes de su línea y sentido que pasan por s a esa hora (±MATCH_WINDOW): branchName o null.
+    function tripBranch(s, pat, trip, when) {
+      const pt = pats[pat];
+      const near = upcoming(s, when, MATCH_WINDOW, MATCH_WINDOW).filter((x) => pats[x.pat].l === pt.l && pats[x.pat].s === pt.s);
+      if (!near.some((x) => x.pat === pat)) near.push({ pat, trip });
+      const routes = routesOf(s, near, when);
+      if (routes.length < 2) return null;
+      const j = routes.findIndex((r) => r.pats.includes(pat));
+      return j < 0 ? null : branchName(routes, [j]);
+    }
+
+    // ¿Llevan a "alight" los recorridos posibles? "yes", "no" o "mixed".
+    function routesReach(check, js, alight) {
+      const ok = js.map((j) => check.routes[j].stops.includes(alight));
+      return ok.every(Boolean) ? "yes" : ok.some(Boolean) ? "mixed" : "no";
+    }
+
+    // liveReaches con las sondas: si con el letrero no queda claro ("mixed"), el recorrido del bus
+    // según dónde sale en la API después de la separación (branchCheck / branchPick). m: minutos del
+    // bus en la subida; lists(stop): lo que da la API en esa parada (null si no se sabe).
+    // canProbe: ver branchCheck (para las pruebas con el registro).
+    function liveReachesProbe(leg, ruta, when, m, lists, canProbe = null) {
+      const base = liveReaches(leg, ruta, when);
+      if (base !== "mixed" || !lists) return base;
+      const check = branchCheck(leg.board, leg.line, leg.dir, ruta, when, canProbe);
+      if (!check) return base;
+      const r = routesReach(check, branchPick(check, leg.line, ruta, m, lists), leg.alight);
+      return r === "mixed" ? base : r;
+    }
+
+    return { liveReachesProbe, ids, index, pats, at, transfers, search, retime, choose, setStops, stopPasses, upcoming, liveReaches, observe, liveDelay, branchCheck, branchPick, routesReach, branchName, setBranchNames, tripBranch, routesOf, liveCands, fecha: data.fecha, WALK };
   }
 
   let pending = null;
@@ -894,7 +1081,9 @@
     build, isHoliday, dayBit, openAt, WALK,
     load(url = "data/viajes.json", vvUrl = "data/vigo-vertical.json") {
       const get = (u) => fetch(u).then((r) => { if (!r.ok) throw new Error(r.status); return r.json(); });
-      if (!pending) pending = Promise.all([get(url), get(vvUrl).catch(() => null)]).then(([d, vv]) => build(d, vv))
+      // (data/ramales.json: nombres de los ramales hechos a mano; sin él, los automáticos.)
+      if (!pending) pending = Promise.all([get(url), get(vvUrl).catch(() => null), get("data/ramales.json").catch(() => null)])
+        .then(([d, vv, rm]) => { const p = build(d, vv); if (rm) p.setBranchNames(rm.ramales); return p; })
         .catch((e) => { pending = null; throw e; });
       return pending;
     },

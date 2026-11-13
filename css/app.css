@@ -494,6 +494,9 @@ button.badge:hover { filter: brightness(1.08); }
 .route small + small::before { content: " · "; }
 .route small { display: inline; }
 .route b + small { display: inline; }
+/* Ramal del bus (fase 2 de ramales): "por <calle>" / "hasta <parada>", debajo del letrero */
+.route .via { display: block; font-size: 13px; font-weight: 600; color: var(--ink); line-height: 1.3; }
+.route .via::first-letter { text-transform: uppercase; }
 .arrival.is-sched .badge { opacity: .7; }
 .eta.sched b { font-size: 24px; color: var(--granite); }
 .eta { text-align: right; font-family: var(--cond); line-height: 1; white-space: nowrap; }

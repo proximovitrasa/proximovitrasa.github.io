@@ -18,6 +18,8 @@ Formato de salida:
           "p": [índices de parada],
           "t": [milésimas del viaje],   # en qué fracción del tiempo total se llega a cada parada
           "h": ["LETRERO", ...],        # letreros de sus viajes (la "ruta" de la API en vivo)
+          "c": n,                       # (opcional) recorrido en el que siguen sus viajes (viajes
+                                        # partidos del horario: el bus sigue con el mismo letrero)
           "v": [dSalida, duración, días, ...] }   # viajes: salida de la 1.ª parada en segundos desde
                                                   # medianoche (en diferencias con el anterior),
                                                   # duración en segundos y días de la semana como
@@ -137,6 +139,7 @@ def main(gtfs_zip):
     # Agrupar viajes por línea, sentido y secuencia de paradas.
     grupos = defaultdict(list)
     letreros = defaultdict(set)   # letreros de los viajes de cada grupo
+    viaje_de = {}                 # viaje → (grupo, salida, llegada, días, letrero)
     for tid, hs in horas.items():
         hs.sort()
         hs = [(s, gtfs_a_parada[g], t) for s, g, t in hs if g in gtfs_a_parada]
@@ -147,6 +150,7 @@ def main(gtfs_zip):
         grupos[clave].append(([t for *_, t in hs], mask))
         if letrero:
             letreros[clave].add(letrero)
+        viaje_de[tid] = (clave, hs[0][2], hs[-1][2], mask, letrero)
 
     ids = sorted({p for (_, _, ps) in grupos for p in ps}, key=lambda x: (len(x), x))
     idx = {p: i for i, p in enumerate(ids)}
@@ -192,6 +196,29 @@ def main(gtfs_zip):
             prev = ts[0]
         patrones.append({"l": linea, "s": s, "f": f_elegida, "p": [idx[p] for p in ps], "t": fr, "v": plano,
                          "h": sorted(letreros[(linea, s, ps)])})
+
+    # Viajes partidos (fase 2 del plan de ramales): el horario parte en dos un viaje que el bus hace
+    # seguido, con el mismo letrero (el 12/11, la A "UNIVERSIDADE" de Guixar acaba en Fragoso 12 a
+    # las 8:13 y sigue a las 8:16 como otro viaje hasta Bioloxía; la API la da como un solo bus).
+    # Si todos los viajes de un recorrido siguen así en otro recorrido (misma línea y letrero, en la
+    # parada en la que acaba, como mucho 10 min después y los mismos días), "c": ese recorrido.
+    # Las circulares (un recorrido que sigue en sí mismo) no.
+    num = {(pt["l"], pt["s"], tuple(ids[i] for i in pt["p"])): n for n, pt in enumerate(patrones)}
+    por_inicio = defaultdict(list)
+    for tid, (clave, t0, t1, mask, letrero) in viaje_de.items():
+        por_inicio[(clave[0], clave[2][0])].append((t0, mask, letrero, clave))
+    sigue = defaultdict(set)      # recorrido → recorridos en los que siguen sus viajes (None si alguno no)
+    for tid, (clave, t0, t1, mask, letrero) in viaje_de.items():
+        nxt = {num[c] for (u0, m2, l2, c) in por_inicio[(clave[0], clave[2][-1])]
+               if 0 <= u0 - t1 <= 600 and m2 & mask and l2.lower() == letrero.lower() and letrero and c != clave}
+        sigue[num[clave]].add(nxt.pop() if len(nxt) == 1 else None)
+    for n, ns in sigue.items():
+        if len(ns) == 1 and None not in ns:
+            c = ns.pop()
+            patrones[n]["c"] = c
+            pt = patrones[n]
+            print(f"Viaje partido: {pt['l']} \"{'/'.join(pt['h'])}\" sigue en el recorrido {c} "
+                  f"(desde {ids[pt['p'][-1]]})")
 
     # Paradas donde el GTFS dice que para una línea que la parada no anuncia (o al revés): solo aviso.
     sin_anunciar = sum(1 for pt in patrones for i in pt["p"] if pt["l"] not in lineas_parada.get(ids[i], set()))
